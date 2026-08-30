@@ -1,0 +1,222 @@
+\chapter{Course glossary}
+\label{app:glossary}
+
+This glossary is a navigation aid, not a substitute for the chapters where each
+term is motivated and connected to examples. Acronyms are expanded here, but a
+definition also explains the concept's purpose and distinguishes it from nearby
+ideas. A term may have a more specialized meaning in another discipline; these
+are the working meanings used throughout the text.
+
+\begin{longtable}{@{}p{0.23\textwidth}p{0.68\textwidth}@{}}
+\toprule
+\textbf{Term} & \textbf{Working definition} \\
+\midrule
+\endhead
+agent & System in which a model may choose some sequence of actions from
+observations within externally enforced tools, policy, budgets, and stopping
+rules. The model is a component, not the whole agent. \\
+activation function & Nonlinear transformation applied within a neural network.
+Without nonlinear activations, a composition of affine layers collapses to one
+affine map. \\
+API & Application programming interface: a supported contract through which
+software components interact. It may be an in-process function/package API or
+a request/response web API. \\
+API key & Secret credential used to identify or authorize an API caller; it may
+permit spending or data access. \\
+array & Regular multidimensional collection governed by a shape and data type. \\
+artifact & Identifiable output of a process, such as a package distribution,
+dataset snapshot, model file, container image, report, or compiled application. \\
+authentication & Process of establishing which identity is making a request.
+It answers ``Who are you?'' and does not by itself decide what that identity may
+do. \\
+authorization & Decision about whether an authenticated identity may perform a
+specific action on a specific resource. \\
+branch & Movable Git reference that points to a commit. A branch provides a
+name for one line of work; it is not a copied project directory. \\
+axis & One dimension of an array together with its domain meaning, such as
+observations, features, time points, or simulation runs. \\
+backend & Server-side code implementing interfaces, policy, orchestration, and
+integrations. \\
+broadcasting & NumPy rules that allow compatible array dimensions, especially
+dimensions of size one, to participate in an operation without explicitly
+copying repeated values. Dimensional compatibility does not prove semantic
+compatibility. \\
+calibration & Agreement between predicted probabilities and observed event
+frequencies on a named population. Calibration differs from ranking ability and
+can change when the population changes. \\
+CD & Continuous delivery or continuous deployment, depending on the stated
+workflow. Delivery keeps an explicit production-release decision; deployment
+automates that decision for qualifying changes. \\
+CI & Continuous integration: automated checks of integrated changes in a clean
+environment. \\
+CLI & Command-line interface: a contract based on command arguments, standard
+input/output, messages, and exit status. \\
+client & Browser, device, script, or service that makes a request to an API. \\
+commit & Git object recording a project snapshot, metadata, message, and parent
+commit or commits. A commit is local until its history is transferred to a
+remote. \\
+cross-validation & Resampling design that rotates training and validation roles
+to estimate a procedure under the population assumptions encoded by its folds.
+Grouped and temporal variants estimate different use settings. \\
+data provenance & Evidence about the origin, transformations, versions, and
+ownership of data. \\
+DataFrame & pandas table with named columns, an index, and potentially different
+data types across columns. It is an in-memory representation, not a database. \\
+database & Organized persisted data plus its logical structure. \\
+DBMS & Database-management system: software that stores, queries, coordinates,
+and protects database state. \\
+dependency & External package or component whose behavior a project uses. \\
+DNS & Domain Name System: distributed naming infrastructure that resolves names
+such as a service hostname to routing information such as an IP address. \\
+distribution & Installable Python project with metadata and packaged files. \\
+dtype & NumPy data type governing the representation and operations of array
+elements, including numerical range, precision, and missing-value strategy. \\
+endpoint & One web-API operation commonly identified by an HTTP method and path. \\
+ensemble & Predictor formed by combining multiple fitted learners. Bagging,
+boosting, voting, and stacking use different combination mechanisms and should
+not be treated as synonyms. \\
+environment & Collection of runtime configuration and installed dependencies
+available to a process. A virtual environment is one Python-specific mechanism
+for isolating such state. \\
+feature & Measurable or constructed input supplied to a model. A feature's
+definition includes its population, time of availability, units, and
+transformation history. \\
+fork & GitHub-hosted repository related to another repository and owned under a
+different account or organization, commonly used to propose changes without
+write access to the source repository. \\
+frontend & Code and assets that present state and interaction to a user. \\
+generator & Iterator commonly created by a function that yields values while
+preserving suspended state. \\
+Git & Distributed version-control system that records project snapshots and
+their relationships in a repository. \\
+GitHub & Hosted collaboration platform for Git repositories, pull requests,
+reviews, issues, Actions, releases, and access control. Git and GitHub are
+distinct systems. \\
+HTTP & Application protocol carrying requests and responses between networked
+software components. \\
+HTTPS & HTTP carried through Transport Layer Security so that endpoints can
+authenticate the server and protect data in transit. It does not validate the
+scientific truth of the payload. \\
+idempotency & Property that repeating the same logical operation does not create
+additional effects beyond the first successful application. \\
+import package & Python namespace organizing related modules. \\
+inference & Running a trained model to produce scores, predictions, generated
+content, or other output. \\
+label & Observed target value attached to an example for supervised learning.
+The term does not guarantee that the value is correct, contemporaneous, or free
+of measurement and selection processes. \\
+leakage & Use during model construction of information that is unavailable at
+the intended prediction time or improperly crosses an evaluation boundary. \\
+loss function & Numerical function that assigns cost to a prediction and target
+and thereby defines a training or comparison objective. It need not be the same
+as the reported metric or operational decision cost. \\
+integration test & Test that exercises a meaningful boundary between real
+components, such as application code and an actual database engine. \\
+invariant & Condition that must remain true for every valid state or after every
+supported operation of an object or system. \\
+iterator & Stateful object that yields the next value in a traversal. \\
+join cardinality & Expected relationship between keys on two sides of a join,
+such as one-to-one, one-to-many, or many-to-many; it predicts possible row
+multiplication. \\
+JSON & Text representation for objects, arrays, strings, numbers, Booleans, and
+null; it is a representation, not an API or domain schema by itself. \\
+kernel & Long-running process that receives notebook code, retains state, and
+returns results. \\
+lockfile & Recorded resolved dependency graph used to reproduce an environment. \\
+LLM & Large language model: a model trained to represent and generate sequences
+of tokens. A model is one component of an assistant or agent system. \\
+metric & Quantitative summary with a defined population, units, aggregation,
+and interpretation; operational metrics also support monitoring. \\
+model & Mathematical or computational representation that maps input to
+scores, distributions, categories, generated objects, or action proposals. \\
+model artifact & Versioned release object binding fitted state to its feature
+schema, transformations, output semantics, runtime, provenance, and evaluation
+evidence. Parameters alone are not a complete artifact contract. \\
+merge & Git operation that integrates histories and, when necessary, creates a
+commit with multiple parents. A conflict asks a human to choose final content. \\
+module & Importable Python file. \\
+NumPy & Python package providing multidimensional arrays and numerical
+operations. Its array API makes shape, axes, and data type central. \\
+object & Runtime value with a type, identity, and associated behavior. \\
+object storage & Service that stores byte objects under keys with metadata;
+it is not an ordinary local filesystem or relational database. \\
+orchestrator & System that owns durable workflow state, schedules, dependencies,
+retries, concurrency, and recovery. \\
+observability & Ability to investigate a system's behavior from evidence such
+as logs, metrics, traces, and client outcomes. It is a system property, not the
+name of one monitoring product. \\
+package API & Supported names and behaviors a package intends callers to use. \\
+pandas & Python package for labeled Series and DataFrame operations. Labels make
+alignment explicit but do not establish data validity. \\
+parameterized query & Database query in which values are bound separately from
+SQL syntax, protecting representation and reducing injection risk. Dynamic
+identifiers require a different controlled design. \\
+prompt injection & Untrusted content attempting to redirect a model-driven
+system or expand its authority. The durable defense is to keep authority in
+application policy rather than in untrusted text. \\
+pull request & GitHub review record proposing that changes from one branch be
+integrated into another. It connects a diff, discussion, reviews, commits, and
+automated checks. \\
+random seed & Initializer used to reproduce a particular pseudorandom stream. A
+seed supports repeatability but does not prove robustness or model validity. \\
+request & Operation, metadata, and optional input sent by a client to an API. \\
+response & Status, metadata, and optional result or error data returned by a
+server. \\
+remote & Named Git configuration referring to another repository location.
+\code{origin} is a conventionally assigned name, not a special server. \\
+repository & Version-controlled project directory containing source,
+configuration, tests, and documentation. \\
+schema & Explicit structure and constraints for data or messages. \\
+SDK & Software development kit: client libraries and tools that help developers
+use a platform or API. \\
+server & Process that receives requests and provides responses or services. \\
+shape & Ordered tuple giving the number of array elements along each axis. Shape
+describes dimensions; domain knowledge supplies their meaning. \\
+staging area & Git's proposed content for the next commit, also called the
+index. It permits selected changes to form one coherent snapshot. \\
+supervised learning & Estimation of a prediction rule from observations paired
+with targets under a stated population, information, loss, and evaluation
+contract. \\
+target & Outcome a supervised-learning task attempts to estimate. Its
+definition includes measurement process, time or horizon, units, and eligible
+population. \\
+service-level objective & Measurable target for a user-relevant aspect of
+reliability over a defined interval. \\
+structured log & Machine-readable event record with named fields and controlled
+content. \\
+telemetry & Evidence emitted about a running system, including selected logs,
+metrics, traces, and client outcomes, subject to privacy and retention policy. \\
+test oracle & Independent basis for deciding whether observed behavior is
+acceptable. \\
+TLS & Transport Layer Security: protocol used to authenticate an endpoint and
+protect network data in transit. It does not authorize application actions. \\
+tool & Narrow application operation that an agent or workflow may request.
+Application code, not the model's description, enforces the tool's argument,
+authorization, resource, and side-effect contract. \\
+trace & Causal record linking work across components, commonly as related spans. \\
+transaction & Group of database operations treated as an atomic success or
+rollback boundary. \\
+training & Procedure that uses observations to choose fitted parameters or
+state. Training-objective improvement does not by itself establish
+generalization or scientific validity. \\
+type & Family of objects and associated operations and behavior. \\
+unit test & Focused test of one coherent behavior with controlled inputs. A unit
+is defined by the behavior under test, not necessarily by a single function. \\
+vectorization & Expression of related operations through an array interface so
+looping is performed by optimized lower-level code. It does not eliminate
+computational complexity or memory cost. \\
+virtual environment & Project-specific Python installation context used to
+isolate dependencies. \\
+web API & Request/response interface exposed across a process or network
+boundary, often using HTTP. \\
+workflow & Mostly predetermined graph of steps, decisions, inputs, and outputs.
+Unlike an agent, it does not generally ask a model to choose the action sequence
+at runtime. \\
+\bottomrule
+\end{longtable}
+
+\begin{checkpointbox}
+Select five neighboring concepts that are easy to confuse, such as SDK, API,
+service, server, and model. Draw them as distinct boxes and label what crosses
+each boundary.
+\end{checkpointbox}

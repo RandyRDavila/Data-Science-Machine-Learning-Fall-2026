@@ -1,0 +1,35 @@
+version: 1
+default: deny
+
+model_context:
+  secrets: forbidden
+  raw_personal_data: forbidden
+  source_code: explicitly_delimited_only
+
+tools:
+  audit_python_docstrings:
+    risk: read
+    automated_use: allowed
+    network: false
+  propose_training_run:
+    risk: propose
+    automated_use: allowed
+    execution: false
+  schedule_training_run:
+    risk: write
+    automated_use: forbidden
+    requires:
+      - schema_validation
+      - deterministic_policy
+      - named_human_approval
+      - idempotency_key
+      - audit_record
+  general_shell:
+    risk: execute
+    automated_use: forbidden
+
+limits:
+  maximum_agent_steps: 4
+  maximum_tool_calls: 3
+  maximum_training_runtime_minutes: 120
+  gpu_allowed: false

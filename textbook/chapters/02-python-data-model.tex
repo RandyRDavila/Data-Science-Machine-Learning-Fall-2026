@@ -1,0 +1,345 @@
+\chapter{Objects, values, and native data structures}
+\label{ch:python-data}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish names, objects, types, values, identity, and mutability;
+  \item choose strings, sequences, mappings, and sets from their semantics;
+  \item preserve raw data while creating validated representations; and
+  \item use iteration without confusing traversal with materialization.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Chapter 2 established which Python process is running. We now look inside that
+process. The central question changes from ``Which interpreter owns this
+computation?'' to ``What object does this name refer to, and which operations
+preserve its meaning?''
+\end{chapterconnection}
+
+\section{Names refer to objects}
+
+Python assignment binds a name to an object. It does not declare a fixed box
+whose type can never change.
+
+\begin{lstlisting}
+probability_text = "0.873"
+probability = float(probability_text)
+
+assert isinstance(probability_text, str)
+assert isinstance(probability, float)
+\end{lstlisting}
+
+The original string and parsed floating-point value are different objects with
+different meanings. Preserving both supports diagnosis and provenance. A value
+that looks numerical is not numerical merely because a human can interpret it.
+
+\begin{definitionbox}{type}
+A type defines a family of objects and the operations and behaviors associated
+with them. A type annotation documents an intended contract; runtime validation
+is a separate action unless a library or explicit check performs it.
+\end{definitionbox}
+
+Equality asks whether two objects represent equal values under their type's
+rules. Identity asks whether two names refer to the same object. Use
+\code{is None} for the singleton \code{None}; do not replace value equality with
+identity comparisons.
+
+\section{Mutability and aliasing}
+
+An immutable object cannot change its own value after creation. A mutable object
+can. If two names refer to one mutable list, a change through either name is
+visible through both.
+
+\begin{lstlisting}
+temperatures = [20.1, 20.4]
+shared_reference = temperatures
+independent_copy = temperatures.copy()
+
+shared_reference.append(20.8)
+
+assert temperatures == [20.1, 20.4, 20.8]
+assert independent_copy == [20.1, 20.4]
+\end{lstlisting}
+
+Aliasing is not automatically a bug. It is a state-sharing decision. Bugs arise
+when code shares mutable state without making ownership visible.
+
+\section{Strings are structured text}
+
+A \term{string} is an immutable sequence of Unicode text. Text arrives from
+filenames, identifiers, logs, forms, CSV fields, JSON keys, command-line
+arguments, and API payloads. It may contain invisible whitespace, distinct
+Unicode representations, or characters that resemble digits without having
+numeric type.
+
+Reliable text work separates stages:
+
+\begin{center}
+\begin{tikzpicture}[node distance=8mm]
+  \node[wideflowbox] (raw) {Raw evidence\\preserved exactly};
+  \node[wideflowbox,right=of raw] (parse) {Contract-aware\\parsing and normalization};
+  \node[wideflowbox,right=of parse] (typed) {Typed value\\with explicit meaning};
+  \draw[flowarrow] (raw) -- (parse);
+  \draw[flowarrow] (parse) -- (typed);
+\end{tikzpicture}
+\end{center}
+
+Normalization is a policy, not a cleaning reflex. Lowercasing may be correct for
+a case-insensitive category and destructive for a case-sensitive identifier.
+Formatting a number for display must not replace the full-precision value used
+in later computation.
+
+\section{Sequences encode order}
+
+Lists and tuples are both ordered sequences. A list is mutable and is suitable
+for a collection that grows or changes under clear ownership. A tuple is
+immutable and often communicates a fixed record, coordinate, or return bundle.
+
+Indexing retrieves one element. Slicing constructs a subsequence. Negative
+indices count from the end. These operations are convenient, but meaning still
+comes from the data contract. The third element of an unlabeled tuple is easy to
+misinterpret in a large system.
+
+\begin{professionalbox}
+Choose a sequence because order and multiplicity are meaningful, not because a
+list is the first container you remember. For domain records, a dataclass or
+validated model often communicates more than positional elements.
+\end{professionalbox}
+
+\section{Mappings and sets encode different relations}
+
+A dictionary maps unique keys to values. It is appropriate for labeled fields,
+indexes, configuration, counts, and adjacency lists. A set represents unique
+membership and supports union, intersection, and difference.
+
+\begin{lstlisting}
+sensor = {
+    "sensor_id": "T-17",
+    "unit": "degree Celsius",
+    "precision": 0.1,
+}
+
+observed = {"temperature", "pressure"}
+required = {"temperature", "humidity"}
+missing = required - observed
+
+assert missing == {"humidity"}
+\end{lstlisting}
+
+A missing key, a key explicitly mapped to \code{None}, and a key mapped to an
+empty string are three distinct states. Conflating them erases information.
+
+\section{Iterables, iterators, and generators}
+
+An \term{iterable} can produce an iterator. An \term{iterator} yields one value
+at a time and remembers its position. A \term{generator} is a convenient way to
+implement an iterator with suspended function state.
+
+Iteration permits bounded, streaming computation. It does not guarantee that
+the source is small, repeatable, or safe to consume twice. Converting an
+iterator to a list materializes every remaining item in memory.
+
+\begin{lstlisting}
+def valid_probabilities(lines):
+    for line in lines:
+        value = float(line)
+        if 0.0 <= value <= 1.0:
+            yield value
+\end{lstlisting}
+
+This generator can process a file progressively. It still needs a policy for
+malformed input, provenance, logging, and whether silently excluding values is
+scientifically acceptable.
+
+\begin{warningbox}
+Truthiness is not a missing-data policy. Zero, an empty string, an empty list,
+\code{False}, and \code{None} are all false in Boolean context but may represent
+very different scientific states.
+\end{warningbox}
+
+\begin{checkpointbox}
+Design a representation for one experiment with an identifier, ordered time
+points, unique observed variables, and metadata fields. Justify each container
+from its semantics and identify which state is mutable.
+\end{checkpointbox}
+
+\section{Worked example: from instrument text to a trustworthy record}
+
+Suppose an instrument exports this line:
+
+\begin{lstlisting}
+raw_line = "  SAMPLE-017 , 23.40 , valid  "
+\end{lstlisting}
+
+Humans see an identifier, temperature, and quality label. Python initially sees
+one string. We should not jump directly to a cleaned list and discard the
+original. Each transformation answers a separate question.
+
+\begin{workedexample}{build meaning in observable stages}
+\textbf{Stage 1: preserve evidence.}
+
+\begin{lstlisting}
+raw_line = "  SAMPLE-017 , 23.40 , valid  "
+fields = raw_line.split(",")
+assert fields == ["  SAMPLE-017 ", " 23.40 ", " valid  "]
+\end{lstlisting}
+
+Splitting is a syntactic operation. It assumes comma is the delimiter but has
+not yet decided what any field means.
+
+\textbf{Stage 2: normalize under a field-specific contract.}
+
+\begin{lstlisting}
+sample_id_text, temperature_text, quality_text = fields
+sample_id = sample_id_text.strip()
+quality = quality_text.strip().casefold()
+\end{lstlisting}
+
+Whitespace is removed because the export contract declares it insignificant.
+The quality label is case-insensitive. We do not case-normalize the identifier
+without an equivalent promise.
+
+\textbf{Stage 3: convert and validate.}
+
+\begin{lstlisting}
+temperature_c = float(temperature_text)
+
+if not -273.15 <= temperature_c <= 2_000.0:
+    raise ValueError("temperature_c is outside the accepted domain")
+if quality not in {"valid", "suspect", "failed"}:
+    raise ValueError("quality has an unknown label")
+\end{lstlisting}
+
+Conversion answers ``can these characters represent a floating-point value?''
+The range check answers a different domain question. The upper limit here is an
+example contract, not a law Python can infer.
+
+\textbf{Stage 4: construct a labeled record.}
+
+\begin{lstlisting}
+record = {
+    "sample_id": sample_id,
+    "temperature_c": temperature_c,
+    "quality": quality,
+    "raw_line": raw_line,
+}
+\end{lstlisting}
+
+The dictionary makes field roles visible and retains the evidence needed to
+diagnose parsing. A later chapter will replace suitable dictionaries with
+validated domain classes.
+\end{workedexample}
+
+Notice what the code does not establish: whether the sensor was calibrated,
+whether the sample identifier belongs to the experiment, or whether
+\code{23.40} was truly reported in degrees Celsius. Representation checks and
+scientific validity remain distinct.
+
+\section{Choosing a container by the question it answers}
+
+Container choice is clearer when phrased as a question:
+
+\begin{tabularx}{\textwidth}{@{}p{0.25\textwidth}X@{}}
+\toprule
+Structure & Question it answers naturally \\
+\midrule
+String & What text, identifier, or encoded field was supplied? \\
+List & What ordered collection may be updated under one owner? \\
+Tuple & What fixed ordered group should not change? \\
+Dictionary & Which value belongs to this unique key or field name? \\
+Set & Is this distinct item present, and how do memberships compare? \\
+Iterator & What is the next item without materializing the entire source? \\
+\bottomrule
+\end{tabularx}
+
+No table can choose without domain context. A coordinate might be a tuple; a
+mutable simulation state might need a class; an observation table will later
+become a DataFrame. The principle is to make important semantics visible.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} tuples are ``safer lists'' and should replace lists
+whenever mutation is not expected.
+
+\textbf{Correction:} immutability is useful, but positional meaning can remain
+opaque. A tuple of three floats might be a point, RGB color, confidence
+interval, or date. When field names and invariants matter, a dataclass or
+validated model may communicate the domain better.
+\end{misconceptionbox}
+
+\section{Iteration changes when work happens}
+
+Compare a list comprehension and generator expression:
+
+\begin{lstlisting}
+squares_list = [value**2 for value in range(1_000_000)]
+squares_stream = (value**2 for value in range(1_000_000))
+\end{lstlisting}
+
+The first computes and stores one million results immediately. The second
+creates an iterator that computes results as requested. That difference affects
+memory, timing, errors, and repeatability. A generator may read from a file that
+changes, raise an exception halfway through, or be exhausted after one pass.
+
+``Lazy'' does not mean ``free.'' It means computation is deferred and therefore
+must be owned by the consumer that triggers it.
+
+\conceptcheck{If \code{values} is a generator, why can \code{sum(values)} work
+once while a second \code{sum(values)} returns zero? What observation would
+confirm your explanation?}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+\begin{enumerate}
+  \item Explain the difference between \code{==} and \code{is}. Give one correct
+  use of \code{is} from this chapter.
+  \item Give distinct scientific meanings for \code{0}, \code{""},
+  \code{False}, and \code{None}. Explain why one truthiness check cannot replace
+  a missing-data policy.
+  \item For each native container, state whether order, duplicates, labels, and
+  mutation are central to its contract.
+\end{enumerate}
+
+\subsection*{Applied}
+\begin{enumerate}
+  \item Extend the instrument example with a timestamp field. Preserve raw text,
+  parse a typed value, and name two validity questions parsing cannot answer.
+  \item Given repeated experiment tags, use a set to report distinct tags and a
+  dictionary to count them. Explain why the two results answer different
+  questions.
+  \item Write a generator that yields only nonblank lines with their original
+  line numbers. Decide whether whitespace-only lines are missing data or
+  ignorable formatting, and document that policy.
+\end{enumerate}
+
+\subsection*{Design}
+Choose a scientific object currently represented as a list or dictionary in
+your own work. Defend that representation or propose a clearer one using order,
+identity, mutability, labels, and invariants as criteria.
+
+\begin{chapterreview}
+\textbf{Key ideas.} Names refer to objects. Types determine behavior. Mutable
+state requires visible ownership. Text normalization is field-specific policy.
+Containers encode order, labels, uniqueness, or traversal. Parsing builds a
+representation but cannot establish scientific truth.
+
+\textbf{Vocabulary.} object; name; type; value; identity; equality; mutability;
+aliasing; Unicode; sequence; mapping; set; iterable; iterator; generator.
+
+\textbf{Explain aloud.} Why is preserving \code{raw\_line} useful even after a
+record has been successfully parsed?
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 1 notebooks 01 through 05 develop these ideas through detailed examples
+on objects, strings, sequences, dictionaries, sets, comprehensions, and
+generators.
+\end{notebooklink}
+
+\section{Takeaway}
+
+Python's native data structures are modeling decisions. Reliable work begins by
+matching representation to meaning, preserving evidence, and making state
+ownership explicit.

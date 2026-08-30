@@ -1,0 +1,283 @@
+\chapter{Projects, packages, tests, and automation}
+\label{ch:packages-tests}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish scripts, modules, import packages, and distributions;
+  \item explain dependency declarations, lockfiles, and version identifiers;
+  \item select unit, integration, contract, system, and regression tests from a
+  concrete risk; and
+  \item distinguish continuous integration, delivery, and deployment.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+A well-designed function or class is useful in one notebook. A package makes it
+available across notebooks, scripts, collaborators, and versions. That larger
+audience creates compatibility and change risks, so packaging, testing, and
+continuous integration belong in the same engineering story.
+\end{chapterconnection}
+
+\section{From exploration to reusable software}
+
+Notebooks are valuable for combining narrative, code, and evidence. They become
+fragile when hidden execution order, copied definitions, mutable global state,
+and machine-specific paths accumulate. Mature behavior should move into a
+module where notebooks and tests import the same implementation.
+
+A \term{script} is a file intended to be executed as a program. A
+\term{module} is an importable Python file. An \term{import package} organizes
+modules under a shared namespace. A \term{distribution} is an installable
+project released through a packaging mechanism; its distribution name need not
+equal its import name.
+
+\begin{center}
+\begin{tikzpicture}[node distance=7mm]
+  \node[wideflowbox] (notebook) {Notebook\\question and evidence};
+  \node[wideflowbox,right=of notebook] (module) {Package module\\reusable behavior};
+  \node[wideflowbox,right=of module] (tests) {Tests\\executable contracts};
+  \draw[flowarrow] (notebook) -- node[above,font=\small]{refactor} (module);
+  \draw[flowarrow] (tests) -- node[above,font=\small]{verify} (module);
+  \draw[flowarrow] (module) to[bend left=25] node[below,font=\small]{import} (notebook);
+\end{tikzpicture}
+\end{center}
+
+The \code{src} layout places import packages below \code{src/}. It helps detect
+accidental imports from the repository root: tests exercise the installed
+project instead of a convenient shadow copy.
+
+\section{A public package API}
+
+A package should deliberately expose names that callers may rely on and keep
+implementation helpers private. Re-exporting selected objects from
+\code{rice\_dsm/\_\_init\_\_.py} creates a facade that can remain stable when
+internal modules move.
+
+Every public name is a compatibility promise. Its behavior needs documentation,
+types, error contracts, examples, and tests. ``Public'' means supported; Python
+may still technically allow importing a private underscore-prefixed name.
+
+\section{Dependencies and versions}
+
+\code{pyproject.toml} declares project metadata and dependency constraints.
+\code{uv.lock} records an exact resolved graph for reproducible setup. The local
+environment installs that graph. These artifacts answer different questions:
+
+\begin{tabularx}{\textwidth}{@{}p{0.25\textwidth}X@{}}
+\toprule
+Artifact & Question \\
+\midrule
+Dependency constraint & Which releases are intended to be compatible? \\
+Lockfile & Which complete graph did this project resolve? \\
+Installed environment & Which files are available to this interpreter now? \\
+Package version & Which release of our public behavior is this? \\
+Code revision & Which exact source state produced this artifact? \\
+\bottomrule
+\end{tabularx}
+
+A version number is useful only when tied to an artifact and policy. A Git
+commit identifies source precisely; a semantic version communicates intended
+compatibility; a data version identifies evidence; a model version identifies a
+trained artifact. Do not substitute one for another.
+
+\section{Tests begin with risks}
+
+A test should protect a meaningful behavior or failure mode. Start with a risk,
+choose the smallest boundary that can reveal it, and use an oracle independent
+enough to detect the defect.
+
+\begin{longtable}{@{}p{0.18\textwidth}p{0.29\textwidth}p{0.43\textwidth}@{}}
+\toprule
+Test kind & Boundary & Typical purpose \\
+\midrule
+\endhead
+Unit & One function or class & Domain cases, validation, and local invariants \\
+Property & Many generated values & General algebraic or structural rules \\
+Metamorphic & Related executions & Relations known even when exact output is hard \\
+Integration & Multiple real components & Database, filesystem, or package interaction \\
+Contract & Producer and consumer agreement & Schema and compatibility without full deployment \\
+System & Whole running application & Behavior across assembled components \\
+Regression & Previously observed failure & Prevent return of a specific defect \\
+Data quality & Dataset and pipeline & Schema, ranges, uniqueness, drift, and leakage signals \\
+\bottomrule
+\end{longtable}
+
+Passing tests show consistency with encoded expectations. They do not prove
+that the expectations are scientifically sufficient. Test doubles are useful
+when they isolate one contract; excessive mocking can produce a fictional
+system that never tests the real dependency.
+
+\section{Automation and CI/CD}
+
+\term{continuous integration} (CI) automatically checks integrated changes in
+a clean environment. \term{continuous delivery} keeps a validated release
+deployable through an explicit decision. \term{continuous deployment}
+automatically releases every qualifying change to production.
+
+They are not synonyms. A course repository needs CI to prevent broken notebooks
+or package behavior from entering the protected branch. It does not need
+automatic production deployment to teach that boundary.
+
+\begin{center}
+\begin{tikzpicture}[node distance=5mm]
+  \node[flowbox] (change) {Change};
+  \node[flowbox,right=of change] (static) {Lint and\\build};
+  \node[flowbox,right=of static] (test) {Tests and\\notebooks};
+  \node[flowbox,right=of test] (review) {Review and\\required gate};
+  \draw[flowarrow] (change) -- (static);
+  \draw[flowarrow] (static) -- (test);
+  \draw[flowarrow] (test) -- (review);
+\end{tikzpicture}
+\end{center}
+
+The course workflow synchronizes the committed lockfile, builds the
+distribution, verifies the package source and kernel, runs tests, and executes
+every notebook on Linux, macOS, and Windows. Cross-platform CI catches path,
+shell, filesystem, and environment assumptions that one laptop cannot reveal.
+
+\begin{professionalbox}
+CI is evidence, not responsibility. A green check cannot detect an untested
+requirement, choose a valid statistic, approve a data-use policy, or monitor a
+deployed client. Branch protection makes the check consequential by preventing
+unverified changes from entering the protected branch.
+\end{professionalbox}
+
+\begin{checkpointbox}
+For each risk, choose a test boundary: a probability function mishandles $p=0$;
+a SQLite transaction fails to roll back; a browser client expects a removed
+field; a notebook imports a package absent from the lockfile; and a model
+pipeline leaks future labels.
+\end{checkpointbox}
+
+\section{Worked example: derive tests from a risk}
+
+Suppose \code{shortest\_path(source, target)} returns a sequence of graph node
+identifiers. A weak test might assert one result from one graph. A stronger test
+plan begins by asking how the behavior could be wrong.
+
+\begin{workedexample}{protect shortest-path behavior}
+\textbf{Risk 1: the function returns a path containing a nonexistent edge.}
+For every adjacent pair in the result, assert that the graph contains that edge.
+This is a structural property and does not require knowing the exact path in
+advance.
+
+\textbf{Risk 2: the path is valid but not shortest.} On a small fixture, compare
+its length with a simple independent breadth-first search oracle or with
+manually established distances.
+
+\textbf{Risk 3: source equals target.} Specify whether the result is a
+single-node path. Test it explicitly; do not expect a random graph fixture to
+exercise the case.
+
+\textbf{Risk 4: no path exists.} Decide whether the API returns \code{None}, an
+empty tuple, or raises a domain exception. Encode one stable behavior.
+
+\textbf{Risk 5: unknown identifiers.} Verify that source and target errors are
+distinguishable and do not silently resemble a disconnected graph.
+
+\textbf{Risk 6: input mutation.} Snapshot graph state before the call and assert
+that a read-only query does not alter nodes or edges.
+\end{workedexample}
+
+Different tests can cover different boundaries. Unit tests protect graph
+semantics in memory. An integration test can load the graph from CSV and JSON
+first. A command-line test can verify human-facing output and exit status. A
+notebook execution test can prove that the instructional path still imports the
+packaged implementation.
+
+\section{Fixtures, parameters, and doubles}
+
+A \term{fixture} establishes controlled test state and owns cleanup. Small
+fixtures should make the important relationship visible: a line graph, cycle,
+disconnected pair, or graph with two equally short routes.
+
+Parametrization applies the same behavioral claim to a table of cases. It is
+most useful when each case has the same meaning and failure message. A long
+table of unrelated cases can become harder to diagnose than separate tests.
+
+A test double replaces a dependency to isolate one contract. For example, a
+fake clock can make time deterministic and a stubbed cloud response can test
+parsing without credentials. But a fake database cannot prove that actual SQL,
+transactions, constraints, or driver behavior work. The test boundary must
+match the claim.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} a unit test should mock every collaborator.
+
+\textbf{Correction:} a unit is a coherent behavior, not necessarily one
+function isolated from all real objects. Mock only a boundary whose behavior is
+outside the claim or costly and unsafe to invoke. Prefer simple real value
+objects when they make the test more faithful.
+\end{misconceptionbox}
+
+\section{Reading a CI failure as evidence}
+
+A CI job runs commands in a new machine context. A failure that appears only on
+Windows may reveal separator, case, shell, path-length, or file-locking
+assumptions. A failure that appears only from a clean checkout may reveal an
+uncommitted local file or hidden notebook state. A lockfile failure may reveal
+that dependency declarations changed without resolution.
+
+Read the first causal error, record the operating system and command, reproduce
+the smallest relevant boundary, then add a regression check. Rerunning until a
+flaky check passes discards evidence and permits uncertainty into the protected
+branch.
+
+\conceptcheck{A test passes locally but fails in CI because \code{data.csv}
+cannot be found. List three distinct hypotheses and one observation that would
+separate them.}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+\begin{enumerate}
+  \item Distinguish a module, import package, and distribution using the
+  \code{rice-dsm} project.
+  \item Explain why a lower bound such as \code{numpy>=2} and a lockfile answer
+  different version questions.
+  \item Contrast continuous integration, continuous delivery, and continuous
+  deployment without using the word ``automatic'' as the entire definition.
+\end{enumerate}
+
+\subsection*{Applied}
+\begin{enumerate}
+  \item Choose one function in \code{rice\_dsm}. Write a risk inventory and map
+  each risk to a test kind and independent oracle.
+  \item Convert three repetitive edge-case tests into a clear parametrized test.
+  Explain what would make parametrization inappropriate.
+  \item Read the course CI workflow. For each command, state the failure class it
+  is intended to reveal and one class it cannot reveal.
+\end{enumerate}
+
+\subsection*{Design}
+Propose a release gate for a small scientific package. Include source checks,
+package build, unit and integration tests, notebook or example execution,
+artifact identity, review, and a response to flaky tests.
+
+\begin{chapterreview}
+\textbf{Key ideas.} Notebooks explore and explain; modules preserve reusable
+behavior. A public package API is a compatibility promise. Declarations,
+lockfiles, installed environments, package versions, data versions, and code
+revisions identify different artifacts. Tests arise from risks. CI makes
+selected checks repeatable in clean environments.
+
+\textbf{Vocabulary.} script; module; import package; distribution; public API;
+dependency; version constraint; lockfile; fixture; parametrization; test double;
+oracle; unit; property; integration; contract; system; regression; CI/CD.
+
+\textbf{Explain aloud.} Why is ``all tests passed'' weaker than ``the scientific
+result is valid''?
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 3 notebooks 00 through 02 build the project mental model, refactor a
+knowledge graph into the package, and develop a detailed testing and automation
+taxonomy.
+\end{notebooklink}
+
+\section{Takeaway}
+
+Packaging creates a maintained interface across files and users. Tests encode
+selected promises. Automation makes those checks repeatable and consequential.
+Together they allow scientific software to change without abandoning evidence.

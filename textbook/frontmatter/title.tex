@@ -1,0 +1,148 @@
+\begin{titlepage}
+\thispagestyle{empty}
+
+\begin{tikzpicture}[remember picture,overlay]
+  % Full-bleed field and architectural accents.
+  \fill[RiceBlue] (current page.south west) rectangle (current page.north east);
+  \fill[RiceBlue!82!black]
+    (current page.north west) -- (current page.north east) --
+    ([yshift=-2.15in]current page.north east) --
+    ([yshift=-1.45in]current page.north west) -- cycle;
+  \fill[RiceBlue!90!black]
+    ([yshift=2.05in]current page.south west) --
+    (current page.south east) --
+    ([yshift=3.15in]current page.south east) -- cycle;
+
+  \fill[RiceGold]
+    ([xshift=0.58in]current page.north west) rectangle
+    ([xshift=0.66in]current page.south west);
+
+  % A subtle computational grid occupies the right half of the cover.
+  \begin{scope}
+    \clip ([xshift=4.9in]current page.south west) rectangle
+      (current page.north east);
+    \draw[white!8,line width=0.45pt]
+      ([xshift=4.9in]current page.south west)
+      grid[xstep=0.36in,ystep=0.36in]
+      (current page.north east);
+  \end{scope}
+
+  % Abstract evidence-to-system network.
+  \coordinate (n1) at ([xshift=5.35in,yshift=-1.25in]current page.north west);
+  \coordinate (n2) at ([xshift=6.55in,yshift=-0.92in]current page.north west);
+  \coordinate (n3) at ([xshift=7.55in,yshift=-1.62in]current page.north west);
+  \coordinate (n4) at ([xshift=6.05in,yshift=-2.18in]current page.north west);
+  \coordinate (n5) at ([xshift=7.10in,yshift=-2.75in]current page.north west);
+  \coordinate (n6) at ([xshift=7.88in,yshift=-3.62in]current page.north west);
+  \coordinate (n7) at ([xshift=6.70in,yshift=-4.18in]current page.north west);
+  \coordinate (n8) at ([xshift=7.55in,yshift=-5.28in]current page.north west);
+  \coordinate (n9) at ([xshift=6.25in,yshift=-5.92in]current page.north west);
+
+  \draw[white!22,line width=0.8pt] (n1) -- (n2) -- (n3) -- (n5) --
+    (n6) -- (n8) -- (n9) -- (n7) -- (n5) -- (n4) -- (n1);
+  \draw[white!13,line width=0.7pt] (n2) -- (n4) -- (n7) -- (n6);
+  \draw[white!13,line width=0.7pt] (n3) -- (n6);
+  \draw[RiceGold!75,line width=1.2pt]
+    (n1) .. controls +(0.7in,-0.2in) and +(-0.7in,0.15in) .. (n5)
+    .. controls +(0.55in,-0.45in) and +(-0.35in,0.5in) .. (n8);
+
+  \foreach \nodepoint in {n1,n3,n4,n6,n7,n9}{
+    \fill[white!65] (\nodepoint) circle (2.2pt);
+  }
+  \foreach \nodepoint in {n2,n5,n8}{
+    \fill[RiceGold] (\nodepoint) circle (3.4pt);
+    \draw[white!55,line width=0.6pt] (\nodepoint) circle (7pt);
+  }
+
+  % Small probability curve: mathematics embedded in a larger system.
+  \draw[white!18,line width=0.8pt]
+    ([xshift=5.18in,yshift=1.32in]current page.south west) --
+    ([xshift=7.96in,yshift=1.32in]current page.south west);
+  \draw[RiceGold!80,line width=1.25pt]
+    ([xshift=5.20in,yshift=1.36in]current page.south west)
+    .. controls +(0.55in,0.02in) and +(-0.55in,-0.08in) ..
+    ([xshift=6.30in,yshift=1.63in]current page.south west)
+    .. controls +(0.42in,0.75in) and +(-0.42in,0.75in) ..
+    ([xshift=7.20in,yshift=1.63in]current page.south west)
+    .. controls +(0.40in,-0.08in) and +(-0.35in,0.03in) ..
+    ([xshift=7.94in,yshift=1.36in]current page.south west);
+\end{tikzpicture}
+
+\vspace*{0.34in}
+\begin{minipage}{0.88\textwidth}
+  \color{white!82}
+  \sffamily\bfseries\fontsize{10.5}{13}\selectfont
+  RICE UNIVERSITY\hfill CMOR 438 / INDE 577
+\end{minipage}
+
+  \vspace{1.10in}
+\begin{minipage}{0.84\textwidth}
+  {\color{RiceGold}\sffamily\bfseries\fontsize{12}{15}\selectfont
+  GRADUATE TEXT\par}
+
+  \vspace{0.22in}
+  {\color{white}\sffamily\bfseries\fontsize{35}{40}\selectfont
+  Data Science\par
+  and Machine Learning\par}
+
+  \vspace{0.32in}
+  {\color{white!88}\sffamily\fontsize{15.5}{20}\selectfont
+  A Systems Approach\par}
+
+  \vspace{0.35in}
+  {\color{RiceGold}\rule{1.15in}{1.8pt}\par}
+  \vspace{0.18in}
+  {\color{white}\sffamily\bfseries\fontsize{13}{16}\selectfont
+  PARTS I--II\par}
+  {\color{white!78}\sffamily\fontsize{11}{15}\selectfont
+  Foundations and Supervised Learning Systems\par}
+\end{minipage}
+
+\vfill
+\begin{minipage}{0.82\textwidth}
+  {\color{white}\sffamily\bfseries\Large Randy Davila\par}
+  \vspace{0.04in}
+  {\color{white!72}\sffamily\large Rice University\par}
+
+  \vspace{0.34in}
+  {\color{white!65}\sffamily\small
+  CMOR 438 / INDE 577\quad\textbar\quad\bookversion\par}
+\end{minipage}
+\vspace*{0.24in}
+\end{titlepage}
+
+\clearpage
+\thispagestyle{empty}
+
+\vspace*{0.72in}
+{\color{RiceBlue}\sffamily\bfseries\fontsize{24}{29}\selectfont
+Data Science and Machine Learning\par}
+\vspace{0.11in}
+{\color{RiceGray}\sffamily\fontsize{13}{17}\selectfont
+A Systems Approach\par}
+
+\vspace{0.38in}
+{\color{RiceGold}\rule{1.05in}{1.6pt}\par}
+\vspace{0.28in}
+{\sffamily\large Randy Davila\par}
+{\sffamily Rice University\par}
+\vspace{0.16in}
+{\sffamily\small \course\quad\textbar\quad Fall 2026\par}
+
+\vfill
+\begin{minipage}{0.84\textwidth}
+\small
+\textbf{Graduate course edition.} This developing text is used in Data Science
+\& Machine Learning, cross-listed as CMOR 438 and INDE 577 at Rice University.
+Its executable notebooks, exercises, and tested \code{rice\_dsm} package are
+integral parts of the text.
+
+\medskip
+Copyright \copyright\ 2026 Randy Davila. Course distribution terms follow the
+repository license. Third-party names are used for identification and teaching.
+
+\medskip
+Built reproducibly from LaTeX source in the course repository.
+\end{minipage}
+\vspace*{0.35in}
+\clearpage

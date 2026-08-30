@@ -1,0 +1,56 @@
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11"]
+build-backend = "uv_build"
+
+[project]
+name = "rice-dsm"
+version = "0.1.0"
+description = "Executable companion to the Data Science and Machine Learning graduate text"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Randy Davila" }]
+dependencies = [
+    "boto3>=1.43.83",
+    "duckdb>=1.5.5",
+    "fastapi>=0.141.1",
+    "httpx2>=2.12.0",
+    "matplotlib>=3.11.1",
+    "numpy>=2.5.2",
+    "openai>=3.6.0",
+    "pandas>=3.0.5",
+    "plotly>=7.0.0",
+    "polars>=1.44.1",
+    "psycopg[binary]>=3.3.4",
+    "pyarrow>=25.0.1",
+    "seaborn>=0.13.2",
+    "sqlalchemy>=2.0.52",
+    "uvicorn>=0.52.4",
+]
+
+[project.scripts]
+rice-dsm = "rice_dsm.cli:main"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29",
+    "jupyterlab>=4.3",
+    "nbclient>=0.10",
+    "nbformat>=5.10",
+    "pytest>=8.3",
+    "ruff>=0.9",
+]
+
+[tool.uv]
+link-mode = "copy"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

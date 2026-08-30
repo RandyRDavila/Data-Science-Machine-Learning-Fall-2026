@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "Scientific foundations of machine learning",
+  "description": "A course-authored teaching graph connecting mathematical ideas, scientific models, and machine-learning methods.",
+  "concepts": [
+    {"id": "vector", "label": "Vector", "category": "mathematics", "description": "An ordered collection that can represent a point, direction, state, or feature record.", "aliases": ["feature vector"]},
+    {"id": "matrix", "label": "Matrix", "category": "mathematics", "description": "A rectangular array representing data, a linear map, or a system of equations.", "aliases": ["data matrix"]},
+    {"id": "eigenvector", "label": "Eigenvector", "category": "mathematics", "description": "A nonzero direction whose span is preserved by a linear transformation.", "aliases": []},
+    {"id": "derivative", "label": "Derivative", "category": "mathematics", "description": "A local rate of change used to describe sensitivity and dynamics.", "aliases": []},
+    {"id": "gradient", "label": "Gradient", "category": "mathematics", "description": "The vector of partial derivatives of a scalar-valued multivariable function.", "aliases": []},
+    {"id": "differential_equation", "label": "Differential equation", "category": "mathematics", "description": "An equation relating an unknown function to one or more of its derivatives.", "aliases": ["ODE", "PDE"]},
+    {"id": "probability_distribution", "label": "Probability distribution", "category": "probability", "description": "A mathematical description of uncertainty over possible outcomes.", "aliases": ["distribution"]},
+    {"id": "expectation", "label": "Expectation", "category": "probability", "description": "A probability-weighted average of a random quantity.", "aliases": ["expected value"]},
+    {"id": "entropy", "label": "Entropy", "category": "probability", "description": "A quantity measuring uncertainty or dispersion in a probability distribution.", "aliases": ["Shannon entropy"]},
+    {"id": "bayes_rule", "label": "Bayes' rule", "category": "probability", "description": "A rule for updating probabilities after observing evidence.", "aliases": ["Bayes' theorem"]},
+    {"id": "markov_chain", "label": "Markov chain", "category": "probability", "description": "A stochastic process whose next-state distribution depends on its present state.", "aliases": []},
+    {"id": "optimization", "label": "Optimization", "category": "mathematics", "description": "The study of selecting variables to minimize or maximize an objective.", "aliases": ["mathematical programming"]},
+    {"id": "linear_regression", "label": "Linear regression", "category": "machine_learning", "description": "A model that relates predictors to a response through a linear combination.", "aliases": []},
+    {"id": "principal_component_analysis", "label": "Principal component analysis", "category": "machine_learning", "description": "A linear method that represents data along directions of greatest sample variance.", "aliases": ["PCA"]},
+    {"id": "neural_network", "label": "Neural network", "category": "machine_learning", "description": "A parameterized composition of functions used to learn representations or predictions.", "aliases": []},
+    {"id": "diffusion_model", "label": "Diffusion model", "category": "machine_learning", "description": "A generative model learned through a progressive noising and denoising process.", "aliases": []},
+    {"id": "epidemic_model", "label": "Epidemic model", "category": "science", "description": "A mathematical model of how an infectious process changes through a population.", "aliases": ["compartmental model"]},
+    {"id": "molecular_dynamics", "label": "Molecular dynamics", "category": "science", "description": "A computational method for simulating the motion of interacting atoms or molecules.", "aliases": ["MD"]},
+    {"id": "scientific_measurement", "label": "Scientific measurement", "category": "science", "description": "An observation produced by an instrument or experimental procedure with uncertainty.", "aliases": ["observation"]},
+    {"id": "data_matrix", "label": "Data matrix", "category": "data_science", "description": "A tabular numerical representation with observations and measured features.", "aliases": ["design matrix"]}
+  ]
+}

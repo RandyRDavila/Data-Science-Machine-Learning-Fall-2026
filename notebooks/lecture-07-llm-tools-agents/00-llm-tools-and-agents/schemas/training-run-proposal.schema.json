@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.rice.edu/schemas/training-run-proposal-v1.json",
+  "title": "TrainingRunProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "dataset_uri",
+    "dataset_version",
+    "feature_version",
+    "code_revision",
+    "model_family",
+    "requested_start_at",
+    "maximum_runtime_minutes",
+    "accelerator",
+    "rationale"
+  ],
+  "properties": {
+    "request_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{7,79}$"},
+    "dataset_uri": {"type": "string", "minLength": 1, "maxLength": 500},
+    "dataset_version": {"type": "string", "minLength": 1, "maxLength": 100},
+    "feature_version": {"type": "string", "minLength": 1, "maxLength": 100},
+    "code_revision": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+    "model_family": {"enum": ["linear", "tree", "neural-network"]},
+    "requested_start_at": {"type": "string", "format": "date-time"},
+    "maximum_runtime_minutes": {"type": "integer", "minimum": 1, "maximum": 1440},
+    "accelerator": {"enum": ["cpu", "gpu"]},
+    "rationale": {"type": "string", "minLength": 10, "maxLength": 1000}
+  }
+}

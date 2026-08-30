@@ -1,0 +1,296 @@
+\chapter{Databases and data systems}
+\label{ch:databases}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish a database, DBMS, driver, connection, transaction, and schema;
+  \item use parameterized queries and explicit transaction boundaries;
+  \item compare embedded, remote, warehouse, and object-storage roles; and
+  \item choose bounded scans, columnar files, pushdown, or distributed systems
+  from measured constraints.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Arrays and DataFrames usually live inside one process. This chapter crosses a
+durability and coordination boundary: data must survive the process, preserve
+relationships, support multiple users, and sometimes be queried without being
+copied into memory at all.
+\end{chapterconnection}
+
+\section{Storage is part of the scientific system}
+
+A \term{database} is organized persisted data plus its logical structure. A
+\term{database-management system} (DBMS) is the software that stores, queries,
+coordinates, and protects that state. A driver provides a language-specific API
+for speaking the DBMS protocol. A connection is one active conversation with
+the system.
+
+A \term{schema} names tables, columns, types, constraints, relationships, and
+views. It is an executable portion of the data contract. Primary keys express
+identity, foreign keys express permitted relationships, uniqueness constraints
+prevent selected duplicates, and check constraints reject invalid states.
+
+\section{Transactions preserve invariants}
+
+A transaction groups operations into an atomic success or rollback boundary.
+If a workflow inserts an experiment and its measurements, partial success may
+create a scientifically misleading state. Transaction ownership should be
+visible at the application boundary that knows which operations belong together.
+
+\begin{lstlisting}
+with connection:
+    connection.execute(
+        "INSERT INTO experiments(experiment_id, material) VALUES (?, ?)",
+        (experiment_id, material),
+    )
+    connection.executemany(
+        "INSERT INTO measurements(experiment_id, time_s, value) "
+        "VALUES (?, ?, ?)",
+        rows,
+    )
+\end{lstlisting}
+
+Values are bound separately from SQL text. String interpolation can change data
+into executable syntax, permit injection, and mishandle quoting. Dynamic table
+or column identifiers cannot generally use value placeholders; select them from
+a small application-owned allowlist.
+
+\section{SQL has semantics, not just syntax}
+
+SQL uses three-valued logic around \code{NULL}. Joins encode relationship
+cardinality. Aggregations define grouping and missingness behavior. Window
+functions compute across related rows without collapsing them. Query results
+require an explicit ordering if order matters.
+
+Before a join, predict whether each input key is unique and how many rows should
+result. Afterward, test row counts, key coverage, duplication, and missingness.
+A syntactically correct join can create a statistically invalid training table.
+
+\section{Local and remote are deployment shapes}
+
+SQLite is an embedded transactional database stored in a local file. DuckDB is
+an in-process analytical database designed for columnar analytics. PostgreSQL
+and similar systems run as client/server DBMSs with authentication, concurrent
+connections, roles, and network operations. Warehouses and lakehouse engines
+serve analytical workloads across managed or distributed storage.
+
+These are not simply size levels of one product. They make different tradeoffs
+in concurrency, transactions, operations, latency, governance, and query shape.
+
+\begin{center}
+\begin{tikzpicture}[node distance=7mm]
+  \node[wideflowbox] (python) {Python analysis\\bounded request};
+  \node[wideflowbox,right=of python] (engine) {Query engine\\filter and aggregate};
+  \node[wideflowbox,right=of engine] (store) {Database or\\object storage};
+  \draw[flowarrow] (python) -- (engine);
+  \draw[dataarrow] (store) -- node[above,font=\small]{selected data} (engine);
+  \draw[dataarrow] (engine) to[bend left=25] node[below,font=\small]{small result} (python);
+\end{tikzpicture}
+\end{center}
+
+\section{Object storage is not a filesystem or database}
+
+Cloud object stores organize byte objects by keys and metadata. They are useful
+for durable snapshots, partitioned datasets, model artifacts, and large binary
+objects. They do not provide ordinary local filesystem semantics or relational
+transactions.
+
+An AWS-shaped data platform may combine S3 object storage, a catalog, a query
+engine or warehouse, managed relational databases, queues, and identity and
+access management. Equivalent roles exist in other clouds and institutional
+systems. Learn the role before memorizing a vendor name.
+
+Credentials belong in approved environment configuration, workload identity,
+or a secret manager. They must not be embedded in notebooks. Least privilege
+means granting the narrow action on the narrow resource for the required time.
+
+\section{When data is too large to load}
+
+Estimate the working set before allocating it. Row count alone is insufficient:
+string objects, indexes, temporary arrays, join expansion, and copies can exceed
+the apparent file size.
+
+Use the least complex technique that satisfies measured constraints:
+
+\begin{enumerate}
+  \item select only necessary rows and columns at the storage/query layer;
+  \item use columnar formats such as Parquet for analytical projection;
+  \item process bounded batches or iterators;
+  \item use lazy plans that push filters and projections toward the source;
+  \item use an in-process analytical engine such as DuckDB; and
+  \item adopt a distributed system only when one machine cannot meet the
+  workload, reliability, or organizational requirement.
+\end{enumerate}
+
+Distributed computation adds serialization, partitioning, shuffle, scheduling,
+failure recovery, observability, and cost. It is an architecture, not a badge of
+seriousness.
+
+\begin{checkpointbox}
+A 60 GB Parquet dataset contains 120 columns, but an analysis needs six columns
+and one month of records. Propose the first three approaches you would try,
+state what evidence each collects, and explain when a cluster becomes justified.
+\end{checkpointbox}
+
+\section{Worked example: from a measurement contract to SQL}
+
+Suppose a laboratory records experiments and temperature measurements. Begin
+with meaning rather than table syntax:
+
+\begin{itemize}
+  \item one experiment has one stable identifier and one material;
+  \item each measurement belongs to exactly one experiment;
+  \item time is measured in seconds from the experiment start;
+  \item temperature is stored in degrees Celsius; and
+  \item an experiment cannot contain two measurements at the same time.
+\end{itemize}
+
+The schema can enforce part of this contract.
+
+\begin{workedexample}{translate scientific rules into constraints}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE experiments (
+    experiment_id TEXT PRIMARY KEY,
+    material TEXT NOT NULL
+);
+
+CREATE TABLE measurements (
+    experiment_id TEXT NOT NULL,
+    time_s REAL NOT NULL CHECK (time_s >= 0),
+    temperature_c REAL NOT NULL,
+    PRIMARY KEY (experiment_id, time_s),
+    FOREIGN KEY (experiment_id)
+        REFERENCES experiments(experiment_id)
+);
+\end{lstlisting}
+
+\textbf{Step 1: identify rows.} One row in \code{experiments} is one
+experiment. One row in \code{measurements} is one reading at one experiment
+time.
+
+\textbf{Step 2: identify identity.} The composite primary key says that the
+pair \code{(experiment\_id, time\_s)} uniquely identifies a measurement.
+
+\textbf{Step 3: identify valid relationships.} The foreign key prevents a
+measurement from referring to an experiment that does not exist.
+
+\textbf{Step 4: identify what remains outside SQL.} The database does not know
+whether the sensor was calibrated, whether Celsius is the correct source unit,
+or whether the experiment clock was reset. Application validation and
+scientific review still have work to do.
+\end{workedexample}
+
+Now consider the question, ``What is the mean temperature for each material?''
+The query must join the tables because material and temperature live in
+different relations.
+
+\begin{lstlisting}[language=SQL]
+SELECT e.material, AVG(m.temperature_c) AS mean_temperature_c
+FROM experiments AS e
+JOIN measurements AS m
+  ON m.experiment_id = e.experiment_id
+GROUP BY e.material
+ORDER BY e.material;
+\end{lstlisting}
+
+Before running it, predict the join cardinality: each measurement should match
+exactly one experiment. After running it, compare the joined row count with the
+measurement row count. This does not prove the scientific interpretation, but
+it tests an important structural assumption.
+
+\section{Missingness and joins deserve explicit examples}
+
+SQL \code{NULL} means missing or unknown at the database level; it is not zero,
+an empty string, or the floating-point value \code{NaN}. The comparison
+\code{value = NULL} does not produce true or false in the ordinary way. Use
+\code{value IS NULL}. Aggregates also differ: \code{COUNT(*)} counts rows,
+whereas \code{COUNT(value)} counts non-NULL values.
+
+A left join keeps every row from the left relation. If no right-side match
+exists, right-side columns become \code{NULL}. An inner join silently removes
+unmatched left rows. Neither choice is inherently correct; the research
+question determines whether absent matches should disappear, remain missing,
+or trigger an error.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} a database is a large CSV file with faster search.
+
+\textbf{Correction:} a DBMS coordinates typed structure, constraints,
+transactions, concurrent users, recovery, permissions, and query planning. A
+CSV file stores bytes. Both can be useful, but they provide different
+guarantees and failure modes.
+\end{misconceptionbox}
+
+\section{A measured decision process for large data}
+
+``Does not fit in memory'' is a diagnosis to quantify, not a command to adopt a
+cluster. Record available memory, compressed file size, projected columns,
+selected rows, intermediate operations, and acceptable runtime. Then test the
+smallest architecture that could work.
+
+For the 60 GB checkpoint dataset, first inspect metadata without loading all
+values. Next ask a query engine to project six columns and push the date filter
+into the scan. Finally measure the result and its largest intermediate. If one
+machine can execute that plan reliably, distribution adds coordination cost
+without solving a demonstrated problem. If the filtered working set, required
+join, concurrency, or deadline exceeds one machine, the measurement explains
+why a larger system is justified.
+
+\conceptcheck{Why can a 4 GB CSV require substantially more than 4 GB of memory
+as a pandas DataFrame? Name at least three sources of additional memory use.}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+\begin{enumerate}
+  \item Distinguish a database, DBMS, schema, driver, connection, and
+  transaction using the laboratory example.
+  \item Explain why query result order is unspecified without
+  \code{ORDER BY}.
+  \item Compare \code{COUNT(*)}, \code{COUNT(temperature\_c)}, and
+  \code{AVG(temperature\_c)} when some temperatures are NULL.
+\end{enumerate}
+
+\subsection*{Applied}
+\begin{enumerate}
+  \item Add a sensor table and a foreign key from measurements. State the row
+  meaning and identity rule for each table before writing SQL.
+  \item Construct a join that accidentally multiplies rows. Write precondition
+  and postcondition queries that reveal the error.
+  \item Design a parameterized query that returns a bounded time interval and
+  only two analytical columns. Explain which work should occur in the DBMS.
+\end{enumerate}
+
+\subsection*{Design}
+Choose a laboratory or industry dataset. Propose a local prototype architecture
+and a remote production architecture. For each, state the storage role,
+transaction needs, access controls, expected working set, failure recovery, and
+the measurement that would justify moving to a distributed system.
+
+\begin{chapterreview}
+\textbf{Key ideas.} A schema is executable data meaning. Transactions preserve
+multi-step invariants. Parameter binding separates values from executable SQL.
+Joins and missingness can change a population without producing an error.
+Scalable analysis begins with projection, filtering, and measured working sets.
+
+\textbf{Vocabulary.} database; DBMS; schema; primary key; foreign key;
+constraint; transaction; rollback; parameterized query; NULL; join cardinality;
+query pushdown; columnar storage; object storage; distributed system.
+
+\textbf{Explain aloud.} Why can a query be syntactically valid, complete
+successfully, and still create an invalid machine-learning training table?
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 6 notebook 00 builds a constrained SQLite system, connects pandas and
+SQLAlchemy, queries with DuckDB, scans Arrow and Polars data lazily, and maps the
+same roles onto AWS-style workflows without requiring cloud credentials.
+\end{notebooklink}
+
+\section{Takeaway}
+
+Data systems make identity, relationships, durability, concurrency, and access
+operational. Correct queries begin with row meaning and constraints. Scalable
+work begins by reducing unnecessary data movement.

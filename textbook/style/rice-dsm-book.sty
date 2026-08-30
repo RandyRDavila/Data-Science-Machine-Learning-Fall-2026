@@ -1,0 +1,206 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{style/rice-dsm-book}[2026/08/29 Rice DSM textbook style]
+
+\RequirePackage[T1]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage{newtxtext}
+\RequirePackage{newtxmath}
+\RequirePackage[scaled=0.92]{inconsolata}
+\RequirePackage{microtype}
+\RequirePackage[letterpaper,inner=1.05in,outer=0.85in,top=0.9in,bottom=0.95in,headheight=15pt]{geometry}
+\RequirePackage{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{longtable}
+\RequirePackage{array}
+\RequirePackage{enumitem}
+\RequirePackage{listings}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\RequirePackage{fancyhdr}
+\RequirePackage{titlesec}
+\RequirePackage{hyperref}
+\RequirePackage[nameinlink,noabbrev]{cleveref}
+\RequirePackage{makeidx}
+
+\definecolor{RiceBlue}{HTML}{00205B}
+\definecolor{RiceLightBlue}{HTML}{E8F1F8}
+\definecolor{RiceGray}{HTML}{5E6A71}
+\definecolor{RiceLightGray}{HTML}{F3F5F6}
+\definecolor{RiceGold}{HTML}{C9961A}
+\definecolor{RiceGreen}{HTML}{2B7A4B}
+\definecolor{RiceRed}{HTML}{A33A32}
+\definecolor{CodeBackground}{HTML}{F6F8FA}
+\definecolor{CodeComment}{HTML}{497A4A}
+\definecolor{CodeKeyword}{HTML}{7048A8}
+\definecolor{CodeString}{HTML}{9A3B25}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=RiceBlue,
+  urlcolor=RiceBlue,
+  citecolor=RiceGreen,
+  pdftitle={Data Science and Machine Learning: A Systems Approach},
+  pdfauthor={Randy Davila},
+  pdfsubject={CMOR 438 / INDE 577, Rice University, Fall 2026}
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlist[itemize,enumerate]{nosep,leftmargin=*}
+\renewcommand{\arraystretch}{1.2}
+\emergencystretch=2em
+\raggedbottom
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\color{RiceGray}\thepage\quad\textbar\quad\nouppercase{\leftmark}}
+\fancyhead[RO]{\small\color{RiceGray}\nouppercase{\rightmark}\quad\textbar\quad\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\small\color{RiceGray}\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{RiceBlue}}
+  {\filleft\Large\MakeUppercase{\chaptertitlename}\ \thechapter}
+  {0.6ex}
+  {\titlerule[1.2pt]\vspace{1.1ex}\Huge}
+\titlespacing*{\chapter}{0pt}{-10pt}{28pt}
+\titleformat{\section}{\Large\bfseries\color{RiceBlue}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{RiceGray}}{\thesubsection}{0.7em}{}
+
+\lstdefinestyle{ricepython}{
+  language=Python,
+  backgroundcolor=\color{CodeBackground},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{CodeKeyword}\bfseries,
+  commentstyle=\color{CodeComment}\itshape,
+  stringstyle=\color{CodeString},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{RiceGray!35},
+  numbers=left,
+  numberstyle=\tiny\color{RiceGray},
+  numbersep=8pt,
+  xleftmargin=1.4em,
+  framexleftmargin=1.1em,
+  aboveskip=0.9em,
+  belowskip=0.9em,
+  columns=fullflexible,
+  keepspaces=true
+}
+\lstset{style=ricepython}
+
+\newtcolorbox{learningobjectives}{
+  enhanced,breakable,
+  colback=RiceLightBlue,
+  colframe=RiceBlue,
+  title=Learning objectives,
+  fonttitle=\bfseries,
+  boxrule=0.8pt,
+  arc=1.5mm
+}
+\newtcolorbox{chapterconnection}{
+  enhanced,breakable,
+  colback=RiceLightGray,
+  colframe=RiceGray!65,
+  title=Where this chapter fits,
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  borderline west={2pt}{0pt}{RiceBlue},
+  arc=1.5mm
+}
+\newtcolorbox{definitionbox}[1]{
+  enhanced,breakable,
+  colback=RiceLightGray,
+  colframe=RiceBlue!70,
+  title={Definition: #1},
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=1.5mm
+}
+\newtcolorbox{professionalbox}{
+  enhanced,breakable,
+  colback=RiceGreen!6,
+  colframe=RiceGreen,
+  title=Professional practice,
+  fonttitle=\bfseries,
+  boxrule=0.8pt,
+  arc=1.5mm
+}
+\newtcolorbox{warningbox}{
+  enhanced,breakable,
+  colback=RiceRed!5,
+  colframe=RiceRed,
+  title=Failure mode,
+  fonttitle=\bfseries,
+  boxrule=0.8pt,
+  arc=1.5mm
+}
+\newtcolorbox{checkpointbox}{
+  enhanced,breakable,
+  colback=RiceGold!9,
+  colframe=RiceGold,
+  title=Checkpoint,
+  fonttitle=\bfseries,
+  boxrule=0.8pt,
+  arc=1.5mm
+}
+\newtcolorbox{notebooklink}{
+  enhanced,breakable,
+  colback=white,
+  colframe=RiceGray!60,
+  title=Executable companion,
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=1.5mm
+}
+\newtcolorbox{workedexample}[1]{
+  enhanced,breakable,
+  colback=white,
+  colframe=RiceBlue,
+  title={Worked example: #1},
+  fonttitle=\bfseries,
+  boxrule=0.9pt,
+  borderline west={2.2pt}{0pt}{RiceGold},
+  arc=1.5mm
+}
+\newtcolorbox{misconceptionbox}{
+  enhanced,breakable,
+  colback=RiceGold!7,
+  colframe=RiceGold!85!black,
+  title=Common misconception,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=1.5mm
+}
+\newtcolorbox{chapterreview}{
+  enhanced,breakable,
+  colback=RiceLightBlue,
+  colframe=RiceBlue,
+  title=Chapter review,
+  fonttitle=\bfseries,
+  boxrule=0.9pt,
+  arc=1.5mm
+}
+
+\newcommand{\term}[1]{\textbf{#1}\index{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\course}{CMOR 438 / INDE 577}
+\newcommand{\bookversion}{Developing edition -- Fall 2026}
+\newcommand{\conceptcheck}[1]{\par\smallskip\textbf{Concept check.} #1\par\smallskip}
+
+\tikzset{
+  flowbox/.style={draw=RiceBlue,rounded corners=2pt,fill=RiceLightBlue,align=center,minimum height=9mm,text width=25mm,font=\small},
+  wideflowbox/.style={flowbox,text width=37mm},
+  flowarrow/.style={-{Latex[length=2.3mm]},thick,draw=RiceBlue},
+  dataarrow/.style={-{Latex[length=2.3mm]},thick,draw=RiceGreen}
+}
+
+\makeindex

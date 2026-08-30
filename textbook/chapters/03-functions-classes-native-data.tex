@@ -1,0 +1,356 @@
+\chapter{Functions, classes, and native data}
+\label{ch:interfaces-models-files}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item design a function as a documented public contract;
+  \item combine type hints, NumPy-style docstrings, validation, and exceptions;
+  \item model a domain object with explicit invariants and state ownership; and
+  \item load CSV and JSON without confusing parsing with scientific validation.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Native values and containers let us represent information. This chapter turns
+those representations into interfaces: functions express transformations,
+classes protect invariants, exceptions explain rejected inputs, and files carry
+representations across process and time boundaries.
+\end{chapterconnection}
+
+\section{A function creates a boundary}
+
+A function gives a name to behavior, accepts input through parameters, and
+returns a result or raises an exception. The most useful function boundaries
+separate one coherent responsibility from its callers.
+
+\begin{definitionbox}{application programming interface}
+An application programming interface, or API, is the supported contract through
+which one piece of software uses another. A Python function API includes its
+import path, signature, parameter meanings, return behavior, exceptions, and
+promised side effects. It does not require a network.
+\end{definitionbox}
+
+\begin{lstlisting}
+def bernoulli_variance(probability: float) -> float:
+    """Return the variance of a Bernoulli random variable.
+
+    Parameters
+    ----------
+    probability : float
+        Success probability in the closed interval [0, 1].
+
+    Returns
+    -------
+    float
+        Variance ``p * (1 - p)``.
+
+    Raises
+    ------
+    TypeError
+        If ``probability`` is not numeric.
+    ValueError
+        If ``probability`` is outside [0, 1].
+    """
+    if not isinstance(probability, (int, float)):
+        raise TypeError("probability must be numeric")
+    if not 0.0 <= probability <= 1.0:
+        raise ValueError("probability must lie in [0, 1]")
+    return probability * (1.0 - probability)
+\end{lstlisting}
+
+The annotation helps people, editors, and static checkers. The docstring
+explains meaning and failure behavior. Runtime checks enforce selected parts of
+the contract. Tests provide independent examples and edge cases. No one layer
+replaces the others.
+
+\section{Docstrings explain semantics}
+
+This course uses NumPy-style docstrings for reusable scientific Python. A useful
+docstring states the observable behavior, domain meaning, units, shape, ordering,
+assumptions, returned representation, and deliberate exceptions. It does not
+merely repeat a type annotation.
+
+Consistency matters because readers know where to look, development tools can
+render predictable help, and documentation generators can build stable
+reference pages. Style is a coordination mechanism.
+
+\section{Exceptions are part of the contract}
+
+Raise an exception when a function cannot honor its promise. Use
+\code{TypeError} for an unsupported kind of object and \code{ValueError} for a
+value outside the accepted domain. A stable domain exception can help callers
+recover without parsing message text.
+
+Library code should generally raise rather than print an error or return an
+ambiguous \code{None}. Catch an exception only at a layer that can recover, add
+context, translate it for a user, or restore a system invariant.
+
+\begin{warningbox}
+An error message is observable output and may enter logs. It should identify the
+violated contract without copying API keys, passwords, personal data, or entire
+production records.
+\end{warningbox}
+
+\section{Parameter kinds communicate calling policy}
+
+Python supports positional-only, positional-or-keyword, variadic positional,
+keyword-only, and variadic keyword parameters. The separators \code{/} and
+\code{*} make parts of the calling contract explicit.
+
+\begin{lstlisting}
+def calibrate(reading, /, *, scale=1.0, offset=0.0):
+    return scale * reading + offset
+\end{lstlisting}
+
+The name \code{reading} is not promised to callers because the argument is
+positional-only. The calibration settings are keyword-only because their names
+carry meaning and accidental reversal would remain numerically valid.
+
+\code{*args} and \code{**kwargs} are ordinary tuple and dictionary objects
+inside a function. Flexibility is useful for adapters and decorators, but
+unrestricted keyword capture can hide spelling errors and weaken tooling.
+Lambdas create function objects with expression-only bodies; they are suitable
+for short local callables, not for concealing domain logic that deserves a name,
+documentation, validation, and tests.
+
+\section{Classes model objects and invariants}
+
+A class combines state with operations that preserve the meaning of that state.
+The goal is not to turn every dictionary into a class. A class is valuable when
+identity, invariants, behavior, lifecycle, or multiple representations belong
+together.
+
+\begin{lstlisting}
+from dataclasses import dataclass
+
+@dataclass(frozen=True, slots=True)
+class KnowledgeNode:
+    identifier: str
+    label: str
+    domain: str
+
+    def __post_init__(self) -> None:
+        if not self.identifier.strip():
+            raise ValueError("identifier must be nonblank")
+\end{lstlisting}
+
+Immutability can make shared domain records easier to reason about. Mutable
+collections can still be owned by a graph or repository whose methods enforce
+uniqueness and relationship rules.
+
+\begin{professionalbox}
+Represent a scientific object so that invalid states are difficult to create,
+but do not invent validation the domain cannot justify. A class can enforce that
+a probability lies in $[0,1]$; it cannot establish that the probability was
+estimated from an appropriate experiment.
+\end{professionalbox}
+
+\section{CSV and JSON are representations}
+
+CSV stores rows and fields in text. It does not carry one universal schema,
+type system, missing-value policy, encoding, delimiter, or unit convention.
+JSON represents objects, arrays, strings, numbers, Booleans, and null. A parsed
+JSON object is not automatically a validated domain object.
+
+A dependable ingestion path separates layers:
+
+\begin{center}
+\begin{tikzpicture}[node distance=6mm]
+  \node[flowbox] (bytes) {Bytes\\encoding};
+  \node[flowbox,right=of bytes] (syntax) {Syntax\\CSV or JSON};
+  \node[flowbox,right=of syntax] (schema) {Schema\\fields and types};
+  \node[flowbox,right=of schema] (domain) {Domain\\objects and invariants};
+  \draw[flowarrow] (bytes) -- (syntax);
+  \draw[flowarrow] (syntax) -- (schema);
+  \draw[flowarrow] (schema) -- (domain);
+\end{tikzpicture}
+\end{center}
+
+Use \code{pathlib.Path} rather than string-concatenating separators. Open text
+with an explicit encoding. Use \code{newline=""} for Python's CSV reader. For
+each row, preserve source location, validate required fields, convert types,
+then construct the custom object. Report malformed records with actionable
+context without exposing unrelated data.
+
+\begin{checkpointbox}
+Design a function that converts one parsed JSON dictionary into a
+\code{KnowledgeNode}. Write its signature, NumPy-style contract, two validation
+errors, and three tests before implementing its body.
+\end{checkpointbox}
+
+\section{Worked example: design the contract before the body}
+
+Suppose we need a function that computes the log-odds
+
+\[
+  \operatorname{logit}(p) = \log\!\left(\frac{p}{1-p}\right).
+\]
+
+Writing \code{log(p / (1 - p))} is easy. Designing the boundary requires more
+thought. The expression is finite only for $0 < p < 1$. The function must decide
+whether integers are accepted, whether arrays are in scope, which logarithm is
+used, and how boundary values fail.
+
+\begin{workedexample}{turn mathematics into a Python interface}
+\textbf{Step 1: state the mathematical domain and codomain.} For this scalar
+function, $p\in(0,1)$ and the result is a real-valued natural logarithm.
+
+\textbf{Step 2: state the software representation.} Accept Python \code{int} or
+\code{float} values but reject Boolean values, which are integer subclasses in
+Python and have no intended role here. Return \code{float}. Arrays will belong
+to a separate vectorized interface.
+
+\textbf{Step 3: state failures.} Unsupported runtime types produce
+\code{TypeError}; numeric values outside the open interval produce
+\code{ValueError}.
+
+\textbf{Step 4: write examples and edge tests.}
+
+\begin{lstlisting}
+import math
+import pytest
+
+assert math.isclose(logit(0.5), 0.0)
+assert logit(0.8) > 0.0
+with pytest.raises(ValueError):
+    logit(1.0)
+with pytest.raises(TypeError):
+    logit(True)
+\end{lstlisting}
+
+\textbf{Step 5: implement the smallest body that honors the contract.}
+
+\begin{lstlisting}
+from math import log
+
+def logit(probability: float) -> float:
+    """Return the natural log-odds of a scalar probability."""
+    if isinstance(probability, bool) or not isinstance(
+        probability, (int, float)
+    ):
+        raise TypeError("probability must be a real scalar")
+    if not 0.0 < probability < 1.0:
+        raise ValueError("probability must lie strictly between 0 and 1")
+    return log(probability / (1.0 - probability))
+\end{lstlisting}
+\end{workedexample}
+
+The tests did not emerge after the implementation. They helped define what the
+function means. A later NumPy implementation may accept arrays and infinities at
+the boundaries; that is a different public contract, not a faster body for the
+same one.
+
+\section{From records to objects with behavior}
+
+A dictionary can store a graph node, but any caller can omit a field, replace an
+identifier with whitespace, or mutate a label without going through validation.
+A class centralizes construction and behavior.
+
+Consider a \code{KnowledgeGraph} that owns nodes and adjacency relationships.
+Its public methods might be \code{add\_node}, \code{add\_edge},
+\code{neighbors}, and \code{shortest\_path}. Internal dictionaries are private
+because callers who mutate them directly can violate uniqueness or create an
+edge to a nonexistent node.
+
+This is \term{encapsulation}: state is accessed through operations that preserve
+the object's invariants. It is not secrecy. Python callers may still inspect
+attributes; the API communicates which path is supported.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} object-oriented design means every noun needs a class.
+
+\textbf{Correction:} functions and native containers are often clearer. Use a
+class when state, behavior, invariants, identity, or lifecycle form one coherent
+abstraction. Avoid classes that only rename a dictionary without improving the
+contract.
+\end{misconceptionbox}
+
+\section{A complete ingestion boundary}
+
+Loading a knowledge graph from files involves four different failure layers:
+
+\begin{enumerate}
+  \item \textbf{I/O failure:} the path does not exist or cannot be read;
+  \item \textbf{syntax failure:} bytes are not valid text, CSV, or JSON;
+  \item \textbf{schema failure:} a required field is missing or has the wrong
+  representation; and
+  \item \textbf{domain failure:} an edge references an unknown node or violates
+  a graph invariant.
+\end{enumerate}
+
+Keeping these layers distinct makes errors actionable. ``Could not load data''
+hides whether a student mistyped a path or discovered a corrupted relationship.
+A high-quality loader adds source path and record number while preserving the
+original exception through chaining.
+
+\begin{lstlisting}
+try:
+    node = node_from_mapping(row)
+except (KeyError, TypeError, ValueError) as error:
+    raise ValueError(
+        f"invalid node record at {path.name}:{line_number}"
+    ) from error
+\end{lstlisting}
+
+The public message supplies location without dumping the full row. The chained
+exception preserves technical cause for debugging.
+
+\conceptcheck{Why should a loader validate that both endpoints exist before
+adding an edge, even if a later graph algorithm would eventually fail? Compare
+the quality of the two failure locations.}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+\begin{enumerate}
+  \item For a function you used recently, list its import path, parameter
+  meanings, return behavior, exceptions, and side effects. Which are documented?
+  \item Explain why a type hint does not perform runtime validation by itself.
+  \item Contrast \code{*args} at a function definition with \code{*values} at a
+  function call.
+\end{enumerate}
+
+\subsection*{Applied}
+\begin{enumerate}
+  \item Complete the logit docstring using NumPy style, including domain,
+  return meaning, and exceptions. Add tests at values close to 0 and 1.
+  \item Design an immutable \code{ChemicalSpecies} dataclass with formula,
+  molar mass, and phase. State what can be validated syntactically and what
+  requires an external scientific source.
+  \item Create a three-row CSV fixture containing one schema error and one
+  domain error. Specify the exact message and chained exception expected for
+  each.
+\end{enumerate}
+
+\subsection*{Design}
+Design the public API of a small graph, trajectory, molecule, queue, or
+experiment object. Separate public operations from private representation and
+state at least three invariants each operation must preserve.
+
+\begin{chapterreview}
+\textbf{Key ideas.} A function is a boundary, not merely reusable syntax.
+Docstrings explain semantics, types communicate representation, validation
+enforces selected rules, exceptions communicate failure, and tests supply
+independent examples. Classes are justified by coherent state and invariants.
+File parsing precedes schema and domain validation.
+
+\textbf{Vocabulary.} function; signature; parameter; return value; API;
+docstring; type hint; exception; keyword-only; lambda; class; dataclass;
+invariant; encapsulation; CSV; JSON; exception chaining.
+
+\textbf{Explain aloud.} Why can two functions compute the same formula but have
+different APIs?
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 2 develops functions, classes, lambdas and variadic calls, then reads
+real CSV and JSON relationships into a custom knowledge graph using only the
+standard library.
+\end{notebooklink}
+
+\section{Takeaway}
+
+Functions and classes turn assumptions into named interfaces. Files supply
+representations, not meaning. Professional code makes the transition from one
+to the other explicit, documented, testable, and diagnosable.

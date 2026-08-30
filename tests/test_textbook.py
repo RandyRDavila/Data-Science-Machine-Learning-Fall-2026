@@ -12,7 +12,7 @@ OUTPUT_PDF = (
     PROJECT_ROOT / "output" / "pdf" / "data-science-machine-learning-textbook.pdf"
 )
 
-CONTENT_CHAPTERS = [
+PART_I_CHAPTERS = [
     CHAPTER_ROOT / "01-computational-workshop.tex",
     CHAPTER_ROOT / "02-python-data-model.tex",
     CHAPTER_ROOT / "03-functions-classes-native-data.tex",
@@ -23,9 +23,23 @@ CONTENT_CHAPTERS = [
     CHAPTER_ROOT / "08-end-to-end-data-products.tex",
 ]
 
+PART_II_CHAPTERS = [
+    CHAPTER_ROOT / "09-supervised-learning-systems.tex",
+    CHAPTER_ROOT / "10-linear-regression.tex",
+    CHAPTER_ROOT / "11-classification-decisions.tex",
+    CHAPTER_ROOT / "12-geometric-learning.tex",
+    CHAPTER_ROOT / "13-decision-trees.tex",
+    CHAPTER_ROOT / "14-ensemble-learning.tex",
+    CHAPTER_ROOT / "15-model-selection.tex",
+    CHAPTER_ROOT / "16-neural-networks.tex",
+    CHAPTER_ROOT / "17-reliable-supervised-systems.tex",
+]
 
-def test_main_source_includes_part_i_in_order() -> None:
-    """The book should include every Part I chapter in numerical order."""
+CONTENT_CHAPTERS = PART_I_CHAPTERS + PART_II_CHAPTERS
+
+
+def test_main_source_includes_both_parts_in_order() -> None:
+    """The book should include every content chapter in numerical order."""
 
     source = MAIN_SOURCE.read_text()
     chapter_inputs = [
@@ -34,6 +48,10 @@ def test_main_source_includes_part_i_in_order() -> None:
     positions = [source.index(chapter_input) for chapter_input in chapter_inputs]
 
     assert positions == sorted(positions)
+    assert source.index(r"\part{Foundations for Data-Driven Software Systems}") < (
+        positions[0]
+    )
+    assert source.index(r"\part{Supervised Learning Systems}") < positions[8]
 
 
 def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
@@ -51,6 +69,15 @@ def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
         "06-databases-data-systems.tex": ("Lecture 6 notebook 00",),
         "07-llm-tools-agents.tex": ("Lecture 7 notebook 00",),
         "08-end-to-end-data-products.tex": ("Lecture 8 notebook 00",),
+        "09-supervised-learning-systems.tex": ("Lecture 9 notebook 00",),
+        "10-linear-regression.tex": ("Lecture 10 notebook 00",),
+        "11-classification-decisions.tex": ("Lecture 11 notebook 00",),
+        "12-geometric-learning.tex": ("Lecture 12 notebook 00",),
+        "13-decision-trees.tex": ("Lecture 13 notebook 00",),
+        "14-ensemble-learning.tex": ("Lecture 14 notebook 00",),
+        "15-model-selection.tex": ("Lecture 15 notebook 00",),
+        "16-neural-networks.tex": ("Lecture 16 notebook 00",),
+        "17-reliable-supervised-systems.tex": ("Lecture 17 notebook 00",),
     }
 
     for filename, required_links in expected_links.items():
@@ -286,7 +313,7 @@ def test_cover_identifies_the_book_course_and_part() -> None:
         "A Systems Approach",
         "GRADUATE TEXT",
         "CMOR 438 / INDE 577",
-        "PART I",
+        "PARTS I--II",
         "Randy Davila",
         "Rice University",
     ):
@@ -322,8 +349,27 @@ def test_glossary_defines_neighboring_concepts_students_may_confuse() -> None:
         "tool &",
         "vectorization &",
         "workflow &",
+        "calibration &",
+        "cross-validation &",
+        "ensemble &",
+        "leakage &",
+        "loss function &",
+        "model artifact &",
+        "supervised learning &",
+        "target &",
     ):
         assert term in glossary, f"Glossary is missing {term.removesuffix(' &')}"
+
+
+@pytest.mark.parametrize("chapter", PART_II_CHAPTERS, ids=lambda path: path.stem)
+def test_part_ii_chapters_are_substantive_connected_drafts(chapter: Path) -> None:
+    """Part II should contain real exposition rather than topic placeholders."""
+
+    source = chapter.read_text()
+
+    assert len(source) >= 6_000
+    assert source.count(r"\section{") >= 5
+    assert "Lecture " in source
 
 
 def test_latex_source_uses_portable_ascii_hyphens() -> None:

@@ -1,0 +1,164 @@
+\chapter{Classification, probability, and decisions}
+\label{ch:classification}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish class scores, probability estimates, and decisions;
+  \item derive logistic loss and its gradient;
+  \item choose metrics and thresholds from a use-specific error structure; and
+  \item evaluate discrimination, calibration, and subgroup behavior.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Linear regression supplied the affine score $z=w^Tx+b$. Classification retains
+that score but changes its interpretation, loss, and action rule. These choices
+cannot be hidden inside a generic ``single neuron'' update without losing the
+mathematical contract.
+\end{chapterconnection}
+
+\section{A score is not yet a probability or decision}
+
+For binary $Y\in\{0,1\}$, an affine score orders examples along a direction.
+The perceptron predicts from the sign and updates on classification mistakes.
+It is historically and geometrically instructive, especially when data are
+linearly separable, but it does not estimate a probability and has no finite
+maximum-margin or likelihood solution merely because it converges.
+
+Logistic regression maps the score through
+\[
+\sigma(z)=\frac{1}{1+e^{-z}},\qquad
+\widehat p(x)=\sigma(w^Tx+b).
+\]
+The log-odds are affine:
+\[
+\log\frac{\widehat p(x)}{1-\widehat p(x)}=w^Tx+b.
+\]
+A probability estimate still does not specify an action. A policy chooses a
+threshold, abstention region, or downstream optimization from costs and
+constraints.
+
+\section{Bernoulli likelihood and logistic loss}
+
+Under a conditional Bernoulli model, the negative average log-likelihood is
+\[
+J(w,b)=-\frac{1}{n}\sum_{i=1}^n
+\left[y_i\log p_i+(1-y_i)\log(1-p_i)\right].
+\]
+Its gradient with respect to $w$ is $X^T(p-y)/n$. The compact expression
+resembles least squares, but it follows from a different loss-link pairing.
+This is why a universal gradient formula attached to a generic neuron is
+misleading.
+
+Numerical implementations operate on logits with stable functions rather than
+forming extreme probabilities and taking their logarithms. Regularization,
+scaling, class weighting, and convergence status remain part of the fitted
+object.
+
+\conceptcheck{Why can rounding a predicted probability at 0.5 be both a valid
+software operation and an invalid decision policy? Name the missing information.}
+
+\section{The confusion matrix is conditional on a threshold}
+
+At a chosen threshold, predictions produce true positives, false positives,
+true negatives, and false negatives. Accuracy weights every row equally and can
+look excellent when the event is rare. Precision asks what fraction of positive
+predictions are positive; recall asks what fraction of positive outcomes are
+detected. Specificity concerns negative outcomes.
+
+No metric is universally best. The metric must represent a loss, utility, or
+scientific purpose. Receiver-operating characteristic curves compare true- and
+false-positive rates across thresholds. Precision-recall curves often expose
+rare-event behavior more directly because precision depends on prevalence.
+Area summaries discard the operating threshold and can hide unacceptable
+regions.
+
+\section{Thresholds belong to a decision policy}
+
+If a false negative costs $C_{FN}$ and a false positive costs $C_{FP}$, an
+idealized calibrated probability model with no other constraints acts when its
+expected cost is lower. Real policies may also include capacity limits, review
+queues, abstention, subgroup constraints, or asymmetric downstream actions.
+
+Version the threshold separately from model parameters. It may change as costs,
+prevalence, or operational capacity change without retraining the score model.
+Evaluate the final model-policy pair on data untouched by threshold selection.
+
+\begin{professionalbox}
+An API should not label a floating-point score as ``risk'' without specifying
+its semantics. Return a documented score or probability, model version, and
+applicable population. If the service also returns an action, identify the
+decision-policy version.
+\end{professionalbox}
+
+\section{Calibration asks whether probabilities mean what they say}
+
+A model is calibrated on a population if events assigned probability near
+$q$ occur at frequency near $q$. Discrimination and calibration differ. A
+model can rank examples well while systematically overstating probability.
+Reliability diagrams and proper scoring rules provide evidence, but bin choices
+and sample size matter.
+
+Calibration can shift when prevalence or measurement changes. Platt-style
+scaling or isotonic calibration must be fitted on data separate from the data
+used to fit the underlying score, commonly through nested or cross-validated
+procedures.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} the output of a sigmoid is automatically a trustworthy
+probability. \textbf{Correction:} the range is between zero and one, but
+probability meaning depends on the model, training objective, data-generating
+setting, and empirical calibration on the target population.
+\end{misconceptionbox}
+
+\section{Multiclass problems require an explicit structure}
+
+For mutually exclusive classes, a softmax transforms logits $z_k$ into
+$p_k=e^{z_k}/\sum_j e^{z_j}$. Cross-entropy fits the probability assigned to the
+observed class. One-vs-rest constructs separate binary problems and may require
+additional reconciliation. Multilabel prediction is different: several labels
+may be true simultaneously.
+
+Report macro summaries when each class should receive equal weight and micro
+summaries when each decision receives equal weight. Always inspect class-level
+errors and the confusion matrix; a single average can conceal a class that the
+system never recognizes.
+
+\begin{workedexample}{degradation score to review decision}
+A logistic model estimates whether a cell will cross a degradation threshold
+within 100 cycles. The validation set is grouped by cell and later in time than
+training. The laboratory can manually review only 30 cells per week.
+
+The team first evaluates probability calibration. It then chooses a threshold
+that respects review capacity while placing a stated penalty on missed events.
+The held-out report contains prevalence, precision, recall, calibration, and
+errors by manufacturing batch. The artifact stores the score model; a separate
+policy file stores the threshold and capacity assumption. Neither output is
+described as a safety certification.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Derive the logistic-loss gradient from the Bernoulli likelihood.
+  \item Construct two classifiers with the same accuracy but different false-
+  negative costs for a stated application.
+  \item Explain how a prevalence change can alter precision while leaving class-
+  conditional score distributions unchanged.
+  \item Specify tests for score range, class ordering, threshold boundaries,
+  missing features, and policy-version compatibility.
+\end{enumerate}
+
+\begin{chapterreview}
+Classification has at least three layers: a fitted score, a probability
+interpretation, and a decision policy. Logistic regression supplies a principled
+loss and conditional probability model; threshold metrics describe one action
+rule; calibration audits probability meaning. Consequential behavior depends on
+population, costs, capacity, and feedback, not on a default threshold.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 11 notebook 00 connects perceptron geometry to logistic estimation.
+Companion laboratories develop thresholds, calibration, multiclass structure,
+and a versioned classification policy.
+\end{notebooklink}

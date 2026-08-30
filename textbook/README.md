@@ -47,8 +47,10 @@ appendices/                 setup, Git/GitHub lessons, and glossary
 
 ## Editorial status
 
-Part I is a complete graduate-course draft with a connected systems argument,
-worked examples, exercises, appendices, a glossary, and executable companions.
-It is ready for classroom review but remains open to corrections, citations,
-additional figures, solutions, and revisions from use. Later parts should be
-added only after their mathematical and computational arc is designed.
+Parts I and II are connected graduate-course drafts. Part I develops data-driven
+software foundations; Part II develops supervised learning from its prediction
+contract through monitored release. Both contain worked examples, exercises,
+appendices, and executable mappings. Part II notebook entry points and detailed
+development plans are in place, while their full laboratories will be expanded
+one unit at a time. The text remains open to corrections, citations, figures,
+solutions, and revisions from classroom use.

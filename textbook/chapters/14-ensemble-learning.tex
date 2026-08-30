@@ -1,0 +1,160 @@
+\chapter{Ensemble learning}
+\label{ch:ensembles}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish bagging, random forests, boosting, voting, and stacking;
+  \item explain how diversity and dependence govern ensemble benefit;
+  \item construct out-of-fold features for leakage-safe stacking; and
+  \item compare ensembles using predictive, calibration, and resource evidence.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+A single tree is expressive but unstable. Ensembles turn variation among fitted
+learners into a design variable. Some average perturbed learners to reduce
+variance; others build a sequence that corrects error. Treating both mechanisms
+as ``many models'' misses their different mathematics and failure modes.
+\end{chapterconnection}
+
+\section{Averaging helps when errors are not identical}
+
+Let predictors $F_1,\ldots,F_M$ have error variance $\sigma^2$ and pairwise
+error correlation $\rho$. Under a simplified equal-correlation model, the
+variance of their average is
+\[
+\rho\sigma^2+\frac{1-\rho}{M}\sigma^2.
+\]
+Increasing $M$ reduces only the uncorrelated part. Diversity without competence
+is not useful, and highly correlated accurate learners may gain little from
+averaging.
+
+\section{Bagging and randomized forests}
+
+Bagging fits a base learner to bootstrap samples and averages predictions.
+Unpruned trees are natural base learners because their instability creates
+variance that averaging can reduce. Out-of-bag observations can provide an
+internal diagnostic, though they do not replace an evaluation design matched to
+groups, time, or domain shift.
+
+Random forests also sample candidate features at each split. This decorrelates
+trees so strong predictors do not force every tree into the same structure.
+Extra-trees methods inject more split randomness. The important comparison is
+not which name sounds more sophisticated, but how bias, variance, computation,
+and stability change on held-out data.
+
+More trees usually stabilize an average rather than overfit in the same way as
+more depth. Depth, leaf size, feature sampling, class weighting, and bootstrap
+policy still require selection.
+
+\section{Boosting builds an additive model sequentially}
+
+Boosting adds weak learners in stages. AdaBoost increases attention to examples
+misclassified by the current ensemble and combines learners with performance-
+dependent weights. Gradient boosting views the model as an additive expansion
+and fits each new learner toward the negative gradient of the loss.
+
+For squared error, the negative gradient is proportional to the residual, which
+makes ``fit the residuals'' exact. For other differentiable losses, pseudo-
+residuals replace ordinary residuals. Learning rate and number of stages trade
+step size against sequence length; tree depth controls interaction order.
+
+Histogram-based implementations make strong tabular learners practical by
+binning candidate thresholds and optimizing computation. Libraries differ in
+category handling, missingness, regularization, determinism, and serialization.
+An external package is a dependency with a contract, not merely an import.
+
+\conceptcheck{Why can adding more trees to a random forest and adding more
+stages to a boosted ensemble have different overfitting behavior?}
+
+\section{Voting and stacking combine heterogeneous learners}
+
+Hard voting combines predicted labels and discards confidence. Soft voting
+averages probabilities, which requires compatible class order and meaningful
+calibration. Weight selection is another adaptive choice and belongs inside
+validation.
+
+Stacking trains a meta-learner on predictions from base learners. If base
+predictions for a training row come from models fitted on that same row, the
+meta-learner sees optimistically biased features. Correct stacking constructs
+out-of-fold predictions: each training row is predicted by a base model that did
+not train on it. Base learners are then refit on the full training data for
+future inference.
+
+\begin{warningbox}
+The stacking split must preserve the original dependence structure. Ordinary
+row-wise folds do not become safe merely because they are used inside an
+ensemble. Groups, time, and preprocessing boundaries still apply at every
+level.
+\end{warningbox}
+
+\section{Importance and explanation become more delicate}
+
+An ensemble can improve prediction while making one global explanation harder.
+Impurity importance inherits the biases of tree splits. Permutation importance
+measures performance loss under a specified perturbation and can understate
+redundant correlated features. Local additive explanation methods approximate
+or allocate behavior under background-distribution assumptions.
+
+Use interpretation as a scoped diagnostic. It cannot promote an associative
+ensemble into a causal mechanism. Stability across folds, batches, and plausible
+perturbations is evidence worth reporting.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} ensembles always outperform their members. 
+\textbf{Correction:} benefit depends on base competence, error dependence,
+selection, and the deployment distribution. Combination can preserve shared
+bias, amplify leakage, damage calibration, and exceed resource constraints.
+\end{misconceptionbox}
+
+\section{Champion-challenger evaluation}
+
+The champion is the approved artifact currently serving the contract. A
+challenger is evaluated under the same split, metrics, calibration procedure,
+and resource budget. Promotion should require a practically meaningful gain,
+not merely the largest point estimate among many trials.
+
+Measure serialized size, fit cost, batch throughput, tail latency, memory, and
+energy where material. Verify deterministic behavior under the supported
+runtime or document unavoidable variation. A smaller calibrated model may be a
+better system component than a marginally more accurate ensemble.
+
+\begin{workedexample}{forest and boosting challengers}
+For future-batch degradation prediction, the logistic champion is compared with
+a random forest and histogram gradient booster. All candidates receive the same
+training-only preprocessing and outer temporal evaluation. Hyperparameters are
+chosen within earlier batches.
+
+The booster improves average precision, but its raw probabilities overstate
+event frequency. Calibration is fitted without touching the final batch. The
+release report compares the calibrated system with the champion on decision
+cost, batch-level uncertainty, model size, and prediction latency. Promotion is
+withheld when the apparent gain disappears on the newest batch. The result is a
+successful evaluation, not a failed project.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Derive the equal-correlation variance formula for an average of $M$
+  predictors.
+  \item Draw the data flow required to generate leakage-safe stacking features.
+  \item Compare random forest and gradient boosting when base trees are made
+  deeper. Explain the different mechanisms.
+  \item Write a promotion gate that includes predictive quality, calibration,
+  artifact size, latency, and subgroup regression limits.
+\end{enumerate}
+
+\begin{chapterreview}
+Ensembles improve learning through structured diversity. Bagging and randomized
+forests reduce variance by averaging perturbed learners. Boosting constructs an
+additive sequence guided by loss. Voting and stacking combine heterogeneous
+models, but stacking requires out-of-fold features. Accuracy gains must survive
+calibration, dependence-aware evaluation, interpretation limits, and resource
+budgets.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 14 notebook 00 maps forests, boosting, voting, and stacking. Companion
+laboratories build a leakage-safe benchmark and a champion-challenger report.
+\end{notebooklink}

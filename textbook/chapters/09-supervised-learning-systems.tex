@@ -1,0 +1,196 @@
+\chapter{The supervised-learning contract}
+\label{ch:supervised-contract}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item formulate a supervised-learning task as a statistical and operational contract;
+  \item distinguish features, targets, predictions, decisions, and causal claims;
+  \item design a split that represents the intended prediction setting; and
+  \item construct a baseline and a minimal training-to-feedback path.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Part I established how data and code cross representation, package, database,
+API, and operational boundaries. Part II inserts a learned component into that
+system. Learning does not remove those responsibilities. It adds estimation
+error, distributional assumptions, adaptive selection, and delayed evidence.
+\end{chapterconnection}
+
+\section{Learning begins with a future information boundary}
+
+Let an observation be a pair $(X,Y)$ drawn from a population distribution
+$P$. The feature vector $X\in\mathcal{X}$ contains information available at a
+specified prediction time. The target $Y\in\mathcal{Y}$ records the outcome to
+be estimated. A learning algorithm receives a sample
+$D=\{(x_i,y_i)\}_{i=1}^n$ and produces a predictor
+$\widehat f_D:\mathcal{X}\rightarrow\mathcal{A}$. The action space
+$\mathcal{A}$ may contain numerical estimates, scores, probabilities, or class
+labels.
+
+This notation is compact enough to hide the most important design decisions.
+What is one observational unit? From which population were units sampled? At
+what time is $X$ frozen? How far in the future is $Y$ measured? Which units can
+recur? What action consumes the output? The subscript $D$ is a reminder that a
+fitted predictor is random: a different sample can produce a different
+function.
+
+\begin{definitionbox}{supervised-learning contract}
+A supervised-learning contract names the observational unit, target population,
+prediction time, target and horizon, permitted information, output semantics,
+loss or utility, evaluation design, operational consumer, and outcome-feedback
+process. The model class is one field in this contract, not the contract itself.
+\end{definitionbox}
+
+Our recurring case concerns battery cells. At the end of an early measurement
+window, we may estimate capacity after a later number of cycles, or predict
+whether the cell will cross a degradation threshold within a stated horizon.
+Measurements collected after the prediction time are forbidden, even if they
+appear in the same convenient table.
+
+\section{Risk, empirical risk, and the generalization claim}
+
+For a loss function $L(y,a)$, the population risk of $f$ is
+\[
+R(f)=\mathbb{E}_{(X,Y)\sim P}[L(Y,f(X))].
+\]
+The distribution $P$ is generally unknown. Training therefore uses an empirical
+quantity such as
+\[
+\widehat R_D(f)=\frac{1}{n}\sum_{i=1}^n L(y_i,f(x_i)).
+\]
+Minimizing empirical loss is a computational objective. The scientific claim
+is that performance transfers to a named population and use setting. That claim
+depends on sampling, dependence, temporal stability, measurement, and the way
+the model was selected.
+
+A loss trains or compares functions. A metric communicates some aspect of
+behavior. A decision policy converts output into action. These objects can be
+different. Logistic loss may fit a probability model, calibration error may
+audit its probabilities, and an asymmetric cost rule may choose an intervention
+threshold.
+
+\conceptcheck{A laboratory reports excellent mean squared error after randomly
+splitting rows, but each physical cell contributes many rows to both subsets.
+What population quantity does that experiment estimate, and why might it differ
+from performance on a previously unseen cell?}
+
+\section{Prediction is not causal explanation}
+
+A predictor exploits associations that persist between its training and use
+settings. It need not represent a mechanism. A variable can improve prediction
+because it is a proxy for laboratory, instrument, treatment assignment, or
+selection process. Conversely, a causally important variable may add little
+predictive information if its variation is small or already encoded elsewhere.
+
+The question ``What will happen?'' differs from ``What would happen if we
+intervened?'' Counterfactual conclusions require additional design and
+assumptions. High predictive accuracy does not supply them.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} a sufficiently accurate model discovers the true
+causes. \textbf{Correction:} predictive performance is evidence about a
+specified prediction task under a specified evaluation design. Causal claims
+require an identification argument that predictive accuracy alone cannot
+provide.
+\end{misconceptionbox}
+
+\section{Splits simulate the use setting}
+
+A random row split is appropriate only when future uses resemble independent
+draws from the same row-level population. Dependence changes the unit of
+separation. Repeated measures from one cell call for grouped splitting when the
+claim concerns unseen cells. Forecasting calls for training on the past and
+evaluating on the future. A new laboratory or manufacturing batch may require a
+held-out domain.
+
+Three subsets have different responsibilities. Training data determine fitted
+parameters. Validation data guide model and hyperparameter choices. Test data
+support a final estimate after those choices stop. Cross-validation rotates
+training and validation roles; it does not excuse repeatedly consulting the
+test set.
+
+\term{Leakage} occurs when model construction uses information that would not
+be legitimately available at prediction time or crosses an evaluation
+boundary. Target-derived features are obvious leakage. More subtle cases
+include fitting normalization on the full dataset, selecting variables before
+cross-validation, using future measurements, and allowing related entities into
+both sides of a split.
+
+\begin{warningbox}
+Preprocessing learns parameters too. Imputation values, category vocabularies,
+scales, feature selection, and representation learning must be fitted using the
+training portion of each evaluation fold and then applied to held-out data.
+\end{warningbox}
+
+\section{A baseline is an experimental control}
+
+A baseline asks whether learning adds value beyond a simple policy. For
+regression, predict the training mean or a physically motivated constant. For
+classification, predict class prevalence or the most frequent class, but audit
+whether that behavior is useful under imbalance. A time-series baseline may
+carry the latest observation forward.
+
+The baseline uses the same split, metric, and information boundary as the
+candidate. Otherwise it is not a control. A complex model that fails to beat a
+correct baseline has supplied diagnostic evidence: the signal, representation,
+sample size, objective, or implementation may not support the claim.
+
+\begin{workedexample}{write the battery prediction contract}
+Suppose one row summarizes the first 100 cycles of one cell. The target is
+capacity at cycle 300, measured in ampere-hours. The intended use is prediction
+for cells from future manufacturing batches immediately after cycle 100.
+
+The feature cutoff excludes all observations after cycle 100. Batch identity
+defines an outer temporal split: earlier batches train the system and later
+batches evaluate it. All transformations are fitted within the training side.
+The baseline predicts the mean training capacity at cycle 300. Mean absolute
+error is reported in ampere-hours together with the error distribution by batch.
+
+The contract also states what it does not establish. It does not estimate the
+effect of changing a charging protocol, certify safety, or guarantee behavior
+for a chemistry absent from the study. Those exclusions are part of the result,
+not fine print.
+\end{workedexample}
+
+\section{The first vertical slice should be deliberately simple}
+
+Before optimizing an algorithm, prove that the system can reproduce a split,
+fit a baseline, serialize an artifact, load it in a separate process, validate
+inputs, produce predictions, record model and feature versions, and later join
+predictions to outcomes. A dummy model is ideal because unexpected behavior is
+easy to detect.
+
+The artifact manifest should identify training data, code revision,
+configuration, feature schema, split policy, fitted object, evaluation report,
+and creation time. A model file without this context is an opaque binary, not a
+reproducible result.
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item Write two prediction contracts for the same battery table: one for an
+  unseen cell from a known batch and one for a future batch. Explain why their
+  splits differ.
+  \item Construct three leakage examples: one temporal, one group-based, and
+  one caused by preprocessing. For each, identify the invalid information path.
+  \item Specify regression and classification baselines for a target with strong
+  batch imbalance. State what each baseline controls.
+  \item Design an artifact manifest sufficient for another process to reject an
+  incompatible feature vector before inference.
+\end{enumerate}
+
+\begin{chapterreview}
+Supervised learning estimates a rule from labeled observations, but the
+defensible object is larger than the fitted rule. The contract names population,
+time, target, information, loss, split, consumer, and feedback. Evaluation must
+simulate the intended use; baselines act as controls; and the first vertical
+slice should validate artifact and evidence flow before model complexity grows.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 9 notebook 00 turns the contract into an executable schema. Its
+companion laboratories introduce leakage-safe splits, baselines, and a minimal
+training-to-feedback path for the running battery case.
+\end{notebooklink}

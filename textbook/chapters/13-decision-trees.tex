@@ -1,0 +1,135 @@
+\chapter{Decision trees and recursive partitions}
+\label{ch:decision-trees}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item interpret a decision tree as a recursive partition and prediction rule;
+  \item compare regression and classification split criteria;
+  \item control complexity through structural constraints and pruning; and
+  \item audit threshold, stability, missingness, and interpretation failures.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Geometric methods defined neighborhoods and margins globally. A decision tree
+constructs axis-aligned local regions through a sequence of binary questions.
+This representation naturally captures nonlinearities and interactions, but its
+greedy construction is unstable. That instability motivates the ensembles in
+the next chapter.
+\end{chapterconnection}
+
+\section{A tree is a piecewise-constant function}
+
+An internal node asks whether $x_j\le t$. The answer routes an observation to a
+child. A leaf returns a constant: commonly a target mean for regression or class
+frequencies for classification. The root-to-leaf path defines a rectangular
+region of feature space.
+
+Tree fitting greedily chooses a feature and threshold that reduce an impurity
+criterion. For regression, reduction in within-node squared error is common. For
+classification with proportions $p_k$, Gini impurity is
+$1-\sum_kp_k^2$ and entropy is $-\sum_kp_k\log p_k$. These criteria guide local
+splits; they are not the final deployment utility.
+
+\section{Greedy growth and structural regularization}
+
+Searching every possible tree is combinatorial. Standard algorithms choose the
+best immediate split, partition the data, and repeat. A locally best split need
+not belong to the globally best tree.
+
+Depth, minimum samples per split or leaf, maximum leaf count, and minimum
+impurity decrease constrain growth. Cost-complexity pruning instead grows a
+larger tree and trades empirical fit against leaf count. These are forms of
+regularization and must be chosen within the validation boundary.
+
+\conceptcheck{Why can a leaf with one training observation have zero regression
+impurity and nevertheless be a poor estimate of its region's conditional mean?}
+
+\section{Instability is a central property}
+
+A small data perturbation can change an early split and therefore the entire
+downstream partition. Two trees can have similar predictive performance but
+very different structures. A displayed tree is an exact account of one fitted
+artifact, not necessarily a stable description of the population.
+
+Measure stability by refitting across resamples or folds and comparing
+predictions, split variables, and subgroup behavior. The next chapter will use
+this variance as an opportunity: averaging decorrelated trees can produce a
+much more stable predictor.
+
+\section{Threshold semantics and missing values}
+
+Tree boundaries create discontinuities. Inputs just below and above a threshold
+may receive sharply different predictions. Tests should exercise equality and
+neighboring representable values. Unit conversions and numerical rounding can
+therefore change paths.
+
+Missingness needs a declared policy: rejection, imputation inside the pipeline,
+learned default direction, or a native missing-value mechanism. Missingness may
+itself encode collection behavior that shifts after deployment. Category
+handling also needs stable vocabularies and an unknown-category policy.
+
+\begin{professionalbox}
+Export the exact feature schema, preprocessing, library and artifact versions,
+class ordering, and missing-value behavior with a tree. Test a small set of
+golden predictions at every release, including values at important split
+thresholds.
+\end{professionalbox}
+
+\section{Interpretability has a scope}
+
+A path answers: ``Which conditions in this fitted tree produced this output?''
+It does not answer why the outcome occurred, what an intervention would do, or
+whether the same path would appear under resampling. Impurity-based feature
+importance can favor variables with many candidate splits and distribute credit
+unreliably among correlated variables.
+
+Permutation and held-out perturbation methods ask different questions and can
+also fail under dependence or unrealistic perturbations. Interpretation should
+name the model, population, perturbation, and uncertainty.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} a shallow tree is inherently objective and
+interpretable. \textbf{Correction:} it may be readable, but its variables,
+thresholds, sample, missingness policy, and pruning objective still encode
+choices. Readability does not establish stability, fairness, or causality.
+\end{misconceptionbox}
+
+\begin{workedexample}{a brittle degradation rule}
+A depth-three tree places resistance change at its root and performs well on a
+held-out random split. When the evaluation holds out later manufacturing
+batches, performance falls. Repeated fits move the root threshold substantially.
+
+Investigation shows that the instrument calibration changed between batches.
+The tree had learned a convenient separator tied to measurement context. The
+team retains the tree as a baseline, documents its threshold instability, adds
+batch-aware validation, and rejects causal language about resistance. The
+failure is useful evidence about the data-generating system.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Compute Gini impurity and entropy before and after a proposed binary
+  split. Compare their ordering.
+  \item Fit the conceptual structure of two trees to bootstrap samples and list
+  the quantities needed for a stability report.
+  \item Design boundary tests for a threshold at $0.2$ with missing, infinite,
+  and unit-converted inputs.
+  \item Explain why impurity importance is not a causal effect and not an
+  automatic measure of predictive necessity.
+\end{enumerate}
+
+\begin{chapterreview}
+Decision trees construct piecewise-constant predictions through greedy
+recursive partitions. Split criteria, structural constraints, and pruning
+define the learner. Trees represent nonlinear interactions naturally, but they
+are discontinuous and often unstable. Their readable paths explain one artifact
+only within a carefully stated scope.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 13 notebook 00 develops recursive partitioning and impurity. Its second
+laboratory studies pruning, sample perturbation, threshold tests, and the limits
+of tree interpretation.
+\end{notebooklink}

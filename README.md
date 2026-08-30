@@ -67,6 +67,15 @@ their contracts.
 │   ├── lecture-06-databases-data-systems/
 │   ├── lecture-07-llm-tools-agents/
 │   ├── lecture-08-end-to-end-data-products/
+│   ├── lecture-09-supervised-learning-systems/
+│   ├── lecture-10-linear-regression-regularization/
+│   ├── lecture-11-classification-decisions/
+│   ├── lecture-12-geometric-learning/
+│   ├── lecture-13-decision-trees/
+│   ├── lecture-14-ensemble-learning/
+│   ├── lecture-15-model-selection-evaluation/
+│   ├── lecture-16-neural-networks-autodiff/
+│   ├── lecture-17-reliable-supervised-systems/
 │   └── ...                    # One directory per instructional unit
 ├── src/
 │   └── rice_dsm/
@@ -121,7 +130,9 @@ The companion [`Professional Practices Spine`](notebooks/PROFESSIONAL_PRACTICES.
 maps scientific and software-engineering habits across the semester.
 Internal curriculum decisions and restart points are recorded in
 [`notes/`](notes/); the current handoff captures the provisional Part I boundary
-and its required second pass.
+and its required second pass. The
+[`Part II roadmap`](notes/part-ii-roadmap.md) records the supervised-learning
+architecture, unit sequence, running scientific case, and release standard.
 
 ### Python environment and package
 
@@ -234,6 +245,30 @@ The Part I synthesis traces a value from durable storage through a service and
 HTTP API to a client, deployment workflow, and operational evidence. Its
 notebook and local vertical-slice demonstration live in
 [`notebooks/lecture-08-end-to-end-data-products`](notebooks/lecture-08-end-to-end-data-products/).
+
+### Part II: Supervised Learning Systems
+
+Part II treats supervised learning as a complete prediction system rather than
+an algorithm catalog. A recurring battery-cell case moves through three linked
+paths: training creates a versioned candidate, prediction applies an approved
+artifact, and feedback joins predictions to delayed outcomes. The units are:
+
+| Unit | Topic | Executable entry point |
+| ---: | --- | --- |
+| 9 | Prediction contracts, leakage-safe splits, and baselines | [`lecture-09-supervised-learning-systems`](notebooks/lecture-09-supervised-learning-systems/) |
+| 10 | Linear regression, optimization, and regularization | [`lecture-10-linear-regression-regularization`](notebooks/lecture-10-linear-regression-regularization/) |
+| 11 | Classification, calibration, and decision policies | [`lecture-11-classification-decisions`](notebooks/lecture-11-classification-decisions/) |
+| 12 | Nearest neighbors, margins, and kernels | [`lecture-12-geometric-learning`](notebooks/lecture-12-geometric-learning/) |
+| 13 | Decision trees, pruning, and stability | [`lecture-13-decision-trees`](notebooks/lecture-13-decision-trees/) |
+| 14 | Bagging, forests, boosting, voting, and stacking | [`lecture-14-ensemble-learning`](notebooks/lecture-14-ensemble-learning/) |
+| 15 | Model selection, uncertainty, and promotion | [`lecture-15-model-selection-evaluation`](notebooks/lecture-15-model-selection-evaluation/) |
+| 16 | Neural networks, backpropagation, and autodiff | [`lecture-16-neural-networks-autodiff`](notebooks/lecture-16-neural-networks-autodiff/) |
+| 17 | Reliable release, monitoring, outcomes, and retraining | [`lecture-17-reliable-supervised-systems`](notebooks/lecture-17-reliable-supervised-systems/) |
+
+Each directory currently contains its unit contract, planned detailed notebook
+sequence, and a CI-executable entry notebook. These entry points will be expanded
+into full laboratories one unit at a time. The textbook already carries the
+connected Part II mathematical and systems narrative.
 
 ## Supplementary materials
 

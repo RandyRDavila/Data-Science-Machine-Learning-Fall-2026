@@ -1,0 +1,137 @@
+\chapter{Geometric learning: neighbors, margins, and kernels}
+\label{ch:geometric-learning}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item explain how representation and scaling define a model's geometry;
+  \item analyze nearest-neighbor bias, variance, and prediction cost;
+  \item formulate a margin-based classifier and the role of a kernel; and
+  \item select geometric methods with statistical and operational constraints.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+The preceding models learned an affine score. We now study algorithms for which
+distance or inner-product geometry is explicit. Their apparent lack of feature
+engineering is deceptive: units, scaling, representation, and invariance define
+which observations the algorithm treats as similar.
+\end{chapterconnection}
+
+\section{A metric encodes a scientific judgment}
+
+Euclidean distance
+$d(x,x')=\sqrt{\sum_j(x_j-x'_j)^2}$ compares coordinate differences. A change
+of units changes that comparison. Standardizing features makes one empirical
+standard deviation comparable across coordinates, but it does not prove that
+those deviations carry equal scientific meaning.
+
+Categorical, circular, spatial, graph, and functional data may require other
+representations. A metric should respect relevant invariances: translating a
+molecule, permuting exchangeable objects, or shifting a periodic phase should
+not arbitrarily change similarity when the task says it should not.
+
+\section{Nearest neighbors defer fitting}
+
+For regression, $k$-nearest neighbors averages targets among the $k$ closest
+training points. For classification, it votes or averages class indicators.
+Small $k$ adapts locally but has high variance. Large $k$ smooths more strongly
+and can erase local structure.
+
+Training may consist mainly of storing data, but inference must search those
+data. Index structures can accelerate low-dimensional queries; high-dimensional
+geometry often makes exact search expensive and neighborhoods uninformative.
+Approximate search trades accuracy for latency and requires its own evaluation.
+
+Irrelevant dimensions are particularly harmful because distances concentrate
+and true neighbors become hard to distinguish. This is one manifestation of the
+curse of dimensionality: local coverage requires rapidly increasing sample size
+as dimension grows.
+
+\conceptcheck{Why is scaling the full dataset before cross-validating kNN a
+leakage error even though no target values enter the scaler?}
+
+\section{Margins produce a different geometry}
+
+For labels $y_i\in\{-1,1\}$, a linear separator predicts from
+$w^Tx+b$. The geometric margin of a point is
+$y_i(w^Tx_i+b)/\lVert w\rVert$. A hard-margin support-vector machine chooses the
+separating hyperplane with maximum minimum margin when separation is possible.
+
+The soft-margin formulation permits violations through hinge loss:
+\[
+\min_{w,b}\quad \frac{1}{2}\lVert w\rVert^2
++C\sum_{i=1}^n\max(0,1-y_i(w^Tx_i+b)).
+\]
+The parameter $C$ controls the penalty for violations relative to margin size.
+Only points on or inside the margin influence the final boundary directly;
+these are the support vectors.
+
+Feature scaling changes both margins and regularization. A support-vector
+pipeline therefore owns its fitted preprocessing. A margin score is not a
+calibrated probability without an additional validated calibration procedure.
+
+\section{Kernels change the feature space implicitly}
+
+A kernel $K(x,x')=\langle\phi(x),\phi(x')\rangle$ computes an inner product in
+a transformed feature space without necessarily constructing every coordinate
+of $\phi$. Polynomial and radial-basis kernels create nonlinear boundaries in
+the original space.
+
+The kernel trick does not remove model selection. Kernel family, scale, and
+regularization determine smoothness and complexity. Kernel matrices grow
+quadratically with sample count, making classical kernel methods unsuitable for
+some large datasets. Approximation or a different model class may be preferable.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} an RBF kernel automatically discovers the right
+nonlinearity. \textbf{Correction:} it imposes a particular similarity with a
+chosen length scale. Poor scaling, high dimension, extrapolation, or an
+inappropriate invariance can make that geometry scientifically wrong.
+\end{misconceptionbox}
+
+\section{Evaluation includes resource behavior}
+
+Compare geometric methods using the same outer split and preprocessing
+boundary. Validation chooses $k$, distance weighting, $C$, and kernel parameters.
+The report also measures artifact size, fit time, prediction latency across
+batch sizes, and memory. A method with excellent average error but unbounded
+tail latency may violate the product contract.
+
+\begin{workedexample}{when battery similarity fails}
+Suppose early-cycle features include voltage in volts, resistance in milliohms,
+and cycle duration in seconds. Unscaled Euclidean kNN is dominated by the
+largest numerical range. Standardization improves validation performance, but a
+new manufacturing batch lies far outside the training resistance range.
+
+The team reports this distance-to-training evidence rather than forcing a
+confident neighbor vote. It compares a scaled kNN pipeline with a linear and an
+RBF support-vector model on held-out batches. The selection report includes
+error, calibration where probabilities are needed, inference latency, and the
+fraction of queries outside a prespecified support region.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Give two rescalings that reverse which of two points is nearest to a
+  query. Explain which scaling is scientifically defensible.
+  \item Derive the distance from a point to the hyperplane $w^Tx+b=0$.
+  \item Compare the computational storage and prediction costs of kNN, linear
+  SVM, and kernel SVM as $n$ grows.
+  \item Design an out-of-support warning that can be serialized and tested with
+  a geometric model artifact.
+\end{enumerate}
+
+\begin{chapterreview}
+Geometric learners make similarity assumptions visible. kNN trades local bias
+against variance and prediction cost. Support-vector machines trade margin
+against violations, while kernels define an implicit feature geometry. Scaling,
+invariance, dimensionality, support, memory, and latency are model properties,
+not peripheral preprocessing details.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 12 notebook 00 introduces neighbors, margins, and kernels. Companion
+experiments compare scaling, irrelevant dimensions, support, validation, and
+latency under the running supervised-learning contract.
+\end{notebooklink}

@@ -1,0 +1,150 @@
+\chapter{Model selection and honest evaluation}
+\label{ch:model-selection}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item state what an evaluation design estimates;
+  \item use cross-validation without crossing preprocessing or dependence boundaries;
+  \item separate model selection from final performance estimation; and
+  \item make a promotion decision with uncertainty and error analysis.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Part II has introduced several plausible learners. Choosing among them is itself
+an adaptive statistical procedure. This chapter treats the evaluation protocol
+as an estimator and the promotion decision as a versioned result, not as a
+contest for the largest displayed score.
+\end{chapterconnection}
+
+\section{Name the estimand before the splitter}
+
+An evaluation score estimates performance under a hypothetical repetition. In
+ordinary $K$-fold cross-validation, rows are partitioned into folds; each fold
+is predicted by a model trained on the others. The resulting estimate concerns
+training sets somewhat smaller than the full sample and a population represented
+by the fold construction.
+
+Grouped folds estimate transfer to held-out groups. Forward or rolling temporal
+splits estimate transfer from past training windows to later periods. Spatial or
+domain splits can estimate transfer across sites. A convenient splitter cannot
+repair an unclear deployment claim.
+
+\section{A pipeline owns every fitted transformation}
+
+Within each fold, fit imputation, scaling, category handling, feature selection,
+dimensionality reduction, calibration, and the predictor using only the fold's
+training portion. Apply the fitted sequence to its validation portion. A
+pipeline makes this boundary executable and ensures that the same transformations
+travel with the final artifact.
+
+Static operations that use no sample information can be defined outside, but
+their schemas and versions still belong to the contract. The test is not
+whether an operation is called ``preprocessing''; it is whether it learns from
+observations.
+
+\section{Selection creates optimism}
+
+Suppose many noisy performance estimates are compared and the largest is
+reported. Even when every estimate is individually unbiased, the maximum tends
+to be optimistic. Hyperparameter search, feature choice, threshold selection,
+and repeated manual notebook experiments all consume validation information.
+
+Nested evaluation separates these roles. Inner folds choose the candidate;
+outer folds estimate the entire selection procedure on observations hidden from
+that choice. A final locked test set can provide a single additional estimate
+after development stops. It must not become a repeatedly queried leaderboard.
+
+\conceptcheck{If the test set influences one feature choice, what has become the
+new test set, and what evidence has been lost?}
+
+\section{Search should express prior structure and budget}
+
+A grid is useful for a small structured set. Random search often covers
+high-dimensional spaces more efficiently when only some dimensions matter.
+Adaptive search uses prior trials to choose later trials and must be included in
+the selection boundary.
+
+Search ranges should be expressed on natural scales, such as logarithmic ranges
+for regularization strengths. Invalid combinations should be excluded by
+construction. Record every trial, seed, split identifier, duration, failure,
+metric, and artifact reference. A failed run is data about the process, not a
+row to delete silently.
+
+\begin{professionalbox}
+Specify a compute budget and stopping rule before search. Reproducibility means
+another run can reconstruct data, folds, code, configuration, and selection
+logic; it does not require pretending that parallel floating-point execution is
+bitwise identical on every device.
+\end{professionalbox}
+
+\section{Uncertainty and dependence}
+
+Fold scores are not independent replicates because training sets overlap.
+Reporting their standard deviation as if it were a simple standard error can be
+misleading. Bootstrap methods must resample at the independent unit: cell,
+patient, site, or time block rather than row when dependence lives at that level.
+
+Uncertainty should match the decision. A confidence interval for mean loss does
+not bound every subgroup or future shift. Report point estimates alongside
+sample counts, variation by relevant group or period, and sensitivity to design
+choices. Practical equivalence may matter more than a tiny nominal difference.
+
+\section{Error analysis is structured, not anecdotal}
+
+After obtaining held-out predictions, stratify errors by target range, feature
+support, group, time, missingness, and operational context. Inspect examples to
+form hypotheses, then test those hypotheses on data not used to invent them when
+possible. Do not remove inconvenient cases without a protocol.
+
+Learning curves compare performance as training size grows. A persistent gap
+between training and validation behavior suggests variance or shift; uniformly
+poor behavior suggests limited signal, representation, or misspecification.
+These are diagnostic patterns, not universal proofs.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} cross-validation eliminates overfitting. 
+\textbf{Correction:} it estimates a procedure under its split assumptions.
+Repeatedly adapting to its results can overfit the validation process, and an
+inappropriate fold structure can estimate the wrong use setting precisely.
+\end{misconceptionbox}
+
+\begin{workedexample}{a promotion decision, not a leaderboard}
+Four candidate families are evaluated for capacity regression. Inner grouped
+temporal folds choose transformations and hyperparameters. Outer future-batch
+folds estimate the complete choice procedure. The ensemble has the lowest mean
+error, but the interval overlaps the ridge model and its tail latency exceeds
+the batch-service budget.
+
+The evaluation report promotes ridge because it beats the baseline by the
+prespecified practical margin, satisfies batch-level regression limits, and has
+stable resource use. The ensemble remains a challenger. The report includes
+split hashes, data and code versions, candidate search spaces, all failed trials,
+and a signed decision rationale.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Design splits for unseen cells, future batches, and a new laboratory.
+  State the estimand for each.
+  \item Draw nested cross-validation including preprocessing and threshold
+  selection.
+  \item Explain why trial deletion and repeated seed selection can bias a report.
+  \item Write promotion criteria containing a baseline margin, uncertainty,
+  subgroup limits, latency, artifact size, and rollback readiness.
+\end{enumerate}
+
+\begin{chapterreview}
+Evaluation estimates a named future use under a split design. Pipelines preserve
+fold boundaries for every learned transformation. Selection creates optimism,
+so nested or locked evaluation must separate choosing from estimating. Search
+has a budget and provenance; uncertainty respects independent units; and a
+promotion gate combines predictive, subgroup, and operational evidence.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 15 notebook 00 treats selection as estimation. Companion laboratories
+implement nested pipelines, bounded search, error analysis, uncertainty, and a
+versioned promotion report.
+\end{notebooklink}

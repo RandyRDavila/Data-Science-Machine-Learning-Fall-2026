@@ -1,0 +1,168 @@
+\chapter{Neural networks and automatic differentiation}
+\label{ch:neural-networks}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item express a feedforward network as compositions of affine maps and nonlinearities;
+  \item apply the chain rule on a computational graph;
+  \item distinguish automatic differentiation from optimization and learning; and
+  \item build a reproducible mini-batch training and artifact contract.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Linear and logistic models used one affine score. Neural networks compose many
+affine maps with nonlinear transformations. The single unit remains useful
+mathematics, but modern practice gains more from understanding composition,
+gradients, tensors, optimization state, and evaluation than from constructing a
+general-purpose framework from scratch.
+\end{chapterconnection}
+
+\section{Nonlinear composition creates representation depth}
+
+A dense hidden layer maps
+\[
+h=\phi(Wx+b),
+\]
+where $W$ is a matrix, $b$ a vector, and $\phi$ an elementwise or structured
+activation. A two-layer network may be written
+\[
+f(x)=W_2\phi(W_1x+b_1)+b_2.
+\]
+Without a nonlinear $\phi$, the composition collapses to one affine map.
+Rectified linear units produce piecewise-linear functions; smooth activations
+have different gradient and saturation behavior.
+
+Shapes are contracts. For a batch $X\in\mathbb{R}^{n\times p}$ and hidden width
+$h$, $W_1\in\mathbb{R}^{p\times h}$ yields an $n\times h$ activation. Explicit
+shape ledgers prevent broadcasting bugs that are numerically valid but
+semantically wrong.
+
+\section{Backpropagation is organized chain rule}
+
+A computational graph records operations and intermediate values. Reverse-mode
+automatic differentiation begins with the derivative of a scalar loss and
+propagates vector-Jacobian products backward through the graph. Backpropagation
+is the efficient application of this rule to layered models.
+
+For scalar $\widehat y=w_2\phi(w_1x+b_1)+b_2$ and loss
+$\ell=(\widehat y-y)^2/2$,
+\[
+\frac{\partial\ell}{\partial w_2}=(\widehat y-y)\phi(a),\qquad
+\frac{\partial\ell}{\partial w_1}=(\widehat y-y)w_2\phi'(a)x,
+\]
+where $a=w_1x+b_1$. A finite-difference check compares these derivatives with
+small parameter perturbations. It is a debugging oracle for a tiny calculation,
+not an efficient training method.
+
+\conceptcheck{Automatic differentiation returns a gradient without error. Which
+parts of the learning problem could still be wrong?}
+
+\section{Autodiff, optimization, and estimation are different}
+
+Autodiff differentiates the implemented scalar objective. An optimizer uses
+those derivatives to update parameters. Stochastic gradient descent estimates a
+full gradient from mini-batches; momentum and adaptive methods transform the
+update history. The statistical procedure includes data order, augmentation,
+regularization, stopping, and model selection.
+
+These layers can fail independently. A correct gradient can optimize the wrong
+loss. A decreasing training loss can coexist with worsening validation behavior.
+A valid validation result can still fail under distribution shift.
+
+\section{Loss interfaces should consume logits}
+
+Numerically stable classification losses generally accept raw logits and
+combine normalization with log-likelihood internally. Applying a sigmoid or
+softmax first and then using a logits-based loss changes the computation and can
+damage stability. Class ordering and output shape must be explicit.
+
+Regression output activation follows target support. An unconstrained real
+output may suit a centered quantity; a positive quantity may call for a
+transformation or distributional model. Architecture is not a substitute for
+target semantics.
+
+\begin{warningbox}
+Training and evaluation modes can differ. Dropout and batch normalization are
+canonical examples. Inference must set evaluation mode, disable gradient
+tracking where appropriate, and preserve the exact preprocessing and parameter
+state selected for release.
+\end{warningbox}
+
+\section{Regularization and training control}
+
+Weight decay, dropout, augmentation, early stopping, architecture size, and
+normalization impose different restrictions. Early stopping is model selection:
+the validation trajectory chooses a checkpoint. Its data cannot simultaneously
+serve as untouched final evaluation.
+
+Monitor training and validation loss, relevant task metrics, gradient norms,
+nonfinite values, learning rate, throughput, and resource use. Checkpoints
+should include parameters, architecture configuration, preprocessing reference,
+optimizer state when resumption matters, epoch, and version metadata.
+
+\begin{professionalbox}
+Prefer a small transparent model that completes the full evidence and release
+path over a large model whose data lineage, checkpoint, evaluation mode, or
+serving requirements cannot be reconstructed. Scale only after the experiment
+and resource hypothesis are explicit.
+\end{professionalbox}
+
+\section{Frameworks are part of the reproducibility boundary}
+
+A modern tensor framework supplies device-aware arrays, autodiff, modules,
+optimizers, data loading, and serialization. It does not define the target,
+prevent leakage, select a valid loss, or guarantee deterministic kernels.
+
+Record framework and accelerator versions, device type, seeds, deterministic
+settings, numerical precision, and known nondeterministic operations. Test a
+saved artifact by loading it in a fresh process and comparing predictions on
+versioned fixtures within declared tolerances.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} implementing a neural network entirely from scratch is
+the best proof of understanding. \textbf{Correction:} one manual forward and
+backward pass is valuable. Professional understanding also requires correct
+framework use, evaluation, serialization, tests, resource control, and honest
+interpretation.
+\end{misconceptionbox}
+
+\begin{workedexample}{a tiny network with a large contract}
+A two-layer network predicts later battery capacity from standardized early-
+cycle features. Before training, one example is passed through a manual network
+and its gradients are checked by finite differences. The production candidate
+then uses a framework, mini-batches, a fixed outer split, and early stopping on
+an inner validation period.
+
+The selected checkpoint is loaded into a fresh process. A fixture verifies
+feature order, dtype, output shape, finite values, and prediction tolerance. The
+model card reports variability across seeds and future batches. If the network
+does not beat the regularized linear champion by a practical margin, it is not
+promoted.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Give dimensions for every tensor in a two-layer network with batch size
+  $n$, $p$ features, $h$ hidden units, and $k$ outputs.
+  \item Derive the scalar backpropagation equations above and design a central-
+  difference gradient check.
+  \item Explain why early stopping spends validation information.
+  \item Specify a fresh-process test for a serialized neural artifact, including
+  tolerance and incompatible-input cases.
+\end{enumerate}
+
+\begin{chapterreview}
+Neural networks gain expressive power from nonlinear composition of affine
+maps. Backpropagation is reverse-mode chain rule; autodiff calculates gradients
+of the implemented graph; optimization uses them; and evaluation supports a
+generalization claim. Shapes, modes, checkpoints, devices, seeds, preprocessing,
+and serialization are essential parts of the learned artifact.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 16 notebook 00 develops computation graphs and nonlinear composition.
+Companion laboratories implement one checked manual backward pass and then train
+and serialize a small network with automatic differentiation.
+\end{notebooklink}

@@ -1,0 +1,171 @@
+\chapter{Linear regression, optimization, and regularization}
+\label{ch:linear-regression}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item derive least squares from an affine prediction rule and squared loss;
+  \item explain projection, identifiability, conditioning, and gradient descent;
+  \item distinguish ridge, lasso, and elastic-net regularization; and
+  \item evaluate a regression pipeline using residual and out-of-sample evidence.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Chapter~\ref{ch:supervised-contract} fixed the population, feature cutoff,
+target, split, and baseline. We can now study model classes without silently
+changing the question. The affine map introduced here will recur in logistic
+regression, support-vector machines, and neural networks.
+\end{chapterconnection}
+
+\section{The affine predictor}
+
+For $x\in\mathbb{R}^p$, an affine predictor has the form
+\[
+f_{w,b}(x)=w^Tx+b.
+\]
+The intercept permits a nonzero prediction at the coordinate origin. Calling
+this model ``linear'' is conventional; mathematically it is affine unless the
+intercept is absorbed into an augmented feature vector.
+
+With design matrix $X\in\mathbb{R}^{n\times p}$ and target vector
+$y\in\mathbb{R}^n$, ordinary least squares minimizes
+\[
+J(w,b)=\frac{1}{n}\sum_{i=1}^n(y_i-w^Tx_i-b)^2.
+\]
+Squared loss penalizes large residuals strongly and targets the conditional mean
+under the population risk. That property is useful only when the mean and the
+cost implied by squared error match the task.
+
+\section{Projection and identifiability}
+
+After including an intercept column, write the design matrix as $A$. The fitted
+vector $A\widehat\theta$ is the orthogonal projection of $y$ onto the column
+space of $A$. At an optimum the residual $r=y-A\widehat\theta$ satisfies
+$A^Tr=0$. This geometric statement remains meaningful when coefficients are
+not unique.
+
+If $A$ has full column rank, the normal equations give
+\[
+\widehat\theta=(A^TA)^{-1}A^Ty.
+\]
+Software should not explicitly form the inverse. QR or singular-value methods
+are generally more stable, while iterative methods are useful at larger scale.
+When columns are linearly dependent, multiple coefficient vectors produce the
+same fitted values. Prediction may remain defined while individual coefficient
+interpretations do not.
+
+\conceptcheck{Two columns record temperature in Celsius and Fahrenheit. What
+happens to rank, fitted values, and the uniqueness of their separate
+coefficients when an intercept is present?}
+
+\section{Gradient descent exposes the optimization problem}
+
+For centered notation without an explicit intercept,
+\[
+\nabla J(w)=\frac{2}{n}X^T(Xw-y).
+\]
+Gradient descent updates $w_{t+1}=w_t-\eta_t\nabla J(w_t)$. The learning rate
+$\eta_t$ converts a direction into a step. A rate that is too large can diverge;
+a very small rate wastes computation. Feature scales change the curvature and
+therefore the usable step size.
+
+Standardization can improve conditioning, but it is a fitted transformation.
+Its means and scales belong to the training fold and serialized pipeline.
+Convergence of the numerical optimizer says that an objective was minimized; it
+does not say that the model generalizes or that the objective represents the
+scientific goal.
+
+\begin{professionalbox}
+Record the objective definition, initialization, seed where relevant, stopping
+criterion, iteration count, numerical precision, and convergence status. A
+training function should not silently return the last iterate after divergence
+or a nonfinite loss.
+\end{professionalbox}
+
+\section{Basis expansion changes the feature map}
+
+Polynomial regression remains linear in its fitted coefficients. A map
+$\phi(x)=(1,x,x^2,\ldots,x^d)$ creates a richer function
+$f(x)=w^T\phi(x)$. Interactions can represent joint effects. The flexibility
+comes from the basis, not from abandoning linear estimation.
+
+High-degree bases can be poorly conditioned and unstable outside the observed
+range. Every basis term must be generated identically during training and
+inference. Feature names, order, units, and transformation parameters therefore
+belong to the artifact contract.
+
+\section{Regularization chooses among fitting rules}
+
+Ridge regression minimizes
+\[
+\widehat R(w)+\lambda\lVert w\rVert_2^2,
+\]
+shrinking correlated or weakly identified coefficients and usually improving
+conditioning. Lasso uses $\lambda\lVert w\rVert_1$ and can set coefficients
+exactly to zero. Elastic net combines both penalties.
+
+Regularization trades empirical fit for a restriction on the solution. The
+penalty depends on feature scale, so scaling and whether the intercept is
+penalized are part of the definition. A lasso-selected variable set is not an
+automatic list of scientific causes; selection can be unstable among correlated
+features.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} regularization is needed only when a model visibly
+overfits. \textbf{Correction:} it can also stabilize an ill-conditioned
+problem, encode a preference among many solutions, and improve performance
+under finite samples. Its strength must still be chosen inside evaluation.
+\end{misconceptionbox}
+
+\section{Residuals are structured evidence}
+
+A residual $e_i=y_i-\widehat y_i$ retains sign, scale, and context. Plot it
+against predictions, major features, time, and groups. Curvature can reveal
+missing structure; a fan shape can reveal changing conditional variance;
+clusters can reveal omitted batches; isolated points can dominate squared loss.
+
+Aggregate error should include units and a distribution, not only a mean.
+Compare mean absolute error, root mean squared error, and relevant quantiles.
+Inspect error by scientifically meaningful subgroup. Prediction intervals,
+confidence intervals for parameters, and variability across resampled training
+sets answer different questions and should not be conflated.
+
+\begin{workedexample}{regularized capacity prediction}
+Suppose early-cycle summaries include mean voltage, resistance change, and two
+strongly correlated temperature summaries. A least-squares fit produces large
+opposite temperature coefficients while predictions change little. This is a
+signature of weak coefficient identification.
+
+Fit a pipeline that learns scaling and ridge regression using only each
+training fold. Choose $\lambda$ on validation batches, then compare once on the
+held-out later batches. Report the baseline and ridge errors in ampere-hours,
+residuals by batch, and the range of each input. The ridge coefficients are more
+stable, but the report avoids interpreting their magnitudes as causal effects.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Derive the least-squares gradient with an intercept and verify its
+  dimensions.
+  \item Construct a rank-deficient design matrix with unique fitted values but
+  nonunique coefficients. Explain how ridge changes the solution.
+  \item Show why fitting a scaler before cross-validation leaks information.
+  \item Design tests for a regression artifact when columns are reordered,
+  missing, duplicated, or expressed in incompatible units.
+\end{enumerate}
+
+\begin{chapterreview}
+Linear regression combines an affine representation, a loss, an optimization
+method, and a data contract. Projection explains fitted values; rank and
+conditioning explain coefficient instability; gradient descent separates
+optimization from estimation; and regularization selects a more constrained
+solution. Out-of-sample residual evidence, not training fit alone, supports the
+prediction claim.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 10 notebook 00 develops affine models and least squares. Later notebooks
+compare gradient-based optimization, ridge, lasso, diagnostics, and a packaged
+regression pipeline.
+\end{notebooklink}

@@ -1,0 +1,179 @@
+\chapter{Reliable supervised-learning systems}
+\label{ch:reliable-supervised-systems}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item separate training, prediction, and feedback paths;
+  \item define a versioned model artifact and feature contract;
+  \item monitor service behavior, input shift, predictions, and delayed outcomes; and
+  \item design promotion, rollback, and retraining as governed operations.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+The preceding chapters developed candidate estimators and honest selection. This
+Part II synthesis places an approved artifact inside the end-to-end architecture
+of Chapter~\ref{ch:end-to-end}. A prediction system is incomplete until future
+outcomes can test its claims and operators can respond safely.
+\end{chapterconnection}
+
+\section{Three paths define the operated system}
+
+The \textbf{training path} validates a data snapshot, constructs split and
+features, fits candidates, evaluates them, and promotes an immutable artifact.
+The \textbf{prediction path} validates a request or batch, applies the exact
+feature transformation and approved artifact, and records output context. The
+\textbf{feedback path} joins predictions to outcomes after the target horizon
+and produces evidence for continuation, investigation, rollback, or retraining.
+
+\begin{center}
+\begin{tikzpicture}[node distance=5mm]
+  \node[flowbox] (data) {Versioned\\observations};
+  \node[flowbox,right=of data] (train) {Train and\\evaluate};
+  \node[flowbox,right=of train] (registry) {Approved\\artifact};
+  \node[flowbox,below=of registry] (serve) {Batch or API\\prediction};
+  \node[flowbox,left=of serve] (client) {Scientific\\client};
+  \node[flowbox,left=of client] (outcome) {Delayed\\outcomes};
+  \draw[flowarrow] (data) -- (train);
+  \draw[flowarrow] (train) -- (registry);
+  \draw[flowarrow] (registry) -- (serve);
+  \draw[flowarrow] (serve) -- (client);
+  \draw[dataarrow] (client) -- (outcome);
+  \draw[dataarrow] (outcome) -- (data);
+\end{tikzpicture}
+\end{center}
+
+Each arrow requires identity, schema, version, time, error, retry, access, and
+retention semantics. The paths may run at different cadences and on different
+infrastructure, but their contracts must agree.
+
+\section{A model artifact is more than parameters}
+
+An approved artifact binds together a feature schema and order, fitted
+transformations, model state, class or output semantics, supported runtime,
+training-data and code references, evaluation report, and model card. A registry
+records lifecycle state such as candidate, approved, superseded, or withdrawn.
+
+Never load arbitrary serialized objects from untrusted sources. Many Python
+serialization formats can execute code. Control provenance, integrity, access,
+and runtime compatibility. Prefer constrained formats when they represent the
+needed operations faithfully.
+
+\section{Offline and online features must agree}
+
+Training-serving skew occurs when feature computation differs between historical
+training and live prediction. Causes include time-zone handling, category
+vocabularies, window boundaries, late data, default values, code versions, and
+units. Reuse package code where possible, and test representative raw records
+through both paths.
+
+Point-in-time correctness is essential: a historical feature must use only
+information available at its historical prediction time. Recomputing it from a
+current database can accidentally include future corrections or outcomes.
+
+\conceptcheck{A live feature has the same name, dtype, and range as its training
+counterpart. Give two ways it can still have different semantics.}
+
+\section{Prediction interfaces fail explicitly}
+
+Batch inference favors throughput, snapshot lineage, restartable partitions,
+and idempotent outputs. Online inference adds latency, concurrency, admission
+control, timeout, and availability responsibilities. Both validate schemas,
+bound resources, record artifact identity, and reject incompatible requests.
+
+The interface should define behavior for missing, unknown, infinite, or out-of-
+support inputs. Abstention or routing to human review can be safer than a forced
+prediction. Error responses must not leak secrets or silently substitute a
+different model.
+
+\section{Monitoring has layers}
+
+Operational monitoring covers request rate, latency, errors, saturation,
+artifact load, and dependency health. Data-quality monitoring covers schema,
+missingness, range, category, freshness, and join behavior. Distribution
+monitoring compares feature and score summaries with reference windows.
+
+Covariate shift means the distribution of $X$ changes. Prior shift changes
+class prevalence. Concept shift changes the relationship between $X$ and $Y$.
+Unlabeled inputs can reveal the first imperfectly; they cannot by themselves
+measure predictive error or identify the third. Delayed outcomes are therefore
+not optional if performance claims are to remain testable.
+
+Monitor slices defined before release and investigate emerging slices carefully.
+Alerts need thresholds, owners, runbooks, and actions. A dashboard without a
+response policy is visualization, not operational control.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} feature drift means the model must be retrained. 
+\textbf{Correction:} drift is evidence to investigate. Retraining can preserve
+the same defect, learn from corrupted labels, or degrade important groups.
+Action depends on outcomes, cause, severity, and the validated response policy.
+\end{misconceptionbox}
+
+\section{Retraining is a release, not a reflex}
+
+A retraining trigger begins a candidate-building workflow. The candidate must
+pass data validation, tests, evaluation, subgroup and resource gates, and
+approval. Automatic promotion is appropriate only when those gates and rollback
+controls match the consequence of failure.
+
+Rollback requires a previously known artifact, compatible feature interface,
+and a procedure tested before the incident. Some shifts make rollback
+insufficient because the old artifact faces the same new population. A safe
+fallback may be a baseline, abstention, reduced scope, or human review.
+
+\begin{professionalbox}
+Separate the decision to recompute a candidate from the decision to release it.
+Schedule-driven retraining is an opportunity to evaluate new evidence, not a
+guarantee that the newest artifact is better.
+\end{professionalbox}
+
+\section{The release dossier}
+
+A defensible release records the prediction contract, data and feature lineage,
+split specification, candidate search, final evaluation, known limitations,
+model and policy versions, security review, test evidence, monitoring plan,
+owner, rollback plan, and expiration or review date. CI verifies reproducible
+software properties; human review owns scientific and operational judgment that
+cannot be reduced to one test.
+
+\begin{workedexample}{an incident closes the evidence loop}
+After release, the degradation service remains fast and error-free, but a new
+batch produces higher scores and more out-of-support warnings. Outcomes will not
+arrive for 100 cycles. The runbook narrows automated use and routes affected
+cells to review rather than immediately retraining.
+
+Investigation finds a sensor firmware change that altered one summary feature.
+The team reconstructs the feature with point-in-time data, evaluates both the
+approved artifact and a candidate on the corrected representation, and records
+the incident. A compatibility adapter restores the defined unit; the model is
+not changed. Operational evidence prevented a data-interface defect from being
+misdiagnosed as concept drift.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Draw training, prediction, and feedback paths for batch inference. Mark
+  every durable artifact and join key.
+  \item Specify a feature-parity test involving time windows, late records,
+  unknown categories, and units.
+  \item Design monitoring that distinguishes service failure, input shift, score
+  shift, calibration change, and outcome degradation.
+  \item Write a rollback rehearsal and explain one shift for which rollback
+  would not restore acceptable behavior.
+\end{enumerate}
+
+\begin{chapterreview}
+A reliable supervised-learning system joins three paths. Training creates and
+promotes versioned evidence; prediction applies an approved artifact through a
+validated interface; feedback connects outputs to delayed outcomes. Monitoring
+must cover operations, data, scores, slices, and eventual performance. Drift
+prompts investigation, while retraining and rollback remain governed releases.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 17 notebook 00 maps the three system paths. Companion capstone
+laboratories produce a release dossier, monitoring specification, outcome join,
+and tested incident and rollback exercise.
+\end{notebooklink}

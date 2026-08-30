@@ -5,6 +5,12 @@ adds nonlinear composition. One tiny network is differentiated and checked by
 hand before a modern automatic-differentiation framework owns routine gradient
 calculation.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-composition-and-automatic-differentiation.ipynb`.
+Notebooks 01 and 02 below remain planned until their files are published.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

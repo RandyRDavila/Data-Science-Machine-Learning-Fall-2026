@@ -98,8 +98,28 @@ def create_app(settings: LabSettings) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        yield
-        _close_logger(logger)
+        log_event(
+            logger,
+            logging.INFO,
+            "service_started",
+            "Prediction service started with an identified model and release",
+            scenario=incidents.current(),
+            model_version=settings.model_version,
+            release_version=settings.release_version,
+        )
+        try:
+            yield
+        finally:
+            log_event(
+                logger,
+                logging.INFO,
+                "service_stopped",
+                "Prediction service stopped",
+                scenario=incidents.current(),
+                model_version=settings.model_version,
+                release_version=settings.release_version,
+            )
+            _close_logger(logger)
 
     app = FastAPI(
         title="Rice DSM Battery Risk Monitoring Lab",

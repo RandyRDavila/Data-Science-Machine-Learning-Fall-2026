@@ -1,0 +1,51 @@
+groups:
+  - name: rice-dsm-service-level-indicators
+    interval: 5s
+    rules:
+      - record: rice_dsm:prediction_request_rate:rate1m
+        expr: sum(rate(rice_dsm_http_requests_total{route="/api/v1/predictions"}[1m])) or vector(0)
+
+      - record: rice_dsm:prediction_success_ratio:rate1m
+        expr: (1 - (sum(rate(rice_dsm_http_requests_total{route="/api/v1/predictions",status_code=~"5.."}[1m])) / clamp_min(sum(rate(rice_dsm_http_requests_total{route="/api/v1/predictions"}[1m])), 0.000001))) or vector(1)
+
+      - record: rice_dsm:prediction_latency_p95_seconds:rate1m
+        expr: histogram_quantile(0.95, sum by (le) (rate(rice_dsm_http_request_duration_seconds_bucket{route="/api/v1/predictions"}[1m]))) or vector(0)
+
+      - record: rice_dsm:prediction_error_budget_burn_rate:rate1m
+        expr: clamp_min(1 - rice_dsm:prediction_success_ratio:rate1m, 0) / (1 - 0.995)
+
+  - name: rice-dsm-actionable-symptoms
+    interval: 5s
+    rules:
+      - alert: PredictionErrorBudgetBurn
+        expr: rice_dsm:prediction_error_budget_burn_rate:rate1m > 10 and rice_dsm:prediction_request_rate:rate1m > 0.1
+        for: 30s
+        labels:
+          severity: page
+          service: battery-prediction-api
+        annotations:
+          summary: Prediction failures are rapidly consuming the availability budget.
+          runbook: projects/production-monitoring-lab/runbooks/prediction-service.md
+          objective: At least 99.5 percent of eligible prediction requests succeed over the teaching window.
+
+      - alert: PredictionLatencyHigh
+        expr: rice_dsm:prediction_latency_p95_seconds:rate1m > 0.5 and rice_dsm:prediction_request_rate:rate1m > 0.1
+        for: 30s
+        labels:
+          severity: page
+          service: battery-prediction-api
+        annotations:
+          summary: Prediction p95 latency exceeds the teaching objective.
+          runbook: projects/production-monitoring-lab/runbooks/prediction-service.md
+          objective: Prediction p95 latency remains at or below 500 milliseconds.
+
+      - alert: PredictionInputsRejected
+        expr: increase(rice_dsm_input_rejections_total[5m]) > 5
+        for: 30s
+        labels:
+          severity: ticket
+          service: battery-prediction-api
+        annotations:
+          summary: The prediction interface is rejecting a sustained group of inputs.
+          runbook: projects/production-monitoring-lab/runbooks/prediction-service.md
+          objective: Important producers remain compatible with the published input contract.

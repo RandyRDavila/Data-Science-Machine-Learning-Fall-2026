@@ -102,6 +102,29 @@ Every actionable alert needs:
 
 An alert says, “investigate this symptom.” It rarely proves the cause.
 
+## SLI, SLO, and error budget
+
+A **service-level indicator** (SLI) is a measured user-relevant quantity. The
+fraction of eligible prediction requests completed successfully and the p95
+latency of those requests are examples. Population, exclusions, aggregation,
+and window are part of the definition.
+
+A **service-level objective** (SLO) is a target for an SLI over a window. If the
+availability objective is 99.5 percent, the remaining 0.5 percent is the
+**error budget**. The budget supports decisions about reliability risk and
+release pace; it is not permission to cause avoidable failures.
+
+A **burn rate** compares observed failure with the budget permitted by the
+objective. A burn rate of 1 consumes budget at exactly the planned rate. A much
+higher sustained rate can justify urgent action. Short windows detect rapid
+incidents but are noisy; long windows are stable but slow.
+
+Prometheus alert states have temporal meaning. An inactive rule's expression is
+false. A pending rule is true but has not remained true for its complete `for`
+duration. A firing rule has. The monitoring lab makes recording and alert rules
+executable in `monitoring/alerts.yml`; it does not route a page, because
+notification ownership and escalation are separate production responsibilities.
+
 ## A model adds new failure layers
 
 A prediction endpoint returning HTTP 200 establishes only that the server
@@ -123,6 +146,18 @@ the original predictions after the target horizon.
 
 Unlabeled input drift cannot by itself measure predictive error. Drift is a
 reason to investigate, not an automatic instruction to retrain.
+
+Every comparison needs named reference and current windows. Sample count,
+missingness, measurement process, and subgroup composition can change the
+interpretation. A divergence statistic or two-sample test is not a semantic
+oracle: binning choices, large samples, repeated searches, or a producer defect
+can make a difference appear important without demonstrating decision harm.
+
+Outcome monitoring adds a selection problem. Easy or rapidly resolved cases
+may receive labels first while difficult cases remain censored. Report joined
+and missing counts, target horizon, observation delay, and estimates for
+predeclared slices. Small-slice variation should carry uncertainty rather than
+becoming an automatic retraining trigger.
 
 ## The investigation sequence
 

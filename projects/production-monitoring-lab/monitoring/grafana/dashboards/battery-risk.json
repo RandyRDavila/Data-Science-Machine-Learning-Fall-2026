@@ -1,5 +1,16 @@
 {
-  "annotations": {"list": []},
+  "annotations": {
+    "list": [
+      {
+        "datasource": {"type": "loki", "uid": "loki"},
+        "enable": true,
+        "expr": "{service_name=\"battery-prediction-api\"} | json | event=\"service_started\"",
+        "name": "Service starts",
+        "tagKeys": "model_version,release_version",
+        "titleFormat": "{{model_version}} / {{release_version}}"
+      }
+    ]
+  },
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -97,12 +108,72 @@
     {
       "datasource": {"type": "loki", "uid": "loki"},
       "description": "Search structured events after metrics establish scope. Request and trace IDs stay in the JSON body rather than metric labels.",
-      "gridPos": {"h": 11, "w": 24, "x": 0, "y": 21},
+      "gridPos": {"h": 11, "w": 24, "x": 0, "y": 27},
       "id": 9,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
       "targets": [{"expr": "{service_name=\"battery-prediction-api\"} | json", "refId": "A"}],
       "title": "Structured application events",
       "type": "logs"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "The model and application release are operational evidence, not decorative version strings.",
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 21},
+      "id": 10,
+      "options": {"showHeader": true},
+      "targets": [
+        {
+          "expr": "rice_dsm_model_info",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Release identity",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "Value": true, "__name__": true, "instance": true, "job": true},
+            "indexByName": {"model_version": 0, "release_version": 1}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Recorded success ratio for eligible prediction requests over the teaching window.",
+      "fieldConfig": {"defaults": {"decimals": 3, "min": 0, "max": 1, "unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 21},
+      "id": 11,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "rice_dsm:prediction_success_ratio:rate1m", "refId": "A"}],
+      "title": "Prediction success SLI",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Failure ratio divided by the 0.5 percent availability error budget.",
+      "fieldConfig": {"defaults": {"decimals": 1, "min": 0, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 12, "y": 21},
+      "id": 12,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "rice_dsm:prediction_error_budget_burn_rate:rate1m", "refId": "A"}],
+      "title": "Error-budget burn rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Count of firing Prometheus alerts. Inspect inactive and pending states on the Prometheus rules page.",
+      "fieldConfig": {"defaults": {"decimals": 0, "min": 0, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 18, "y": 21},
+      "id": 13,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "sum(ALERTS{alertstate=\"firing\"}) or vector(0)", "refId": "A"}],
+      "title": "Active Prometheus alerts",
+      "type": "stat"
     }
   ],
   "refresh": "5s",

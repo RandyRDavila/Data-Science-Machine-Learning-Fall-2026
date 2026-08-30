@@ -11,6 +11,8 @@ that can be completed independently.
 ## Computing foundations
 
 Start with [`computing-foundations/README.md`](computing-foundations/README.md).
+The repository-wide setup and weekly workflow begin in
+[`STUDENT_START_HERE.md`](../STUDENT_START_HERE.md).
 It covers:
 
 - files, folders, paths, and the repository;

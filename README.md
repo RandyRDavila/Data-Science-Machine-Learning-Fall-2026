@@ -24,6 +24,9 @@ The notebooks are computational laboratories rather than substitutes for the
 prose. Reusable implementations move into `rice_dsm`; tests and CI preserve
 their contracts.
 
+**Students:** begin with [`STUDENT_START_HERE.md`](STUDENT_START_HERE.md). It is
+the canonical setup, verification, weekly-workflow, and troubleshooting route.
+
 ## Text and repository
 
 - `textbook/` develops definitions, arguments, examples, and exercises.
@@ -40,16 +43,12 @@ their contracts.
 ```text
 .
 ├── README.md
+├── STUDENT_START_HERE.md      # Canonical student setup and weekly workflow
 ├── LICENSE
 ├── pyproject.toml             # Package metadata, dependencies, and tool config
 ├── uv.lock                    # Reproducible Python environment
 ├── .vscode/
 │   └── extensions.json        # Recommend the Python and Jupyter extensions
-├── syllabus/
-│   ├── syllabus.tex           # Main LaTeX source
-│   ├── references.bib
-│   ├── figures/
-│   └── Makefile               # Compile and clean the syllabus
 ├── notebooks/
 │   ├── lecture-01-python-foundations/
 │   │   ├── README.md          # Lecture plan, outcomes, and preparation
@@ -86,13 +85,9 @@ their contracts.
 │       ├── __init__.py
 │       └── ...                # Reusable code developed during the course
 ├── tests/                     # Executable examples and repository safeguards
-├── assignments/               # Assignment descriptions and starter materials
 ├── notes/                     # Topic notes and supporting instructional content
 ├── supplementary-materials/   # Computing guides, readings, exercises, diagrams
-├── data/
-│   ├── README.md              # Provenance and retrieval instructions
-│   ├── raw/                   # Immutable source data, usually not committed
-│   └── processed/             # Derived data, usually reproducible
+├── projects/                  # Operated systems and longer engineering labs
 ├── scripts/                   # Repeatable data, build, and maintenance tasks
 ├── site/                      # Reviewed source for the deployed course site
 └── .github/
@@ -155,8 +150,9 @@ dependency locking, editable package installation, and command execution.
 
 ## Getting started
 
-Install `uv`, clone the repository, open the repository folder in VS Code, and
-run one command in VS Code's integrated terminal:
+Follow the complete cross-platform route in
+[`STUDENT_START_HERE.md`](STUDENT_START_HERE.md). The essential setup command,
+run from this repository's root in VS Code's integrated terminal, is:
 
 ```bash
 uv run python scripts/setup_course.py
@@ -172,7 +168,7 @@ Run the automated package checks with:
 
 ```bash
 uv run pytest
-uv run ruff check src tests
+uv run ruff check src tests scripts
 ```
 
 The [`tests/README.md`](tests/README.md) guide explains how to read and run the
@@ -301,6 +297,10 @@ sequence, and a CI-executable entry notebook. These entry points will be expande
 into full laboratories one unit at a time. The textbook already carries the
 connected Part II mathematical and systems narrative.
 
+The [`Part II student guide`](notebooks/PART_II_STUDENT_GUIDE.md) distinguishes
+released work from planned notebooks and defines preparation and completion
+evidence for each unit.
+
 ### Production monitoring laboratory
 
 The executable
@@ -313,29 +313,26 @@ Students diagnose failures from operational evidence and write a post-incident
 review. The system is deliberately outside `notebooks/`: notebooks support live
 explanation and statistical investigation but do not serve as the production
 runtime.
+The lab's [`student worksheet`](projects/production-monitoring-lab/STUDENT_WORKSHEET.md)
+defines the live and offline routes, deliverables, and evaluation rubric.
 
 ## Supplementary materials
 
 Students who are new to terminals, PowerShell, VS Code, Jupyter, virtual
-environments, or project navigation can begin with the
-[`supplementary-materials`](supplementary-materials/) guides. These readings,
-exercises, and diagrams are optional support materials and do not assume prior
-developer-tool experience.
+environments, or project navigation should begin with the
+[`supplementary-materials`](supplementary-materials/) guides. Foundations 01-05
+are support readings selected according to background. The API, CI/CD,
+observability, and container readings become required preparation when their
+corresponding units are assigned.
 
-### Syllabus
+### Planned course logistics and data
 
-The syllabus source lives in `syllabus/` and is written in LaTeX. Its build
-command should be captured in the local `Makefile` so the PDF can be reproduced
-without remembering a long command. LaTeX intermediate files should not be
-committed; whether the compiled PDF is versioned or published as a release
-artifact will be decided with the course distribution workflow.
-
-### Data
-
-Small, license-compatible teaching datasets may be committed when useful. Large,
-restricted, or readily downloadable datasets should stay out of Git. Retrieval
-and transformation steps should be documented in `data/README.md` and automated
-in `scripts/` whenever practical.
+A standalone syllabus, assignment handouts, and general data registry have not
+yet been published in this branch and therefore are not shown as current
+directories above. When added, the syllabus will define calendar, assessment,
+collaboration, accessibility, and institutional policies. Dataset entries will
+record provenance, license, schema, units, retrieval, and transformation rather
+than relying on an unexplained file copied into the repository.
 
 ## Status
 

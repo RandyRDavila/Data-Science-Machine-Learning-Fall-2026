@@ -5,6 +5,13 @@ system-design problem. A battery-cell case makes the observation, target,
 prediction time, horizon, population, loss, split, and baseline explicit before
 any model is trained.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-supervised-learning-contract.ipynb`. Notebooks 01 and
+02 below are planned and are not assigned until their files are published and
+named in the weekly announcement.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

@@ -116,6 +116,7 @@ def test_reviewed_site_source_has_accessible_static_structure() -> None:
     assert "main-content" in parser.identifiers
     assert "#main-content" in parser.links
     assert "textbook/data-science-machine-learning-textbook.pdf" in parser.links
+    assert any("STUDENT_START_HERE.md" in link for link in parser.links)
     assert "manifest.json" in parser.links
     assert parser.script_count == 0
 

@@ -63,6 +63,14 @@ dashboard stack additionally requires Docker with Compose support. Docker
 Desktop supplies Compose on Windows, macOS, and Linux; a compatible Docker
 Engine and Compose plugin also work.
 
+Read the beginner-oriented
+[`Containers and local services`](../../supplementary-materials/computing-foundations/10-containers-and-local-services.md)
+guide before using Compose. The graded route, timing, evidence requirements, and
+rubric live in [`STUDENT_WORKSHEET.md`](STUDENT_WORKSHEET.md). If Docker is
+unavailable or prohibited, use the documented
+[`offline-evidence`](offline-evidence/) route rather than skipping the incident
+reasoning exercise.
+
 From the repository root, verify both tools:
 
 ```bash
@@ -88,6 +96,7 @@ Open these local addresses:
 - Prediction API documentation: <http://localhost:8000/docs>
 - Grafana dashboard: <http://localhost:3000/d/rice-dsm-battery-risk>
 - Prometheus query interface: <http://localhost:9090>
+- Prometheus alert state: <http://localhost:9090/alerts>
 - Alloy component status: <http://localhost:12345>
 
 Generate a healthy reference window:
@@ -130,7 +139,7 @@ the other investigates. Change roles for the second incident.
 4. Select a representative request and correlate its request ID and trace.
 5. Record evidence that rejects one hypothesis.
 6. Apply a reversible mitigation.
-7. generate new traffic and verify recovery against the original symptom.
+7. Generate new traffic and verify recovery against the original symptom.
 8. Write a short post-incident review using the template in `runbooks/`.
 
 The instructor can activate a controlled scenario without changing source code:
@@ -218,6 +227,31 @@ Request and prediction identifiers belong in logs and traces, not Prometheus
 labels. An identifier has unbounded cardinality: turning every identifier into
 a time-series label can exhaust a monitoring system.
 
+## SLI, SLO, error budget, and alert state
+
+Prometheus loads reviewed recording and alert rules from
+`monitoring/alerts.yml`. The teaching availability objective is a 99.5 percent
+prediction success ratio. Its remaining 0.5 percent is the error budget. A burn
+rate of 10 means the current failure ratio is consuming that budget ten times
+as fast as the objective permits.
+
+The alert exercise intentionally exposes three distinct states:
+
+- **inactive:** the expression is false;
+- **pending:** the expression is true but has not remained true for the complete
+  `for` duration; and
+- **firing:** the expression remained true for the declared duration.
+
+Prometheus displays these states but this local stack does not page a person.
+Real alert routing requires an owned destination, duplicate suppression,
+escalation policy, and access controls. An alert is a symptom requiring action,
+not an automated causal diagnosis.
+
+The dashboard also presents the model and application release identity. A
+`service_started` structured event records the same values. Compare evidence by
+release before attributing a change to deployment; the mutable branch name or
+the fact that a container is running is not sufficient identity.
+
 ## Test the evidence contract
 
 The ordinary repository suite validates the model, API, persistence, logs,
@@ -250,6 +284,9 @@ docker compose -f projects/production-monitoring-lab/compose.yaml down --volumes
 That last command destroys only this Compose project's local monitoring data.
 Do not teach or run broad recursive deletion commands as a substitute.
 
+For startup errors, missing panels, delayed traces, port conflicts, and pending
+alerts, follow [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
+
 ## What would change in production?
 
 A production design would add authenticated and encrypted endpoints,
@@ -262,3 +299,8 @@ The local lab teaches transferable interfaces. OpenTelemetry allows the Python
 service to export trace evidence without coupling application code to one
 commercial backend. Prometheus metric names and Grafana dashboards likewise
 make the evidence inspectable without requiring students to purchase a service.
+
+The application remains local deliberately. The companion
+[`MODEL_SERVICE_DELIVERY.md`](MODEL_SERVICE_DELIVERY.md) maps this stack to a
+production-shaped image, staging, approval, canary, release-observability, and
+recovery workflow without asking students to purchase or expose cloud services.

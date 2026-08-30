@@ -1,0 +1,15 @@
+{
+  "case_id": "battery-semantic-shift-001",
+  "created_for": "CMOR 438 / INDE 577",
+  "model_version": "battery-risk-1.0.0",
+  "release_version": "course-lab-1.0.0",
+  "reference_window": "2026-08-30T18:00:00Z/2026-08-30T18:05:00Z",
+  "comparison_window": "2026-08-30T18:10:00Z/2026-08-30T18:15:00Z",
+  "requests_per_window": 100,
+  "selection": "Aggregate metrics plus one representative request from each window",
+  "limitations": [
+    "teaching-scale synthetic data",
+    "selected evidence rather than a complete telemetry export",
+    "offline bundle cannot demonstrate live recovery or alert timing"
+  ]
+}

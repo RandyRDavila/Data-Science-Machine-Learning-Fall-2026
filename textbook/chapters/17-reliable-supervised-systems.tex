@@ -213,6 +213,14 @@ monitor-computation time. A system can detect schema rejection immediately,
 score shift after a monitoring window, and outcome degradation only after the
 target horizon. Alert policy must respect these information delays.
 
+Reference and current windows must name their populations, measurement
+processes, missingness, and sample sizes. A divergence statistic or a
+two-sample test does not identify a cause and does not by itself quantify
+decision harm. Large samples can make negligible changes detectable; repeated
+slice searches can turn random variation into an apparent incident. Predeclare
+consequential slices, report uncertainty, and examine whether outcomes are
+selectively missing or delayed.
+
 \begin{misconceptionbox}
 \textbf{Misconception:} feature drift means the model must be retrained.
 
@@ -237,6 +245,14 @@ runbook, evidence links, duplicate suppression, and recovery condition. Page on
 sustained user impact or rapid consumption of an error budget, not every log
 line. Model-quality alerts often require longer windows, minimum sample sizes,
 and human review because their estimates are noisy and delayed.
+
+An alert rule has temporal state. It is \emph{inactive} while its expression is
+false, \emph{pending} while the expression is true but has not satisfied its
+required duration, and \emph{firing} only after that duration. This delay
+reduces reactions to isolated noise, but it also makes evaluation interval,
+traffic rate, and window length part of the alert contract. The production
+monitoring laboratory makes these states executable through Prometheus rules;
+notification routing remains deliberately outside the local teaching stack.
 
 A dashboard without a response policy is visualization, not operational
 control. A runbook should state safe first checks, authority limits, reversible

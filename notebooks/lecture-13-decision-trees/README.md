@@ -4,6 +4,12 @@ This unit develops recursive partitioning for regression and classification.
 It treats depth, leaf size, pruning, instability, and interpretation as parts of
 one statistical and software design.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-recursive-partitioning.ipynb`. Notebook 01 below
+remains planned until its file is published.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

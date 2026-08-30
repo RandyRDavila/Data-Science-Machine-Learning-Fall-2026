@@ -259,6 +259,14 @@ source revision, PDF signature, byte count, and SHA-256 digest. Retries allow a
 new edge cache to converge, but retries are bounded. A persistent mismatch is a
 failed deployment, not an invitation to loop forever.
 
+An operated model service needs the same identity in its telemetry. The
+repository's monitoring laboratory emits a \code{service\_started} structured
+event and a \code{rice\_dsm\_model\_info} metric containing model and release
+versions. Its dashboard annotates service starts and exposes release identity.
+Without this join between deployment and operating evidence, a team cannot
+compare symptoms before and after a release or know which artifact produced a
+prediction.
+
 This verification distinguishes three claims:
 
 \begin{longtable}{@{}

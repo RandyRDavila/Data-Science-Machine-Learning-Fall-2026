@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -93,8 +95,13 @@ def test_prediction_emits_lineage_metrics_and_privacy_bounded_logs(
     prediction_event = next(
         event for event in events if event.get("event") == "prediction_completed"
     )
+    startup_event = next(
+        event for event in events if event.get("event") == "service_started"
+    )
     assert prediction_event["request_id"] == "student-diagnosis-001"
     assert prediction_event["model_version"] == configuration.model_version
+    assert startup_event["model_version"] == configuration.model_version
+    assert startup_event["release_version"] == configuration.release_version
     serialized_events = json.dumps(events)
     for raw_value in ("52.125", "72.25", "1650"):
         assert raw_value not in serialized_events
@@ -208,6 +215,31 @@ def test_stack_configuration_is_pinned_local_and_preprovisioned() -> None:
     assert environment["OTEL_EXPORTER_OTLP_ENDPOINT"] == "http://alloy:4318"
     assert not any("PASSWORD" in key or "TOKEN" in key for key in environment)
     assert services["grafana"]["ports"] == ["3000:3000"]
+    assert "./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro" in (
+        services["prometheus"]["volumes"]
+    )
+
+    prometheus = yaml.safe_load(
+        (LAB_ROOT / "monitoring" / "prometheus.yml").read_text(encoding="utf-8")
+    )
+    assert prometheus["rule_files"] == ["/etc/prometheus/alerts.yml"]
+
+    alert_document = yaml.safe_load(
+        (LAB_ROOT / "monitoring" / "alerts.yml").read_text(encoding="utf-8")
+    )
+    rules = [
+        rule for group in alert_document["groups"] for rule in group["rules"]
+    ]
+    alert_names = {rule["alert"] for rule in rules if "alert" in rule}
+    record_names = {rule["record"] for rule in rules if "record" in rule}
+    assert {
+        "PredictionErrorBudgetBurn",
+        "PredictionLatencyHigh",
+        "PredictionInputsRejected",
+    } <= alert_names
+    assert "rice_dsm:prediction_success_ratio:rate1m" in record_names
+    assert "rice_dsm:prediction_error_budget_burn_rate:rate1m" in record_names
+    assert all("request_id" not in str(rule) for rule in rules)
 
     dashboard = json.loads(
         (
@@ -227,6 +259,10 @@ def test_stack_configuration_is_pinned_local_and_preprovisioned() -> None:
         "Rejected model inputs",
         "Delayed-outcome Brier score",
         "Structured application events",
+        "Release identity",
+        "Prediction success SLI",
+        "Error-budget burn rate",
+        "Active Prometheus alerts",
     } <= titles
 
 
@@ -254,3 +290,83 @@ def test_lab_manual_teaches_incident_reasoning_not_dashboard_clicking() -> None:
     assert "Competing hypothesis rejected" in (
         LAB_ROOT / "runbooks" / "post-incident-template.md"
     ).read_text(encoding="utf-8")
+
+
+def test_student_lab_has_live_offline_and_assessed_routes() -> None:
+    worksheet = (LAB_ROOT / "STUDENT_WORKSHEET.md").read_text(encoding="utf-8")
+    troubleshooting = (LAB_ROOT / "TROUBLESHOOTING.md").read_text(
+        encoding="utf-8"
+    )
+    delivery = (LAB_ROOT / "MODEL_SERVICE_DELIVERY.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required in (
+        "approximately 30 minutes",
+        "Live route",
+        "Offline route",
+        "Guided Grafana orientation",
+        "Deliverables",
+        "Evaluation rubric",
+        "limitations statement",
+    ):
+        assert required in worksheet
+
+    for required in (
+        "host port is already in use",
+        "panels show no data",
+        "alert remains pending",
+        "Model quality does not update",
+    ):
+        assert required in troubleshooting
+
+    for required in (
+        "immutable container-image digest",
+        "deploy that exact digest to staging",
+        "Staging does not prove production validity",
+        "canary",
+        "shadow",
+        "Capacity and resilience",
+        "Security and governance",
+        "Release-observability contract",
+    ):
+        assert required in delivery
+
+
+def test_offline_evidence_is_valid_bounded_and_executable() -> None:
+    evidence_root = LAB_ROOT / "offline-evidence"
+    manifest = json.loads(
+        (evidence_root / "case-manifest.json").read_text(encoding="utf-8")
+    )
+    client = json.loads(
+        (evidence_root / "client-summary.json").read_text(encoding="utf-8")
+    )
+    quality = json.loads(
+        (evidence_root / "quality-summary.json").read_text(encoding="utf-8")
+    )
+    trace = json.loads((evidence_root / "trace.json").read_text(encoding="utf-8"))
+    events = [
+        json.loads(line)
+        for line in (evidence_root / "application-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+
+    assert manifest["requests_per_window"] == 100
+    assert client["reference"]["http_200"] == client["comparison"]["http_200"]
+    assert client["reference"]["risk_bands"] != client["comparison"]["risk_bands"]
+    assert quality["comparison"]["brier_score"] > quality["reference"]["brier_score"]
+    assert trace["trace_id"] == events[1]["trace_id"]
+    assert len(events) == 2
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(LAB_ROOT / "scripts" / "summarize_offline_evidence.py"),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "HTTP 200 responses: 100/100 -> 100/100" in completed.stdout
+    assert "this summary does not name a cause" in completed.stdout

@@ -1,0 +1,25 @@
+{
+  "trace_id": "22222222222222222222222222222222",
+  "service_name": "battery-prediction-api",
+  "request_id": "offline-comparison-request-017",
+  "spans": [
+    {
+      "name": "POST /api/v1/predictions",
+      "duration_ms": 7.8,
+      "attributes": {"http.response.status_code": 200}
+    },
+    {
+      "name": "feature_contract.apply",
+      "duration_ms": 0.3,
+      "attributes": {
+        "feature.temperature.unit_assumption": "fahrenheit",
+        "lab.incident.scenario": "unit-mismatch"
+      }
+    },
+    {
+      "name": "model.predict",
+      "duration_ms": 0.1,
+      "attributes": {"model.version": "battery-risk-1.0.0"}
+    }
+  ]
+}

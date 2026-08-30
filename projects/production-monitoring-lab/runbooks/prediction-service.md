@@ -26,6 +26,19 @@ the workflow models professional incident reasoning with synthetic data.
 | score/decision shift | prediction metrics | Did inputs, transformation, model, or policy change? |
 | outcome degradation | joined count and Brier score | Is the change supported across time and slices? |
 
+## Alert contract
+
+| Alert | Condition | Required duration | Meaning |
+| --- | --- | --- | --- |
+| `PredictionErrorBudgetBurn` | availability-budget burn rate above 10 with traffic | 30 seconds | prediction failures are sustained enough to investigate urgently |
+| `PredictionLatencyHigh` | p95 prediction latency above 500 ms with traffic | 30 seconds | clients are experiencing sustained slow responses |
+| `PredictionInputsRejected` | more than five rejected inputs in five minutes | 30 seconds | a producer or data contract requires investigation |
+
+Inspect the recording expression, traffic denominator, and pending duration
+before responding. These local rules have no notification destination. In a
+real service, routing, duplicate suppression, escalation, and ownership are
+part of the alert contract.
+
 ## Correlation procedure
 
 1. Select one affected request ID from client evidence or a structured log.

@@ -1,0 +1,8 @@
+# Normalized samples; `window` is an export label, not a live metric label.
+rice_dsm_http_requests_total{route="/api/v1/predictions",status_code="200",window="reference"} 100
+rice_dsm_http_requests_total{route="/api/v1/predictions",status_code="200",window="comparison"} 100
+rice_dsm_http_request_duration_seconds_p95{route="/api/v1/predictions",window="reference"} 0.012
+rice_dsm_http_request_duration_seconds_p95{route="/api/v1/predictions",window="comparison"} 0.013
+rice_dsm_predictions_total{risk_band="high",window="reference"} 28
+rice_dsm_predictions_total{risk_band="high",window="comparison"} 3
+rice_dsm_model_info{model_version="battery-risk-1.0.0",release_version="course-lab-1.0.0"} 1

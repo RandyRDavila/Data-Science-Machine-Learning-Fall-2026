@@ -4,6 +4,12 @@ This unit develops affine predictors from least squares through gradient-based
 optimization, conditioning, polynomial features, and regularization. Geometry,
 objective functions, diagnostics, and software contracts remain connected.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-affine-model-and-least-squares.ipynb`. Notebooks 01
+and 02 below remain planned until their files are published.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

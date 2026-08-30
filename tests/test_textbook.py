@@ -237,6 +237,10 @@ def test_reliable_systems_chapter_teaches_executable_production_observability() 
         "Brier score",
         "service-level indicator",
         "service-level objective",
+        "inactive",
+        "pending",
+        "firing",
+        "Reference and current windows",
         "post-incident review",
         "projects/production-monitoring-lab",
         "No notebook is part of the runtime",
@@ -247,6 +251,31 @@ def test_reliable_systems_chapter_teaches_executable_production_observability() 
         encoding="utf-8"
     )
     assert r"Section~\ref{sec:production-observability}" in end_to_end
+
+
+def test_glossary_covers_operated_system_boundaries() -> None:
+    """New operational vocabulary should be defined, not only used in prose."""
+
+    glossary = (TEXTBOOK_ROOT / "appendices" / "glossary.tex").read_text(
+        encoding="utf-8"
+    )
+    for term in (
+        "alert &",
+        "container &",
+        "container image &",
+        "deployment &",
+        "error budget &",
+        "model monitoring &",
+        "monitoring &",
+        "port mapping &",
+        "registry &",
+        "release &",
+        "runbook &",
+        "service-level indicator &",
+        "span &",
+        "volume &",
+    ):
+        assert term in glossary
 
 
 def test_opening_section_defines_the_books_systems_thesis_concisely() -> None:

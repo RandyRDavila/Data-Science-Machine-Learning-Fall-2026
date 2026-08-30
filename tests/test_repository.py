@@ -56,7 +56,9 @@ def test_required_course_resource_exists(relative_path: str) -> None:
 def test_notebook_guidance_defines_the_artifact_boundary() -> None:
     """Course guidance must distinguish experiments from operated systems."""
 
-    standard = (PROJECT_ROOT / "notebooks/TEACHING_NOTEBOOK_STANDARD.md").read_text()
+    standard = (
+        PROJECT_ROOT / "notebooks/TEACHING_NOTEBOOK_STANDARD.md"
+    ).read_text(encoding="utf-8")
 
     for required_idea in (
         "## The notebook boundary",
@@ -71,7 +73,7 @@ def test_notebook_guidance_defines_the_artifact_boundary() -> None:
 def test_readme_distinguishes_lecture_units_from_class_meetings() -> None:
     """Numbered content units must not imply a one-unit-per-meeting schedule."""
 
-    readme = (PROJECT_ROOT / "README.md").read_text()
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     normalized = " ".join(readme.split())
 
     assert "### Lecture units and class meetings" in readme
@@ -98,7 +100,9 @@ def test_each_lecture_contains_an_ordered_notebook_sequence(
 
 
 def test_ci_reproduces_the_course_on_all_supported_platforms() -> None:
-    workflow = (PROJECT_ROOT / ".github/workflows/course-ci.yml").read_text()
+    workflow = (PROJECT_ROOT / ".github/workflows/course-ci.yml").read_text(
+        encoding="utf-8"
+    )
 
     for operating_system in ("ubuntu-latest", "macos-latest", "windows-latest"):
         assert operating_system in workflow
@@ -115,7 +119,9 @@ def test_ci_reproduces_the_course_on_all_supported_platforms() -> None:
 
 def test_vscode_recommends_required_notebook_extensions() -> None:
     recommendations_file = PROJECT_ROOT / ".vscode/extensions.json"
-    recommendations = json.loads(recommendations_file.read_text())["recommendations"]
+    recommendations = json.loads(
+        recommendations_file.read_text(encoding="utf-8")
+    )["recommendations"]
 
     assert "ms-python.python" in recommendations
     assert "ms-toolsai.jupyter" in recommendations

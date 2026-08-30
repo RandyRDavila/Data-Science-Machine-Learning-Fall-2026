@@ -1,17 +1,26 @@
 # Lecture 17: Reliable Supervised Learning Systems
 
-This Part II synthesis connects training, prediction, and feedback. Students
-release a bounded supervised-learning system, observe it, join delayed outcomes,
-and rehearse a rollback or retraining decision.
+This Part II synthesis connects training, prediction, and feedback. The
+notebooks are live computational laboratories for the mathematical and
+statistical ideas. The operated application is the separate, module-based
+[`production-monitoring-lab`](../../projects/production-monitoring-lab/).
+
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), complete
+the released `00-training-prediction-feedback.ipynb`, and then use the operated
+lab's [`student worksheet`](../../projects/production-monitoring-lab/STUDENT_WORKSHEET.md).
+Notebooks 01 and 02 below remain planned until their files are published.
 
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |
 | --- | --- | --- |
 | 00 | Training, prediction, and feedback paths | Architecture and artifact manifest |
-| 01 | Drift, outcomes, monitoring, and retraining | Monitoring specification |
-| 02 | Capstone release, incident, and rollback | End-to-end release dossier |
+| 01 | Drift, outcomes, and monitoring statistics | Monitoring specification |
+| 02 | Post-incident evidence analysis | Release and incident dossier |
 
-The capstone may use batch inference or a prediction API, but its claim must
-name the actual endpoints. The notebook explains and tests the system; it is not
-the production boundary itself.
+The production lab uses a prediction API and names its actual endpoints,
+processes, stores, and telemetry backends. Notebooks may explain a method or
+analyze exported evidence; they do not launch, schedule, monitor, or orchestrate
+the production-like system.

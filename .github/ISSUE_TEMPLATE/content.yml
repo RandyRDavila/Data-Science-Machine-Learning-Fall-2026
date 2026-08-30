@@ -1,0 +1,66 @@
+name: Course-content correction
+description: Report a factual, mathematical, instructional, accessibility, or typographical problem.
+title: "[Content]: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for textbook, notebook, exercise, diagram, or supplementary-material corrections. Do not post graded work or private student information.
+
+  - type: input
+    id: location
+    attributes:
+      label: Exact location
+      description: Give a file path plus notebook cell heading, section, equation, figure, exercise, or PDF page.
+      placeholder: textbook/chapters/... Section 3.2, equation ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of correction
+      options:
+        - Factual or mathematical error
+        - Code or output mismatch
+        - Unclear explanation
+        - Exercise or solution issue
+        - Accessibility issue
+        - Broken link or citation
+        - Typographical or formatting issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current content and problem
+      description: Quote only the minimum needed and explain precisely what is wrong or unclear.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed correction
+      description: Suggest corrected wording, mathematics, code, output, or structure when possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Link primary references or provide a compact derivation or reproducible example.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues for this correction.
+          required: true
+        - label: I did not include graded work, private student information, secrets, or restricted data.
+          required: true

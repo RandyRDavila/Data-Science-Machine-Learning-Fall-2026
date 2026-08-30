@@ -1,0 +1,12 @@
+{
+  "reference": {
+    "joined_outcomes": 100,
+    "brier_score": 0.061,
+    "observed_failure_rate": 0.28
+  },
+  "comparison": {
+    "joined_outcomes": 100,
+    "brier_score": 0.214,
+    "observed_failure_rate": 0.27
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "reference": {
+    "requests": 100,
+    "http_200": 100,
+    "p95_latency_seconds": 0.012,
+    "risk_bands": {"low": 18, "medium": 54, "high": 28}
+  },
+  "comparison": {
+    "requests": 100,
+    "http_200": 100,
+    "p95_latency_seconds": 0.013,
+    "risk_bands": {"low": 71, "medium": 26, "high": 3}
+  }
+}

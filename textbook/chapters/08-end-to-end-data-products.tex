@@ -120,6 +120,11 @@ deployment automates that decision for qualifying changes. Canary and blue-green
 strategies reduce exposure; they do not replace compatibility design, database
 recovery, or incident ownership.
 
+Appendix~\ref{app:cicd} applies these principles to a complete running example:
+the book is compiled into an identifiable artifact, deployed to the public
+course site, verified at the public boundary, and assembled with the Python
+package into an approved versioned release.
+
 \section{Monitor the client and server}
 
 Server logs alone cannot explain a blank browser screen that failed before an
@@ -248,6 +253,11 @@ logs, client outcomes, incident record \\
 \bottomrule
 \end{longtable}
 
+Section~\ref{sec:production-observability} develops this final stage as an
+incident-driven, executable prediction-service laboratory. Its runtime is made
+of package modules, processes, scripts, and configuration rather than notebook
+cells.
+
 Building twice for two environments weakens traceability because the binaries
 may differ. Configuration can vary, but the verified artifact digest should
 remain stable. Database changes require special care: old and new application
@@ -323,8 +333,9 @@ data product is unusable, and what evidence would reveal the gap?
 Lecture 8 notebook 00 implements a package-backed FastAPI, service, repository,
 SQLite database, and responsive client as a bounded local laboratory. The
 notebook explains and exercises the components; it is not the production
-orchestrator. Companion files map the local vertical slice to containers,
-CI/CD, browser testing, and monitoring artifacts.
+orchestrator. Chapter~\ref{ch:reliable-supervised-systems} later moves operation
+into the separate module-based production monitoring project, where scripts and
+configuration launch and diagnose the running system.
 \end{notebooklink}
 
 \section{Part I takeaway}

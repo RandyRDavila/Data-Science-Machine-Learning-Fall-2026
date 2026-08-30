@@ -1,0 +1,86 @@
+name: Software or notebook bug
+description: Report reproducible incorrect behavior in setup, code, notebooks, tests, or automation.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve the course repository. Do not include API keys, credentials, private student information, or restricted data.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Environment or setup
+        - Python package
+        - Lecture notebook
+        - Tests or GitHub Actions
+        - Course site or release
+        - Textbook or compiled PDF
+        - Data or pipeline
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: State exactly what happened, including the complete error message when available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Give the smallest ordered sequence that reproduces the problem from a clean checkout.
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. Select ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What contract or documented result did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include values that determine reproducibility.
+      value: |
+        - Operating system:
+        - Branch and commit:
+        - Python version:
+        - `python -c "import sys; print(sys.executable)"`:
+        - VS Code and Rice DSM kernel selected, if applicable:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Paste the smallest useful log or traceback after removing sensitive values.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: I removed secrets, credentials, private student information, and restricted data.
+          required: true

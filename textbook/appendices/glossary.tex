@@ -18,6 +18,8 @@ rules. The model is a component, not the whole agent. \\
 activation function & Nonlinear transformation applied within a neural network.
 Without nonlinear activations, a composition of affine layers collapses to one
 affine map. \\
+alert & Owned notification that a monitored symptom has satisfied a stated
+condition and duration. It initiates investigation but rarely proves a cause. \\
 API & Application programming interface: a supported contract through which
 software components interact. It may be an in-process function/package API or
 a request/response web API. \\
@@ -55,6 +57,10 @@ client & Browser, device, script, or service that makes a request to an API. \\
 commit & Git object recording a project snapshot, metadata, message, and parent
 commit or commits. A commit is local until its history is transferred to a
 remote. \\
+container & Running or stopped process instance created from a container image
+with configured filesystem, network, resource, and environment boundaries. \\
+container image & Immutable, content-identifiable template containing a
+filesystem and startup contract from which containers are created. \\
 cross-validation & Resampling design that rotates training and validation roles
 to estimate a procedure under the population assumptions encoded by its folds.
 Grouped and temporal variants estimate different use settings. \\
@@ -66,11 +72,15 @@ database & Organized persisted data plus its logical structure. \\
 DBMS & Database-management system: software that stores, queries, coordinates,
 and protects database state. \\
 dependency & External package or component whose behavior a project uses. \\
+deployment & Placement of an identified artifact into a named environment under
+specified configuration and policy; it is not synonymous with build or release. \\
 DNS & Domain Name System: distributed naming infrastructure that resolves names
 such as a service hostname to routing information such as an IP address. \\
 distribution & Installable Python project with metadata and packaged files. \\
 dtype & NumPy data type governing the representation and operations of array
 elements, including numerical range, precision, and missing-value strategy. \\
+error budget & Failure permitted by a service-level objective over its window,
+used to reason about reliability risk and release pace. \\
 endpoint & One web-API operation commonly identified by an HTTP method and path. \\
 ensemble & Predictor formed by combining multiple fitted learners. Bagging,
 boosting, voting, and stacking use different combination mechanisms and should
@@ -132,9 +142,13 @@ scores, distributions, categories, generated objects, or action proposals. \\
 model artifact & Versioned release object binding fitted state to its feature
 schema, transformations, output semantics, runtime, provenance, and evaluation
 evidence. Parameters alone are not a complete artifact contract. \\
+model monitoring & Repeated examination of feature validity, populations,
+scores, decisions, slices, joined outcomes, and model and policy identity. \\
 merge & Git operation that integrates histories and, when necessary, creates a
 commit with multiple parents. A conflict asks a human to choose final content. \\
 module & Importable Python file. \\
+monitoring & Repeated evaluation of selected evidence and conditions. A
+dashboard or alert can participate without making a system observable. \\
 NumPy & Python package providing multidimensional arrays and numerical
 operations. Its array API makes shape, axes, and data type central. \\
 object & Runtime value with a type, identity, and associated behavior. \\
@@ -151,6 +165,8 @@ alignment explicit but do not establish data validity. \\
 parameterized query & Database query in which values are bound separately from
 SQL syntax, protecting representation and reducing injection risk. Dynamic
 identifiers require a different controlled design. \\
+port mapping & Rule forwarding traffic from a host address and port to a port at
+a process or container boundary. \\
 prompt injection & Untrusted content attempting to redirect a model-driven
 system or expand its authority. The durable defense is to keep authority in
 application policy rather than in untrusted text. \\
@@ -164,8 +180,14 @@ response & Status, metadata, and optional result or error data returned by a
 server. \\
 remote & Named Git configuration referring to another repository location.
 \code{origin} is a conventionally assigned name, not a special server. \\
+registry & Service that stores, identifies, and distributes artifacts such as
+container images or model versions under access and retention policy. \\
+release & Named, reviewed statement that a bounded set of identified artifacts
+represents a version suitable for stated use. \\
 repository & Version-controlled project directory containing source,
 configuration, tests, and documentation. \\
+runbook & Reviewed operational procedure containing safe checks, authority
+limits, mitigations, escalation, and verification for a class of symptoms. \\
 schema & Explicit structure and constraints for data or messages. \\
 SDK & Software development kit: client libraries and tools that help developers
 use a platform or API. \\
@@ -182,6 +204,10 @@ definition includes measurement process, time or horizon, units, and eligible
 population. \\
 service-level objective & Measurable target for a user-relevant aspect of
 reliability over a defined interval. \\
+service-level indicator & Measured user-relevant quantity, including its
+population, units, aggregation, exclusions, and time window. \\
+span & Timed operation within a trace, carrying controlled attributes and
+relationships to parent and child work. \\
 structured log & Machine-readable event record with named fields and controlled
 content. \\
 telemetry & Evidence emitted about a running system, including selected logs,
@@ -207,6 +233,8 @@ looping is performed by optimized lower-level code. It does not eliminate
 computational complexity or memory cost. \\
 virtual environment & Project-specific Python installation context used to
 isolate dependencies. \\
+volume & Container-managed persistent storage whose lifecycle is distinct from
+one container instance. \\
 web API & Request/response interface exposed across a process or network
 boundary, often using HTTP. \\
 workflow & Mostly predetermined graph of steps, decisions, inputs, and outputs.

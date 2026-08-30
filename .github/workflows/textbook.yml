@@ -1,0 +1,57 @@
+name: Textbook
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "textbook/**"
+      - "output/pdf/data-science-machine-learning-textbook.pdf"
+      - ".github/workflows/textbook.yml"
+  pull_request:
+    paths:
+      - "textbook/**"
+      - "output/pdf/data-science-machine-learning-textbook.pdf"
+      - ".github/workflows/textbook.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-textbook:
+    name: Build textbook PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compile the LaTeX textbook
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: textbook.tex
+          working_directory: textbook
+
+      - name: Reject unresolved references and layout warnings
+        shell: bash
+        run: |
+          if grep -E "LaTeX Warning|Package .* Warning|Overfull|Underfull|undefined references" textbook/textbook.log; then
+            echo "The textbook compiled with warnings that require review."
+            exit 1
+          fi
+
+      - name: Publish the compiled textbook artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: data-science-machine-learning-textbook-${{ github.sha }}
+          path: textbook/textbook.pdf
+          if-no-files-found: error
+          retention-days: 30

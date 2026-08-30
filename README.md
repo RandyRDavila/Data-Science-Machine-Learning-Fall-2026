@@ -13,12 +13,19 @@ interfaces, deployment, and revision. The repository makes that argument
 executable through lecture notebooks, a progressively developed Python package,
 tests, data, exercises, and continuous integration.
 
+The repository also demonstrates delivery: reviewed `main` revisions publish a
+small course site, while version tags produce approved, checksummed releases of
+the textbook and Python package.
+
 The LaTeX source lives under [`textbook/`](textbook/), and the compiled text
 is published at
 [`output/pdf/data-science-machine-learning-textbook.pdf`](output/pdf/data-science-machine-learning-textbook.pdf).
 The notebooks are computational laboratories rather than substitutes for the
 prose. Reusable implementations move into `rice_dsm`; tests and CI preserve
 their contracts.
+
+**Students:** begin with [`STUDENT_START_HERE.md`](STUDENT_START_HERE.md). It is
+the canonical setup, verification, weekly-workflow, and troubleshooting route.
 
 ## Text and repository
 
@@ -36,16 +43,12 @@ their contracts.
 ```text
 .
 ├── README.md
+├── STUDENT_START_HERE.md      # Canonical student setup and weekly workflow
 ├── LICENSE
 ├── pyproject.toml             # Package metadata, dependencies, and tool config
 ├── uv.lock                    # Reproducible Python environment
 ├── .vscode/
 │   └── extensions.json        # Recommend the Python and Jupyter extensions
-├── syllabus/
-│   ├── syllabus.tex           # Main LaTeX source
-│   ├── references.bib
-│   ├── figures/
-│   └── Makefile               # Compile and clean the syllabus
 ├── notebooks/
 │   ├── lecture-01-python-foundations/
 │   │   ├── README.md          # Lecture plan, outcomes, and preparation
@@ -82,16 +85,13 @@ their contracts.
 │       ├── __init__.py
 │       └── ...                # Reusable code developed during the course
 ├── tests/                     # Executable examples and repository safeguards
-├── assignments/               # Assignment descriptions and starter materials
 ├── notes/                     # Topic notes and supporting instructional content
 ├── supplementary-materials/   # Computing guides, readings, exercises, diagrams
-├── data/
-│   ├── README.md              # Provenance and retrieval instructions
-│   ├── raw/                   # Immutable source data, usually not committed
-│   └── processed/             # Derived data, usually reproducible
+├── projects/                  # Operated systems and longer engineering labs
 ├── scripts/                   # Repeatable data, build, and maintenance tasks
+├── site/                      # Reviewed source for the deployed course site
 └── .github/
-    └── workflows/             # Package tests and other automated checks
+    └── workflows/             # Integration, delivery, and release automation
 ```
 
 The exact contents will evolve with the course. Empty directories should be
@@ -150,8 +150,9 @@ dependency locking, editable package installation, and command execution.
 
 ## Getting started
 
-Install `uv`, clone the repository, open the repository folder in VS Code, and
-run one command in VS Code's integrated terminal:
+Follow the complete cross-platform route in
+[`STUDENT_START_HERE.md`](STUDENT_START_HERE.md). The essential setup command,
+run from this repository's root in VS Code's integrated terminal, is:
 
 ```bash
 uv run python scripts/setup_course.py
@@ -167,25 +168,51 @@ Run the automated package checks with:
 
 ```bash
 uv run pytest
-uv run ruff check src tests
+uv run ruff check src tests scripts
 ```
 
 The [`tests/README.md`](tests/README.md) guide explains how to read and run the
 suite, interpret failures, choose edge cases, and use tests as executable
 specifications while the course package develops.
 
-## Continuous integration
+## Continuous integration and delivery
 
-GitHub Actions runs the locked setup on Linux, macOS, and Windows for every push
-and pull request. CI checks formatting, builds the package, verifies the source
-path and named kernel, runs the unit and repository tests, and executes every
-notebook from top to bottom.
+GitHub Actions runs the locked setup on Linux, macOS, and Windows for every pull
+request and every push to `main`. Restricting push runs to `main` prevents a
+branch with an open pull request from launching the same matrix twice. CI checks
+formatting, builds the package, verifies the source path and named kernel, runs
+the unit and repository tests, and executes every notebook from top to bottom.
 
 The workflow reports one stable required check named **CI gate**. In the GitHub
 repository settings, protect the teaching branch by requiring pull requests and
 the **CI gate** status check before merging. CI cannot stop a local `git push`,
 but that branch rule prevents an unverified change from entering the protected
 course branch.
+
+Companion workflows compile changed textbook source and upload the PDF for
+review, inspect changed dependencies for known high-severity vulnerabilities,
+and apply area labels without executing pull-request code. Dependabot proposes
+grouped updates for the `uv` environment and pinned GitHub Actions. The complete
+workflow, deployment, release, environment, and rollback explanation lives in
+[`.github/README.md`](.github/README.md).
+
+The static course site is a deliberately bounded production example. A relevant
+merge to `main` compiles the textbook, builds one identifiable site artifact,
+deploys it through GitHub Pages, and verifies the public revision and PDF
+checksum. A `course-vX.Y.Z` tag instead builds a checksummed textbook, wheel, and
+source archive, records provenance, and waits for approval at the
+`course-release` environment before creating a GitHub Release. Students can
+follow the entire worked example in [From CI to delivery and
+deployment](supplementary-materials/computing-foundations/08-continuous-delivery-and-deployment.md).
+
+## Contributing and reporting problems
+
+GitHub presents structured forms for software bugs, course-content corrections,
+instructional proposals, and public repository questions. Please read
+[`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request. Suspected
+vulnerabilities, exposed credentials, or private student information must be
+reported privately according to [`SECURITY.md`](SECURITY.md), never through a
+public issue.
 
 ## Lecture materials
 
@@ -270,28 +297,42 @@ sequence, and a CI-executable entry notebook. These entry points will be expande
 into full laboratories one unit at a time. The textbook already carries the
 connected Part II mathematical and systems narrative.
 
+The [`Part II student guide`](notebooks/PART_II_STUDENT_GUIDE.md) distinguishes
+released work from planned notebooks and defines preparation and completion
+evidence for each unit.
+
+### Production monitoring laboratory
+
+The executable
+[`production-monitoring-lab`](projects/production-monitoring-lab/) places the
+battery-risk example inside an instrumented prediction service. Package modules
+implement the API, model, persistence, structured logging, metrics, and delayed
+outcome path. Scripts generate traffic and controlled incidents; Docker Compose
+runs Prometheus, Loki, Tempo, Grafana Alloy, and a provisioned Grafana dashboard.
+Students diagnose failures from operational evidence and write a post-incident
+review. The system is deliberately outside `notebooks/`: notebooks support live
+explanation and statistical investigation but do not serve as the production
+runtime.
+The lab's [`student worksheet`](projects/production-monitoring-lab/STUDENT_WORKSHEET.md)
+defines the live and offline routes, deliverables, and evaluation rubric.
+
 ## Supplementary materials
 
 Students who are new to terminals, PowerShell, VS Code, Jupyter, virtual
-environments, or project navigation can begin with the
-[`supplementary-materials`](supplementary-materials/) guides. These readings,
-exercises, and diagrams are optional support materials and do not assume prior
-developer-tool experience.
+environments, or project navigation should begin with the
+[`supplementary-materials`](supplementary-materials/) guides. Foundations 01-05
+are support readings selected according to background. The API, CI/CD,
+observability, and container readings become required preparation when their
+corresponding units are assigned.
 
-### Syllabus
+### Planned course logistics and data
 
-The syllabus source lives in `syllabus/` and is written in LaTeX. Its build
-command should be captured in the local `Makefile` so the PDF can be reproduced
-without remembering a long command. LaTeX intermediate files should not be
-committed; whether the compiled PDF is versioned or published as a release
-artifact will be decided with the course distribution workflow.
-
-### Data
-
-Small, license-compatible teaching datasets may be committed when useful. Large,
-restricted, or readily downloadable datasets should stay out of Git. Retrieval
-and transformation steps should be documented in `data/README.md` and automated
-in `scripts/` whenever practical.
+A standalone syllabus, assignment handouts, and general data registry have not
+yet been published in this branch and therefore are not shown as current
+directories above. When added, the syllabus will define calendar, assessment,
+collaboration, accessibility, and institutional policies. Dataset entries will
+record provenance, license, schema, units, retrieval, and transformation rather
+than relying on an unexplained file copied into the repository.
 
 ## Status
 

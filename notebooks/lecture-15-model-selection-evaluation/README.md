@@ -4,6 +4,12 @@ This unit asks what evidence justifies choosing one candidate over another.
 Cross-validation, nested evaluation, hyperparameter search, uncertainty, error
 analysis, and promotion gates are organized around the deployment claim.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-selection-as-estimation.ipynb`. Notebooks 01 and 02
+below remain planned until their files are published.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

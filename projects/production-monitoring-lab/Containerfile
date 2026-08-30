@@ -1,0 +1,16 @@
+FROM ghcr.io/astral-sh/uv:0.8.17-python3.12-bookworm-slim
+
+WORKDIR /app
+
+ENV PATH="/app/.venv/bin:${PATH}" \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+COPY pyproject.toml uv.lock README.md LICENSE ./
+COPY src ./src
+
+RUN uv sync --frozen --no-dev
+
+EXPOSE 8000
+
+CMD ["opentelemetry-instrument", "uvicorn", "rice_dsm.monitoring_lab.app:create_app_from_environment", "--factory", "--host", "0.0.0.0", "--port", "8000"]

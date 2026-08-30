@@ -12,10 +12,18 @@ PowerShell, VS Code, or Jupyter experience is assumed.
 5. [The course environment](05-course-environment.md)
 6. [How the course Python project works](06-how-the-course-python-project-works.md),
    best read with Lecture 3
-7. [What is an API?](07-what-is-an-api.md), before the hosted-model and
+7. [Git and GitHub workflow](git-and-github-workflow.md), before the first
+   contribution or pull request
+8. [What is an API?](07-what-is-an-api.md), before the hosted-model and
    end-to-end lessons
-8. [Guided exercises](exercises.md)
-9. [Workflow diagrams](diagrams.md), whenever a mental picture would help
+9. [From CI to delivery and deployment](08-continuous-delivery-and-deployment.md),
+   with Lecture 3 or the end-to-end systems unit
+10. [Observability and model monitoring](09-observability-and-model-monitoring.md),
+   before the production monitoring laboratory
+11. [Containers and local services](10-containers-and-local-services.md), before
+    starting the production monitoring stack
+12. [Guided exercises](exercises.md)
+13. [Workflow diagrams](diagrams.md), whenever a mental picture would help
 
 ## What success looks like
 
@@ -28,7 +36,11 @@ After completing this module, you should be able to:
 - distinguish a shell, Python interpreter, virtual environment, and notebook
   kernel;
 - distinguish a Python package API from an HTTP web API and identify the parts
-  of a request and response; and
+  of a request and response;
+- distinguish an artifact, release, delivery, deployment, and environment;
+- distinguish logs, metrics, traces, alerts, and delayed model-quality evidence;
+- distinguish an image, container, service, port mapping, bind mount, and
+  volume; and
 - recover from common problems by checking location and interpreter before
   reinstalling software.
 

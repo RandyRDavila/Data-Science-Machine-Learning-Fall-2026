@@ -1,0 +1,131 @@
+name: Course Release
+
+on:
+  push:
+    tags:
+      - "course-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: course-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Verify and build release artifacts
+    if: startsWith(github.ref, 'refs/tags/course-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Check out the tagged revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require an annotated release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if test "$(git cat-file -t "$RELEASE_TAG")" != "tag"; then
+            echo "Release tags must be annotated tags."
+            exit 1
+          fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.6"
+          enable-cache: true
+
+      - name: Install the pinned Python version
+        run: uv python install
+
+      - name: Reproduce the locked environment
+        run: uv sync --locked
+
+      - name: Verify Python source and course contracts
+        run: |
+          uv run ruff check src tests scripts
+          uv run pytest -q
+
+      - name: Build wheel and source distribution
+        run: uv build
+
+      - name: Compile the LaTeX textbook
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: textbook.tex
+          working_directory: textbook
+
+      - name: Reject unresolved references and layout warnings
+        shell: bash
+        run: |
+          if grep -E "LaTeX Warning|Package .* Warning|Overfull|Underfull|undefined references" textbook/textbook.log; then
+            echo "The textbook compiled with warnings that require review."
+            exit 1
+          fi
+
+      - name: Assemble checksummed release bundle
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_REVISION: ${{ github.sha }}
+        run: >-
+          uv run python scripts/build_release_bundle.py
+          --tag "$RELEASE_TAG"
+          --revision "$RELEASE_REVISION"
+          --textbook textbook/textbook.pdf
+
+      - name: Attest release provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: build/course-release/*
+
+      - name: Upload exact release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: course-release-${{ github.ref_name }}
+          path: build/course-release/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish approved GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: course-release
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the exact verified artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: course-release-${{ github.ref_name }}
+          path: build/course-release
+
+      - name: Publish or repair the GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" build/course-release/* --clobber
+          else
+            gh release create "$RELEASE_TAG" build/course-release/* \
+              --verify-tag \
+              --generate-notes \
+              --title "CMOR 438 / INDE 577 ${RELEASE_TAG#course-}"
+          fi

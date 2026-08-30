@@ -19,6 +19,7 @@ NOTEBOOKS = sorted(
     "relative_path",
     [
         "README.md",
+        "STUDENT_START_HERE.md",
         "pyproject.toml",
         "uv.lock",
         ".github/workflows/course-ci.yml",
@@ -26,6 +27,7 @@ NOTEBOOKS = sorted(
         "src/rice_dsm/__init__.py",
         "notebooks/TEACHING_NOTEBOOK_STANDARD.md",
         "notebooks/PROFESSIONAL_PRACTICES.md",
+        "notebooks/PART_II_STUDENT_GUIDE.md",
         "notebooks/lecture-01-python-foundations/README.md",
         "notebooks/lecture-02-python-foundations-ii/README.md",
         "notebooks/lecture-03-projects-packages-testing/README.md",
@@ -45,6 +47,8 @@ NOTEBOOKS = sorted(
         "notebooks/lecture-17-reliable-supervised-systems/README.md",
         "notes/part-ii-roadmap.md",
         "supplementary-materials/computing-foundations/README.md",
+        "supplementary-materials/computing-foundations/git-and-github-workflow.md",
+        "supplementary-materials/computing-foundations/10-containers-and-local-services.md",
     ],
 )
 def test_required_course_resource_exists(relative_path: str) -> None:
@@ -84,6 +88,47 @@ def test_readme_distinguishes_lecture_units_from_class_meetings() -> None:
         "The syllabus and weekly announcement determine the live itinerary"
         in normalized
     )
+
+
+def test_student_navigation_names_current_and_planned_resources_honestly() -> None:
+    """Entry documents should not advertise absent directories as current state."""
+
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    start = (PROJECT_ROOT / "STUDENT_START_HERE.md").read_text(encoding="utf-8")
+    tests_guide = (PROJECT_ROOT / "tests" / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "canonical setup" in readme
+    assert "Planned course logistics and data" in readme
+    assert "The syllabus source lives in `syllabus/`" not in readme
+    assert "Course setup complete" in start
+    assert "offline evidence route" in start
+    assert "does not currently perform continuous delivery" not in tests_guide
+    assert "continuous deployment" in tests_guide
+
+
+def test_part_ii_routes_distinguish_released_from_planned_notebooks() -> None:
+    """Students should never infer that a planned notebook already exists."""
+
+    guide = (PROJECT_ROOT / "notebooks" / "PART_II_STUDENT_GUIDE.md").read_text(
+        encoding="utf-8"
+    )
+    assert "not assigned until" in guide
+    assert "Completion evidence" in guide
+
+    for lecture_number in range(9, 18):
+        lecture_directory = next(
+            path
+            for path in LECTURE_DIRECTORIES
+            if path.name.startswith(f"lecture-{lecture_number:02d}-")
+        )
+        lecture_readme = (lecture_directory / "README.md").read_text(
+            encoding="utf-8"
+        )
+        assert "## Current student route" in lecture_readme
+        assert "Part II student guide" in lecture_readme
+        assert "remain" in lecture_readme or "are planned" in lecture_readme
 
 
 @pytest.mark.parametrize(

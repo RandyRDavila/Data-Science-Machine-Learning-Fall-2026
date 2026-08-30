@@ -1,0 +1,188 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "datasource": {"type": "loki", "uid": "loki"},
+        "enable": true,
+        "expr": "{service_name=\"battery-prediction-api\"} | json | event=\"service_started\"",
+        "name": "Service starts",
+        "tagKeys": "model_version,release_version",
+        "titleFormat": "{{model_version}} / {{release_version}}"
+      }
+    ]
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Rate of completed prediction requests. A traffic drop can be a client or availability symptom.",
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [{"expr": "sum(rate(rice_dsm_http_requests_total{route=\"/api/v1/predictions\"}[1m]))", "legendFormat": "requests", "refId": "A"}],
+      "title": "Prediction request rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Fraction of prediction requests returning a 5xx response.",
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 0},
+      "id": 2,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [{"expr": "(sum(rate(rice_dsm_http_requests_total{route=\"/api/v1/predictions\",status_code=~\"5..\"}[1m])) / clamp_min(sum(rate(rice_dsm_http_requests_total{route=\"/api/v1/predictions\"}[1m])), 0.000001)) or vector(0)", "legendFormat": "error ratio", "refId": "A"}],
+      "title": "Prediction 5xx ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "The 95th percentile is an aggregate symptom. Use traces to localize the slow span.",
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 0},
+      "id": 3,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(rice_dsm_http_request_duration_seconds_bucket{route=\"/api/v1/predictions\"}[1m])))", "legendFormat": "p95", "refId": "A"}],
+      "title": "Prediction latency p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "A shift in decisions can occur while every request is fast and successful.",
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 7},
+      "id": 4,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [{"expr": "sum by (risk_band, scenario) (increase(rice_dsm_predictions_total[5m]))", "legendFormat": "{{risk_band}} / {{scenario}}", "refId": "A"}],
+      "title": "Prediction decisions by scenario",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Schema and range failures are contract evidence, not generic server errors.",
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 7},
+      "id": 5,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [{"expr": "sum by (reason) (increase(rice_dsm_input_rejections_total[5m])) or vector(0)", "legendFormat": "{{reason}}", "refId": "A"}],
+      "title": "Rejected model inputs",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Model quality is unknowable until predictions are joined to outcomes.",
+      "fieldConfig": {"defaults": {"decimals": 4, "unit": "none"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 15},
+      "id": 6,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "rice_dsm_brier_score", "refId": "A"}],
+      "title": "Delayed-outcome Brier score",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Count the joined outcomes before interpreting a quality estimate.",
+      "fieldConfig": {"defaults": {"decimals": 0, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 15},
+      "id": 7,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "rice_dsm_joined_outcomes", "refId": "A"}],
+      "title": "Joined outcomes",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "The observed base rate helps distinguish calibration change from service failure.",
+      "fieldConfig": {"defaults": {"decimals": 3, "unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 15},
+      "id": 8,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "rice_dsm_observed_failure_rate", "refId": "A"}],
+      "title": "Observed failure rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "description": "Search structured events after metrics establish scope. Request and trace IDs stay in the JSON body rather than metric labels.",
+      "gridPos": {"h": 11, "w": 24, "x": 0, "y": 27},
+      "id": 9,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{service_name=\"battery-prediction-api\"} | json", "refId": "A"}],
+      "title": "Structured application events",
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "The model and application release are operational evidence, not decorative version strings.",
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 21},
+      "id": 10,
+      "options": {"showHeader": true},
+      "targets": [
+        {
+          "expr": "rice_dsm_model_info",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Release identity",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "Value": true, "__name__": true, "instance": true, "job": true},
+            "indexByName": {"model_version": 0, "release_version": 1}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Recorded success ratio for eligible prediction requests over the teaching window.",
+      "fieldConfig": {"defaults": {"decimals": 3, "min": 0, "max": 1, "unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 21},
+      "id": 11,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "rice_dsm:prediction_success_ratio:rate1m", "refId": "A"}],
+      "title": "Prediction success SLI",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Failure ratio divided by the 0.5 percent availability error budget.",
+      "fieldConfig": {"defaults": {"decimals": 1, "min": 0, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 12, "y": 21},
+      "id": 12,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "rice_dsm:prediction_error_budget_burn_rate:rate1m", "refId": "A"}],
+      "title": "Error-budget burn rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Count of firing Prometheus alerts. Inspect inactive and pending states on the Prometheus rules page.",
+      "fieldConfig": {"defaults": {"decimals": 0, "min": 0, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 6, "x": 18, "y": 21},
+      "id": 13,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto"},
+      "targets": [{"expr": "sum(ALERTS{alertstate=\"firing\"}) or vector(0)", "refId": "A"}],
+      "title": "Active Prometheus alerts",
+      "type": "stat"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 41,
+  "tags": ["course", "ml", "observability"],
+  "templating": {"list": []},
+  "time": {"from": "now-15m", "to": "now"},
+  "timezone": "browser",
+  "title": "Battery Risk Service: Operations and Model Evidence",
+  "uid": "rice-dsm-battery-risk",
+  "version": 1
+}

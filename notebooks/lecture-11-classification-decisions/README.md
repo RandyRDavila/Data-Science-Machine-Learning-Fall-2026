@@ -4,6 +4,12 @@ This unit moves from a perceptron score to logistic probability estimation and
 then to an explicit decision rule. Thresholds, costs, class imbalance,
 calibration, and subgroup behavior are part of the model contract.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-logistic-model-and-decision-policy.ipynb`. Notebooks
+01 and 02 below remain planned until their files are published.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

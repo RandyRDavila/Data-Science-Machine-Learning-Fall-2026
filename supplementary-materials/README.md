@@ -11,6 +11,8 @@ that can be completed independently.
 ## Computing foundations
 
 Start with [`computing-foundations/README.md`](computing-foundations/README.md).
+The repository-wide setup and weekly workflow begin in
+[`STUDENT_START_HERE.md`](../STUDENT_START_HERE.md).
 It covers:
 
 - files, folders, paths, and the repository;
@@ -21,6 +23,10 @@ It covers:
 - a detailed explanation of how `uv`, Python packaging, and Jupyter cooperate;
 - a zero-assumption explanation of Python and web APIs, requests, endpoints,
   responses, SDKs, and credentials;
+- a worked account of CI, build artifacts, environments, continuous delivery,
+  continuous deployment, verification, and rollback using this repository;
+- an introduction to observability, structured logs, metrics, traces, model
+  monitoring, alerting, runbooks, and incident response;
 - guided practice and troubleshooting diagrams.
 
 ## Planned additions

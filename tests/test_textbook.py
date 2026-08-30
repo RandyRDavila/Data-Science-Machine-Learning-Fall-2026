@@ -160,6 +160,124 @@ def test_git_appendix_teaches_version_control_as_professional_practice() -> None
     assert len(appendix) >= 35_000
 
 
+def test_cicd_appendix_traces_the_textbook_release_system() -> None:
+    """The CI/CD appendix should connect vocabulary to the live workflows."""
+
+    appendix_path = TEXTBOOK_ROOT / "appendices" / "continuous-delivery.tex"
+    appendix = appendix_path.read_text(encoding="utf-8")
+    main_source = MAIN_SOURCE.read_text(encoding="utf-8")
+
+    assert r"\input{appendices/continuous-delivery}" in main_source
+    assert main_source.index(r"\input{appendices/git-github}") < main_source.index(
+        r"\input{appendices/continuous-delivery}"
+    )
+    assert main_source.index(r"\input{appendices/continuous-delivery}") < (
+        main_source.index(r"\input{appendices/glossary}")
+    )
+
+    for required_idea in (
+        "The three terms in CI/CD",
+        "Path one: a pull request becomes verified source",
+        r"Path two: \code{main} becomes a public course site",
+        "Path three: a version becomes an approved release",
+        "Build once, promote the same artifact",
+        "Authority is part of the pipeline",
+        "Failure is a state to diagnose",
+        "Rollback and roll-forward",
+        "A complete worked change",
+        "Inspect the system locally",
+        "Design exercises",
+        "Operational checklist",
+        "continuous integration",
+        "continuous delivery",
+        "continuous deployment",
+        "course-pages.yml",
+        "course-release.yml",
+        "manifest.json",
+        "SHA256SUMS",
+        "CI gate",
+        r"\begin{professionalbox}",
+        r"\begin{checkpointbox}",
+    ):
+        assert required_idea in appendix
+
+    assert len(appendix) >= 25_000
+
+
+def test_cicd_concepts_point_to_the_worked_appendix() -> None:
+    """Conceptual chapters and the Git lesson should route to the case study."""
+
+    for relative_path in (
+        "chapters/04-projects-packages-testing.tex",
+        "chapters/08-end-to-end-data-products.tex",
+        "appendices/git-github.tex",
+    ):
+        source = (TEXTBOOK_ROOT / relative_path).read_text(encoding="utf-8")
+        assert r"Appendix~\ref{app:cicd}" in source
+
+
+def test_reliable_systems_chapter_teaches_executable_production_observability() -> None:
+    """Monitoring should be a diagnostic method, not a dashboard vocabulary list."""
+
+    source = (CHAPTER_ROOT / "17-reliable-supervised-systems.tex").read_text(
+        encoding="utf-8"
+    )
+
+    for required_idea in (
+        r"\label{sec:production-observability}",
+        "Operating evidence is part of the model contract",
+        "Failure layers require different evidence",
+        "Logs, metrics, and traces answer different questions",
+        "Model monitoring needs a feedback path",
+        "Alerts connect objectives to owned action",
+        "Incident diagnosis is disciplined inference",
+        "one application, two very different incidents",
+        "bounded number of time series",
+        "prediction-outcome",
+        "Brier score",
+        "service-level indicator",
+        "service-level objective",
+        "inactive",
+        "pending",
+        "firing",
+        "Reference and current windows",
+        "post-incident review",
+        "projects/production-monitoring-lab",
+        "No notebook is part of the runtime",
+    ):
+        assert required_idea in source
+
+    end_to_end = (CHAPTER_ROOT / "08-end-to-end-data-products.tex").read_text(
+        encoding="utf-8"
+    )
+    assert r"Section~\ref{sec:production-observability}" in end_to_end
+
+
+def test_glossary_covers_operated_system_boundaries() -> None:
+    """New operational vocabulary should be defined, not only used in prose."""
+
+    glossary = (TEXTBOOK_ROOT / "appendices" / "glossary.tex").read_text(
+        encoding="utf-8"
+    )
+    for term in (
+        "alert &",
+        "container &",
+        "container image &",
+        "deployment &",
+        "error budget &",
+        "model monitoring &",
+        "monitoring &",
+        "port mapping &",
+        "registry &",
+        "release &",
+        "runbook &",
+        "service-level indicator &",
+        "span &",
+        "volume &",
+    ):
+        assert term in glossary
+
+
 def test_opening_section_defines_the_books_systems_thesis_concisely() -> None:
     """The opening should establish the systems thesis without repetition."""
 
@@ -386,6 +504,8 @@ def test_makefile_publishes_a_stable_pdf_path() -> None:
 
     assert "data-science-machine-learning-textbook.pdf" in makefile
     assert "latexmk" in makefile.lower()
+    assert "FORCE" in makefile
+    assert "$(wildcard" not in makefile
 
 
 def test_compiled_textbook_is_present_and_nonempty() -> None:

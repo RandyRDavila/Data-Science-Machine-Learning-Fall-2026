@@ -4,6 +4,12 @@ This unit studies methods whose behavior follows from a geometry: nearest
 neighbors, margins, support vectors, and kernels. Scaling and representation are
 therefore model decisions rather than generic cleanup.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-neighbors-margins-and-kernels.ipynb`. Notebooks 01 and
+02 below remain planned until their files are published.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

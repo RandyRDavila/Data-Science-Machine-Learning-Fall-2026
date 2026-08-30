@@ -4,6 +4,12 @@ This unit gives ensemble methods the central treatment they deserve in modern
 tabular machine learning. It contrasts variance reduction, randomized forests,
 sequential error correction, and model combination.
 
+## Current student route
+
+Read the shared [`Part II student guide`](../PART_II_STUDENT_GUIDE.md), then
+complete the released `00-forests-boosting-and-stacking.ipynb`. Notebooks 01 and
+02 below remain planned until their files are published.
+
 ## Planned notebook sequence
 
 | Notebook | Topic | Professional artifact |

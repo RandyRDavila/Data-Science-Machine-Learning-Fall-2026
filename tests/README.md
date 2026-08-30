@@ -86,8 +86,10 @@ examples, and required conceptual distinctions—reviewable and executable.
 
 The GitHub Actions workflow provides **continuous integration** rather than a
 new kind of test. It rebuilds the locked environment and runs formatting,
-packaging, and test checks on Linux, macOS, and Windows. This repository does
-not currently perform continuous delivery or continuous deployment.
+packaging, and test checks on Linux, macOS, and Windows. Separate workflows use
+the verified revision to demonstrate continuous deployment of the bounded
+course site and continuous delivery of an approved, checksummed course release.
+Those publication paths do not turn deployment into another test category.
 
 ## Several taxonomies coexist
 

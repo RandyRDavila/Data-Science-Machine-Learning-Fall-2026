@@ -1,0 +1,42 @@
+name: Repository or material question
+description: Ask a focused question about public repository content or a reproducible workflow.
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use the course communication channel for grades, accommodations, deadlines, or personal circumstances. GitHub issues are public and should contain only repository questions that can help future readers.
+
+  - type: input
+    id: location
+    attributes:
+      label: Relevant location
+      description: Link or name the file, notebook section, command, or concept involved.
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: State one focused question and the point at which your reasoning or workflow becomes unclear.
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What you already tried
+      description: Include relevant documentation, commands, reasoning, or a minimal example.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Public-posting check
+      options:
+        - label: This issue contains no grades, graded work, accommodations, personal circumstances, credentials, or private data.
+          required: true

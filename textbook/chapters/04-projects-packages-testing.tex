@@ -115,9 +115,14 @@ a clean environment. \term{continuous delivery} keeps a validated release
 deployable through an explicit decision. \term{continuous deployment}
 automatically releases every qualifying change to production.
 
+Appendix~\ref{app:cicd} develops these distinctions through the actual
+automation that tests, builds, deploys, and releases this textbook and its
+companion Python package.
+
 They are not synonyms. A course repository needs CI to prevent broken notebooks
-or package behavior from entering the protected branch. It does not need
-automatic production deployment to teach that boundary.
+or package behavior from entering the protected branch. This repository also
+uses a bounded static site to make the deployment boundary observable without
+introducing a database or long-running service.
 
 \begin{center}
 \begin{tikzpicture}[node distance=5mm]

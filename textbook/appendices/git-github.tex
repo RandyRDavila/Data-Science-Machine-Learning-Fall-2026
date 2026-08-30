@@ -865,13 +865,15 @@ a push, pull request, manual dispatch, or schedule triggers one or more jobs.
 Each job runs on a runner and contains ordered steps. A step may run a shell
 command or invoke a reusable action.
 
-This repository's \code{course-ci.yml} workflow runs on pushes, pull requests,
-and manual dispatch. It grants read-only repository contents permission, cancels
-obsolete runs for the same branch, and evaluates the course on Linux, macOS,
-and Windows. Each runner installs the pinned tools, reproduces the locked
-environment, prepares the notebook kernel, checks style, builds the package, and
-runs all package, repository, and notebook tests. A final gate requires every
-operating-system job to pass.
+This repository's \code{course-ci.yml} workflow runs on pull requests, pushes
+to \code{main}, and manual dispatch. Restricting ordinary push runs to
+\code{main} avoids duplicating the pull-request matrix for a feature branch. It
+grants read-only repository contents permission, cancels obsolete runs for the
+same pull request or reference, and evaluates the course on Linux, macOS, and
+Windows. Each runner installs the pinned tools, reproduces the locked
+environment, prepares the notebook kernel, checks style, builds the package,
+and runs all package, repository, and notebook tests. A stable final job named
+\code{CI gate} requires every operating-system job to pass.
 
 The core structure is:
 
@@ -880,6 +882,7 @@ name: Course CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -912,6 +915,14 @@ sufficient, the statistical design is valid, or deployment is safe. A red check
 is evidence to inspect, not a button to rerun until it turns green. Open the job,
 find the first meaningful failure, reproduce it locally when possible, repair
 the cause, and push a new commit.
+
+The repository also contains path-specific textbook, dependency-review, and
+labeling workflows, plus two publication paths. Relevant merges to \code{main}
+deploy the compiled textbook through a static course site. Matching annotated
+\code{course-vX.Y.Z} tags build a checksummed release bundle and pause at a
+protected approval environment before publication. Appendix~\ref{app:cicd}
+traces those paths as a complete worked example and distinguishes integration,
+delivery, deployment, and release.
 
 \section{A command map by intention}
 

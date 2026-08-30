@@ -46,6 +46,41 @@ Python concept beneath unexplained domain terminology. Standard-library Python
 comes first; NumPy, pandas, visualization, and machine-learning libraries enter
 only after the underlying representation is understood.
 
+## The notebook boundary
+
+A notebook is an **experimental laboratory**: a place to pose a question,
+inspect data, vary assumptions, visualize behavior, and connect computation to
+an argument. Its mixture of prose, code, and immediate output is exceptionally
+useful for learning and discovery. That same interactivity makes it a poor sole
+foundation for unattended, shared, or long-lived systems.
+
+A notebook may demonstrate an end-to-end path, but it is not thereby the
+end-to-end system. Move a responsibility out of the notebook when it must be
+trusted, reused, scheduled, reviewed independently, recovered after failure, or
+operated for other users.
+
+| Responsibility | Durable home |
+| --- | --- |
+| Explore a question and interpret evidence | notebook |
+| Reuse a transformation or model interface | `src/rice_dsm/` |
+| Verify behavior and edge cases | `tests/` and CI |
+| Repeat a parameterized or batch operation | script, command-line interface, or workflow |
+| Retain shared state | database or object store |
+| Serve concurrent users | API, service, and client |
+| Schedule, deploy, monitor, or roll back work | operational workflow and infrastructure |
+
+For sustained academic research, a notebook can remain the interpretive record
+of an analysis, but it should not be the only source of truth. Raw-data
+identity, provenance, environment, configuration, seeds, transformations, and
+named outputs must be reconstructible from versioned files and executable
+workflows outside hidden kernel state. Another researcher should be able to
+reproduce the result without guessing which cells were run or manually copying
+values between them.
+
+**Graduation rule:** if a cell's behavior must survive reuse, automation,
+collaboration, publication, or failure, extract that behavior to the
+appropriate durable artifact and import or invoke it from the notebook.
+
 ## Dual professional lens
 
 Every notebook must develop both data-science judgment and software-engineering
@@ -200,8 +235,9 @@ Score each category from 0 to 2 before marking a notebook ready.
 | Practice | absent | one exercise type | guided, independent, and extension |
 | Failure modes | absent | warnings listed | students diagnose and explain failures |
 | Professional judgment | absent | conventions shown | tradeoffs and assumptions discussed |
+| Artifact boundary | notebook owns everything | some extraction | laboratory and durable system roles are explicit |
 | Reproducibility | hidden state | mostly linear | fresh top-to-bottom execution tested |
 | Closure | abrupt | summary present | retrieval, takeaway, next step, references |
 
-A release-ready notebook should score at least 14 of 16, with no zero in
-reproducibility, mental model, or practice.
+A release-ready notebook should score at least 16 of 18, with no zero in
+reproducibility, mental model, practice, or artifact boundary.

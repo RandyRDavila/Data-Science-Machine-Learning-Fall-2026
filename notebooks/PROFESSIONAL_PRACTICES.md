@@ -59,7 +59,7 @@ Before merging a package change, verify that:
 - lint, package build, tests, and notebooks pass in CI; and
 - documentation changes with behavior.
 
-## Notebook-to-package rule
+## Notebook-to-system rule
 
 Exploration belongs in a notebook while the question, representation, or
 interface is still changing rapidly. Move code into `src/rice_dsm/` when it has
@@ -69,6 +69,22 @@ narrative, experiment, and interpretation.
 
 Do not move every three-line calculation into a utility function. Abstraction
 has a maintenance cost; reuse and a clear contract should justify it.
+
+Packaging is only one possible destination. A repeatable batch operation may
+belong in a script or command-line interface; durable shared state belongs in a
+database or object store; concurrent access belongs behind a service API; and
+scheduling, deployment, monitoring, and rollback belong in operational
+workflows. A notebook can exercise or explain each component without becoming
+the component that production depends on.
+
+The same distinction applies to serious research. Use a notebook to make the
+investigation legible, but preserve data provenance, configuration,
+transformations, reusable computation, and named outputs in versioned artifacts
+that another researcher can execute without reconstructing hidden cell state.
+
+Use this graduation test: if the work must be trusted, reused, scheduled,
+reviewed independently, published, or recovered after failure, move the
+responsibility out of the notebook and call it from the notebook when useful.
 
 ## Code-review questions
 

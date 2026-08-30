@@ -609,6 +609,21 @@ Before treating a notebook as evidence:
   \item after the final edit, restart and run all again.
 \end{enumerate}
 
+\begin{professionalbox}
+A notebook is an experimental laboratory, not an operational boundary. It is
+well suited to posing a question, inspecting data, varying assumptions, and
+joining evidence to interpretation. A notebook may demonstrate an end-to-end
+path without being the end-to-end system. If work must run unattended, serve
+concurrent users, retain durable state, enforce access policy, emit operational
+telemetry, or support rollback, move that responsibility into a tested package,
+script, service, database, or workflow.
+
+For sustained academic research, the notebook may remain the interpretive
+record, but it must not be the only source of truth. Data identity, provenance,
+configuration, transformations, and reusable computation must be reconstructible
+outside hidden kernel state.
+\end{professionalbox}
+
 When behavior differs from the text, preserve the error, read the final
 exception line, locate the first frame in code you control, and reduce the
 problem before changing dependencies. For \code{ModuleNotFoundError}, first
@@ -625,6 +640,13 @@ tests preserve ordinary, edge, and invalid cases; version history records the
 change and its rationale. Import the tested function back into the notebook so
 that the notebook carries the analytical argument rather than a private
 implementation.
+
+Use a broader graduation rule for responsibilities that are not merely Python
+functions: repeatable batch work moves to a script or command-line interface;
+shared state moves to durable storage; concurrent access moves behind a service;
+and scheduling, deployment, monitoring, and rollback move to operational
+workflows. Extract a cell when its behavior must survive reuse, automation,
+collaboration, publication, or failure.
 
 A short computational record should identify the question, code and data
 versions, environment, prediction, observed evidence, interpretation, and next

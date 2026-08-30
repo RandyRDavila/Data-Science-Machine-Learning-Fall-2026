@@ -218,13 +218,30 @@ def test_how_to_use_the_book_teaches_active_computational_learning() -> None:
         "Interrogating a probability function",
         "Use notebooks as laboratories",
         "Notebook state",
+        "experimental laboratory, not an operational boundary",
+        "must not be the only source of truth",
         "Move reusable work into durable artifacts",
+        "broader graduation rule",
         r"\begin{workedexample}",
         r"\conceptcheck",
     ):
         assert required_idea in study
 
     assert 3_000 <= len(study) <= 8_000
+
+
+def test_end_to_end_chapter_keeps_the_notebook_as_a_laboratory() -> None:
+    """A vertical-slice notebook must not be presented as production itself."""
+
+    chapter = (CHAPTER_ROOT / "08-end-to-end-data-products.tex").read_text()
+
+    for required_idea in (
+        "laboratory representation of a system",
+        "not the production",
+        "independently reconstructible",
+        "independently testable modules",
+    ):
+        assert required_idea in chapter
 
 
 def test_overview_has_graduate_monograph_density() -> None:

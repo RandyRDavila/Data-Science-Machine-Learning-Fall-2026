@@ -305,6 +305,21 @@ Saving a notebook can save displayed output, but it does not save the live
 Python objects in kernel memory. After restarting, variables must be recreated
 by running their cells.
 
+### A notebook is a laboratory, not the whole system
+
+Use a notebook to ask a question, try an idea, inspect data, draw a figure, and
+explain what the result means. Do not make it the only place that trusted or
+repeatable work exists. When code becomes reusable, move it into the package
+and test it. When an operation must run without a person clicking cells, move
+it into a script or workflow. Shared data belongs in durable storage, and a
+tool used by other people belongs behind an explicit interface such as an API.
+
+The notebook can still import, run, and explain all of those pieces. Its job is
+to make the experiment understandable, not to keep a production service alive.
+For a research project, it may narrate the analysis, but another researcher
+must be able to reconstruct the data, configuration, computation, and outputs
+without guessing the kernel's history.
+
 ## 12. What the kernel picker selects
 
 Jupyter and VS Code may discover several Python environments. The kernel picker

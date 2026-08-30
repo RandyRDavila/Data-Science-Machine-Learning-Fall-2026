@@ -30,6 +30,17 @@ test. It is not a deployed browser test through DNS, TLS, a load balancer,
 application instances, and a managed database. Name the actual boundary rather
 than using ``end to end'' as a synonym for comprehensive.
 
+\begin{professionalbox}
+An end-to-end notebook is a laboratory representation of a system, not the
+operated system itself. It can make components and contracts visible, launch a
+bounded local demonstration, and record observations. Production responsibility
+belongs to independently testable modules, services, storage, deployment
+workflows, and monitoring that continue to function after the notebook kernel
+stops. The same separation strengthens research: a notebook can explain a
+computational result while versioned data, configuration, code, and workflows
+make the result independently reconstructible.
+\end{professionalbox}
+
 \section{One request across the system}
 
 Consider an instrument submitting a temperature measurement:
@@ -310,8 +321,10 @@ data product is unusable, and what evidence would reveal the gap?
 
 \begin{notebooklink}
 Lecture 3 notebook 07 implements a package-backed FastAPI, service, repository,
-SQLite database, and responsive client. Companion files map the local vertical
-slice to containers, CI/CD, browser testing, and monitoring artifacts.
+SQLite database, and responsive client as a bounded local laboratory. The
+notebook explains and exercises the components; it is not the production
+orchestrator. Companion files map the local vertical slice to containers,
+CI/CD, browser testing, and monitoring artifacts.
 \end{notebooklink}
 
 \section{Part I takeaway}

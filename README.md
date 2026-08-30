@@ -93,10 +93,13 @@ lecture directory, notebooks use the convention `NN-short-subtopic.ipynb` so
 they appear in the intended order. Lecture-specific figures and small supporting
 files may live in an `assets/` subdirectory alongside them.
 
-Notebooks are teaching documents and demonstrations. Code that becomes useful
-across lectures should move into the `rice_dsm` package and be imported by the
-notebooks. This keeps notebooks readable and demonstrates the transition from
-exploration to maintainable software.
+Notebooks are experimental laboratories: they combine a question, executable
+investigation, evidence, and interpretation. They may demonstrate an
+end-to-end path, but they are not the production system or the sole record of a
+serious research project. Reusable logic moves into `rice_dsm`; verification
+moves into tests and CI; repeatable operations move into scripts or workflows;
+and shared state and user-facing behavior move behind databases and services.
+The notebooks then import and explain those durable components.
 
 The [`Teaching Notebook Standard`](notebooks/TEACHING_NOTEBOOK_STANDARD.md)
 defines the required instructional arc, practice ladder, professional-quality

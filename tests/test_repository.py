@@ -38,6 +38,21 @@ def test_required_course_resource_exists(relative_path: str) -> None:
     assert (PROJECT_ROOT / relative_path).is_file()
 
 
+def test_notebook_guidance_defines_the_artifact_boundary() -> None:
+    """Course guidance must distinguish experiments from operated systems."""
+
+    standard = (PROJECT_ROOT / "notebooks/TEACHING_NOTEBOOK_STANDARD.md").read_text()
+
+    for required_idea in (
+        "## The notebook boundary",
+        "experimental laboratory",
+        "**Graduation rule:**",
+        "For sustained academic research",
+        "Schedule, deploy, monitor, or roll back work",
+    ):
+        assert required_idea in standard
+
+
 @pytest.mark.parametrize(
     "lecture_directory", LECTURE_DIRECTORIES, ids=lambda path: path.name
 )

@@ -9,6 +9,7 @@ on:
       - "scripts/build_course_site.py"
       - "scripts/smoke_test_course_site.py"
       - "textbook/**"
+      - "output/pdf/randy-davila-cv.pdf"
       - "pyproject.toml"
       - ".github/workflows/course-pages.yml"
   workflow_dispatch:

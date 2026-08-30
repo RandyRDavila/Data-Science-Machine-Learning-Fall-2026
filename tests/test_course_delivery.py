@@ -64,6 +64,7 @@ def test_course_site_builder_records_revision_and_textbook_identity(
     build_course_site(
         output=output,
         textbook=textbook,
+        cv=textbook,
         revision=REVISION,
         timestamp=TIMESTAMP,
     )
@@ -79,10 +80,18 @@ def test_course_site_builder_records_revision_and_textbook_identity(
     assert (output / "favicon.svg").read_bytes() == (
         PROJECT_ROOT / "site/favicon.svg"
     ).read_bytes()
+    assert (output / "course-map.html").is_file()
+    assert (output / "instructor.html").is_file()
+    assert (output / "instructor" / "randy-davila-cv.pdf").read_bytes() == (
+        textbook_content
+    )
     assert artifact["bytes"] == len(textbook_content)
     assert artifact["sha256"] == hashlib.sha256(textbook_content).hexdigest()
     assert manifest["revision"] == REVISION
     assert manifest["package_version"] == project_version()
+    cv_artifact = manifest["artifacts"]["cv"]
+    assert cv_artifact["bytes"] == len(textbook_content)
+    assert cv_artifact["sha256"] == hashlib.sha256(textbook_content).hexdigest()
 
 
 def test_course_site_builder_rejects_stale_or_incomplete_inputs(tmp_path: Path) -> None:
@@ -93,17 +102,32 @@ def test_course_site_builder_rejects_stale_or_incomplete_inputs(tmp_path: Path) 
     (occupied / "stale.txt").write_text("old artifact", encoding="utf-8")
 
     with pytest.raises(FileExistsError, match="must be empty"):
-        build_course_site(output=occupied, textbook=textbook, revision=REVISION)
+        build_course_site(
+            output=occupied,
+            textbook=textbook,
+            cv=textbook,
+            revision=REVISION,
+        )
     with pytest.raises(ValueError, match="nonempty source revision"):
         build_course_site(
             output=tmp_path / "empty-revision",
             textbook=textbook,
+            cv=textbook,
             revision=" ",
         )
     with pytest.raises(FileNotFoundError, match="Compiled textbook"):
         build_course_site(
             output=tmp_path / "missing-pdf",
             textbook=tmp_path / "missing.pdf",
+            cv=textbook,
+            revision=REVISION,
+        )
+
+    with pytest.raises(FileNotFoundError, match="CV not found"):
+        build_course_site(
+            output=tmp_path / "missing-cv",
+            textbook=textbook,
+            cv=tmp_path / "missing-cv.pdf",
             revision=REVISION,
         )
 
@@ -116,9 +140,66 @@ def test_reviewed_site_source_has_accessible_static_structure() -> None:
     assert "main-content" in parser.identifiers
     assert "#main-content" in parser.links
     assert "textbook/data-science-machine-learning-textbook.pdf" in parser.links
+    assert "course-map.html#part-i" in parser.links
+    assert "course-map.html#part-ii" in parser.links
+    assert "course-map.html#part-iii" in parser.links
+    assert "textbook/data-science-machine-learning-textbook.pdf#page=15" in (
+        parser.links
+    )
+    assert "textbook/data-science-machine-learning-textbook.pdf#page=79" in (
+        parser.links
+    )
+    assert "instructor.html" in parser.links
     assert any("STUDENT_START_HERE.md" in link for link in parser.links)
     assert "manifest.json" in parser.links
     assert parser.script_count == 0
+
+    course_map = PageStructureParser()
+    course_map_source = (PROJECT_ROOT / "site" / "course-map.html").read_text(
+        encoding="utf-8"
+    )
+    course_map.feed(course_map_source)
+    assert course_map.language == "en"
+    assert {"main-content", "part-i", "part-ii", "part-iii", "appendices"} <= (
+        course_map.identifiers
+    )
+    assert course_map.script_count == 0
+    assert course_map_source.count("/tree/main/notebooks/lecture-") == 17
+    for lecture_number in range(1, 18):
+        marker = f"lecture-{lecture_number:02d}-"
+        assert marker in course_map_source
+        assert any(
+            path.is_dir()
+            for path in (PROJECT_ROOT / "notebooks").glob(f"{marker}*")
+        )
+    for page in (15, 79, 114, 116, 134, 144):
+        assert (
+            f"textbook/data-science-machine-learning-textbook.pdf#page={page}"
+            in course_map.links
+        )
+
+    instructor = PageStructureParser()
+    instructor_source = (PROJECT_ROOT / "site" / "instructor.html").read_text(
+        encoding="utf-8"
+    )
+    instructor.feed(instructor_source)
+    assert instructor.language == "en"
+    assert "main-content" in instructor.identifiers
+    assert "instructor/randy-davila-cv.pdf" in instructor.links
+    assert instructor.script_count == 0
+    assert instructor_source.count('class="publication-item"') == 32
+    for required in (
+        "Data Science and Machine Learning",
+        "Deep and Reinforcement Learning",
+        "Graph Theory",
+        "University of Houston-Downtown",
+        "Texas State University",
+        "AI for mathematical discovery",
+        "GraphCalc",
+    ):
+        assert required in instructor_source
+    for private_detail in ("1126 East 24th", "512) 653", "77009"):
+        assert private_detail not in instructor_source
 
 
 def test_smoke_check_verifies_public_bytes_against_manifest(tmp_path: Path) -> None:
@@ -128,6 +209,7 @@ def test_smoke_check_verifies_public_bytes_against_manifest(tmp_path: Path) -> N
     build_course_site(
         output=output,
         textbook=textbook,
+        cv=textbook,
         revision=REVISION,
         timestamp=TIMESTAMP,
     )
@@ -168,6 +250,7 @@ def test_smoke_check_rejects_malformed_manifest_fields(
     build_course_site(
         output=output,
         textbook=textbook,
+        cv=textbook,
         revision=REVISION,
         timestamp=TIMESTAMP,
     )
@@ -182,6 +265,29 @@ def test_smoke_check_rejects_malformed_manifest_fields(
         return (output / relative_path).read_bytes()
 
     with pytest.raises(RuntimeError, match=message):
+        verify_course_site(root, REVISION, fetch=fetch)
+
+
+def test_smoke_check_rejects_tampered_cv(tmp_path: Path) -> None:
+    textbook = tmp_path / "textbook.pdf"
+    write_fake_pdf(textbook)
+    output = tmp_path / "site"
+    build_course_site(
+        output=output,
+        textbook=textbook,
+        cv=textbook,
+        revision=REVISION,
+        timestamp=TIMESTAMP,
+    )
+    cv_path = output / "instructor" / "randy-davila-cv.pdf"
+    cv_path.write_bytes(cv_path.read_bytes() + b"tampered")
+    root = "https://example.edu/course/"
+
+    def fetch(url: str) -> bytes:
+        relative_path = url.removeprefix(root) or "index.html"
+        return (output / relative_path).read_bytes()
+
+    with pytest.raises(RuntimeError, match="CV size does not match"):
         verify_course_site(root, REVISION, fetch=fetch)
 
 

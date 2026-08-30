@@ -17,7 +17,9 @@ DEFAULT_OUTPUT = PROJECT_ROOT / "build" / "course-site"
 DEFAULT_TEXTBOOK = (
     PROJECT_ROOT / "output" / "pdf" / "data-science-machine-learning-textbook.pdf"
 )
+DEFAULT_CV = PROJECT_ROOT / "output" / "pdf" / "randy-davila-cv.pdf"
 TEXTBOOK_NAME = "data-science-machine-learning-textbook.pdf"
+CV_NAME = "randy-davila-cv.pdf"
 
 
 def sha256(path: Path) -> str:
@@ -55,6 +57,7 @@ def build_course_site(
     *,
     output: Path,
     textbook: Path,
+    cv: Path,
     revision: str,
     timestamp: str | None = None,
 ) -> Path:
@@ -75,23 +78,38 @@ def build_course_site(
         raise ValueError("A nonempty source revision is required.")
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f"Site output must be empty: {output}")
-    if not textbook.is_file():
-        raise FileNotFoundError(f"Compiled textbook not found: {textbook}")
+    for label, document in (("Compiled textbook", textbook), ("CV", cv)):
+        if not document.is_file():
+            raise FileNotFoundError(f"{label} not found: {document}")
 
     template_path = SITE_SOURCE / "index.html"
+    course_map_path = SITE_SOURCE / "course-map.html"
+    instructor_path = SITE_SOURCE / "instructor.html"
     stylesheet_path = SITE_SOURCE / "styles.css"
     favicon_path = SITE_SOURCE / "favicon.svg"
     if not all(
-        path.is_file() for path in (template_path, stylesheet_path, favicon_path)
+        path.is_file()
+        for path in (
+            template_path,
+            course_map_path,
+            instructor_path,
+            stylesheet_path,
+            favicon_path,
+        )
     ):
         raise FileNotFoundError("The reviewed site source is incomplete.")
 
     output.mkdir(parents=True, exist_ok=True)
     textbook_output = output / "textbook" / TEXTBOOK_NAME
+    cv_output = output / "instructor" / CV_NAME
     textbook_output.parent.mkdir(parents=True, exist_ok=True)
+    cv_output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(stylesheet_path, output / "styles.css")
     shutil.copyfile(favicon_path, output / "favicon.svg")
     shutil.copyfile(textbook, textbook_output)
+    shutil.copyfile(cv, cv_output)
+    shutil.copyfile(course_map_path, output / "course-map.html")
+    shutil.copyfile(instructor_path, output / "instructor.html")
 
     built_at = generated_at(timestamp)
     substitutions = {
@@ -118,7 +136,12 @@ def build_course_site(
                 "path": f"textbook/{TEXTBOOK_NAME}",
                 "bytes": textbook_output.stat().st_size,
                 "sha256": sha256(textbook_output),
-            }
+            },
+            "cv": {
+                "path": f"instructor/{CV_NAME}",
+                "bytes": cv_output.stat().st_size,
+                "sha256": sha256(cv_output),
+            },
         },
     }
     (output / "manifest.json").write_text(
@@ -135,6 +158,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--textbook", type=Path, default=DEFAULT_TEXTBOOK)
+    parser.add_argument("--cv", type=Path, default=DEFAULT_CV)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--timestamp")
     return parser.parse_args()
@@ -147,6 +171,7 @@ def main() -> None:
     output = build_course_site(
         output=arguments.output.resolve(),
         textbook=arguments.textbook.resolve(),
+        cv=arguments.cv.resolve(),
         revision=arguments.revision,
         timestamp=arguments.timestamp,
     )

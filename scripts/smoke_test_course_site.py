@@ -1,4 +1,4 @@
-"""Verify the public course site and its deployed textbook artifact."""
+"""Verify the public course site and its deployed PDF artifacts."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def verify_course_site(
     *,
     fetch: Fetch = fetch_url,
 ) -> dict[str, Any]:
-    """Verify page identity, provenance, and the textbook checksum.
+    """Verify page identity, provenance, and deployed PDF checksums.
 
     Parameters
     ----------
@@ -71,6 +71,20 @@ def verify_course_site(
     if expected_revision[:12] not in page:
         raise RuntimeError("The landing page does not identify the expected revision.")
 
+    course_map = fetch(urljoin(root, "course-map.html")).decode("utf-8")
+    for marker in (
+        'id="part-i"',
+        'id="part-ii"',
+        'id="part-iii"',
+        'id="appendices"',
+        "lecture-01-python-foundations",
+        "lecture-17-reliable-supervised-systems",
+        "#page=114",
+        "#page=144",
+    ):
+        if marker not in course_map:
+            raise RuntimeError("The deployed course map is incomplete.")
+
     manifest_url = urljoin(root, "manifest.json")
     manifest = json.loads(fetch(manifest_url))
     if not isinstance(manifest, dict):
@@ -78,37 +92,50 @@ def verify_course_site(
     if manifest.get("revision") != expected_revision:
         raise RuntimeError("The deployment manifest identifies a different revision.")
 
-    textbook = manifest.get("artifacts", {}).get("textbook", {})
-    textbook_path = textbook.get("path")
-    expected_digest = textbook.get("sha256")
-    expected_bytes = textbook.get("bytes")
-    if (
-        not isinstance(textbook_path, str)
-        or not textbook_path.startswith("textbook/")
-        or ".." in textbook_path.split("/")
+    artifacts = manifest.get("artifacts", {})
+    for artifact_name, path_prefix, label in (
+        ("textbook", "textbook/", "textbook"),
+        ("cv", "instructor/", "CV"),
     ):
-        raise RuntimeError("The deployment manifest has an invalid textbook path.")
-    if not isinstance(expected_digest, str) or not re.fullmatch(
-        r"[0-9a-f]{64}", expected_digest
-    ):
-        raise RuntimeError("The deployment manifest has an invalid textbook checksum.")
-    if (
-        not isinstance(expected_bytes, int)
-        or isinstance(expected_bytes, bool)
-        or expected_bytes < 1
-    ):
-        raise RuntimeError("The deployment manifest has an invalid textbook size.")
+        artifact = artifacts.get(artifact_name, {})
+        artifact_path = artifact.get("path")
+        expected_digest = artifact.get("sha256")
+        expected_bytes = artifact.get("bytes")
+        if (
+            not isinstance(artifact_path, str)
+            or not artifact_path.startswith(path_prefix)
+            or ".." in artifact_path.split("/")
+        ):
+            raise RuntimeError(
+                f"The deployment manifest has an invalid {label} path."
+            )
+        if not isinstance(expected_digest, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", expected_digest
+        ):
+            raise RuntimeError(
+                f"The deployment manifest has an invalid {label} checksum."
+            )
+        if (
+            not isinstance(expected_bytes, int)
+            or isinstance(expected_bytes, bool)
+            or expected_bytes < 1
+        ):
+            raise RuntimeError(
+                f"The deployment manifest has an invalid {label} size."
+            )
 
-    textbook_content = fetch(urljoin(root, textbook_path))
-    if not textbook_content.startswith(b"%PDF-"):
-        raise RuntimeError("The deployed textbook is not a PDF document.")
-    if len(textbook_content) != expected_bytes:
-        raise RuntimeError("The deployed textbook size does not match the manifest.")
-    actual_digest = hashlib.sha256(textbook_content).hexdigest()
-    if actual_digest != expected_digest:
-        raise RuntimeError(
-            "The deployed textbook checksum does not match the manifest."
-        )
+        content = fetch(urljoin(root, artifact_path))
+        if not content.startswith(b"%PDF-"):
+            raise RuntimeError(f"The deployed {label} is not a PDF document.")
+        if len(content) != expected_bytes:
+            raise RuntimeError(
+                f"The deployed {label} size does not match the manifest."
+            )
+        actual_digest = hashlib.sha256(content).hexdigest()
+        if actual_digest != expected_digest:
+            raise RuntimeError(
+                f"The deployed {label} checksum does not match the manifest."
+            )
     return manifest
 
 

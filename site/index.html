@@ -16,7 +16,11 @@
         <a class="rice-mark" href="https://www.rice.edu/" aria-label="Rice University home">
           Rice University
         </a>
-        <p>CMOR 438 / INDE 577</p>
+        <nav class="site-nav" aria-label="Primary navigation">
+          <span>CMOR 438 / INDE 577</span>
+          <a href="course-map.html">Course map</a>
+          <a href="instructor.html">Instructor</a>
+        </nav>
       </div>
     </header>
 
@@ -30,6 +34,7 @@
             <a class="button button-primary" href="textbook/data-science-machine-learning-textbook.pdf">Read the textbook</a>
             <a class="button button-secondary" href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/blob/main/STUDENT_START_HERE.md">Student setup</a>
             <a class="button button-secondary" href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026">Explore the repository</a>
+            <a class="button button-secondary" href="instructor.html">Meet the instructor</a>
           </div>
         </div>
 
@@ -62,21 +67,51 @@
 
       <section class="course-parts" aria-labelledby="parts-title">
         <div class="section-heading">
-          <p class="section-number">Current text</p>
-          <h2 id="parts-title">Two connected parts</h2>
+          <p class="section-number">Course architecture</p>
+          <h2 id="parts-title">Three connected parts</h2>
         </div>
 
         <article class="part-card">
           <p class="part-number">Part I</p>
           <h3>Foundations for Data-Driven Software Systems</h3>
           <p>Python, packages, tests, arrays, tables, visualization, databases, agents, APIs, and end-to-end products.</p>
+          <div class="part-links" aria-label="Part I resources">
+            <a href="course-map.html#part-i">View the Part I course map <span aria-hidden="true">→</span></a>
+            <a href="textbook/data-science-machine-learning-textbook.pdf#page=15">Open Part I in the textbook</a>
+          </div>
         </article>
 
         <article class="part-card accent">
           <p class="part-number">Part II</p>
           <h3>Supervised Learning Systems</h3>
           <p>Prediction contracts, linear and geometric models, trees, ensembles, neural networks, evaluation, release, and feedback.</p>
+          <div class="part-links" aria-label="Part II resources">
+            <a href="course-map.html#part-ii">View the Part II course map <span aria-hidden="true">→</span></a>
+            <a href="textbook/data-science-machine-learning-textbook.pdf#page=79">Open Part II in the textbook</a>
+          </div>
         </article>
+
+        <article class="part-card future">
+          <p class="part-number">Part III · In development</p>
+          <h3>Unsupervised Learning Systems</h3>
+          <p>Structure without supplied labels: clustering, latent representations, dimensionality reduction, anomaly detection, and scientific discovery.</p>
+          <div class="part-links" aria-label="Part III resources">
+            <a href="course-map.html#part-iii">View the Part III direction <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+
+        <aside class="appendix-callout" aria-labelledby="appendix-callout-title">
+          <div>
+            <p class="part-number">Reference shelf</p>
+            <h3 id="appendix-callout-title">Textbook appendices</h3>
+          </div>
+          <nav aria-label="Textbook appendices">
+            <a href="textbook/data-science-machine-learning-textbook.pdf#page=114"><span>A</span> Course setup</a>
+            <a href="textbook/data-science-machine-learning-textbook.pdf#page=116"><span>B</span> Git &amp; GitHub</a>
+            <a href="textbook/data-science-machine-learning-textbook.pdf#page=134"><span>C</span> CI/CD</a>
+            <a href="textbook/data-science-machine-learning-textbook.pdf#page=144"><span>D</span> Glossary</a>
+          </nav>
+        </aside>
       </section>
 
       <section class="artifact-boundary" aria-labelledby="boundary-title">
@@ -88,10 +123,21 @@
           <code>rice_dsm</code>; tests and CI preserve contracts; deployment workflows promote the same
           reviewed artifacts students examined.</p>
       </section>
+
+      <section class="instructor-preview" aria-labelledby="instructor-preview-title">
+        <div>
+          <p class="section-number">Instructor</p>
+          <h2 id="instructor-preview-title">Randy R. Davila</h2>
+        </div>
+        <div>
+          <p>Lecturer in Computational Applied Mathematics and Operations Research at Rice University, and a mathematician and software engineer working on AI for scientific discovery.</p>
+          <a class="text-link" href="instructor.html">Teaching, research, software, and publications →</a>
+        </div>
+      </section>
     </main>
 
     <footer>
-      <p>Randy Davila · Rice University</p>
+      <p><a href="instructor.html">Randy R. Davila</a> · Rice University</p>
       <p><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/issues">Report a public repository issue</a></p>
     </footer>
   </body>

@@ -1,4 +1,4 @@
-"""Contracts for Lecture 3's visualization and simulation studio."""
+"""Contracts for Lecture 5's visualization and simulation studio."""
 
 import ast
 import tomllib
@@ -10,8 +10,8 @@ PROJECT_ROOT = Path(__file__).parents[1]
 NOTEBOOK_PATH = (
     PROJECT_ROOT
     / "notebooks"
-    / "lecture-03-packages-numpy-pandas"
-    / "04-visualization-and-simulation.ipynb"
+    / "lecture-05-visualization-simulation"
+    / "00-visualization-and-simulation.ipynb"
 )
 
 

@@ -106,7 +106,7 @@ def test_early_python_lessons_define_api_at_first_use() -> None:
 def test_package_lesson_distinguishes_library_and_http_apis() -> None:
     lesson = markdown(
         NOTEBOOKS
-        / "lecture-03-packages-numpy-pandas"
+        / "lecture-03-projects-packages-testing"
         / "01-scripts-modules-and-packages.ipynb"
     )
 
@@ -118,8 +118,8 @@ def test_package_lesson_distinguishes_library_and_http_apis() -> None:
 def test_agent_lesson_explains_the_complete_hosted_api_journey() -> None:
     lesson = markdown(
         NOTEBOOKS
-        / "lecture-03-packages-numpy-pandas"
-        / "06-llm-tools-and-agents.ipynb"
+        / "lecture-07-llm-tools-agents"
+        / "00-llm-tools-and-agents.ipynb"
     )
 
     for concept in (
@@ -138,8 +138,8 @@ def test_agent_lesson_explains_the_complete_hosted_api_journey() -> None:
 def test_end_to_end_lesson_teaches_request_anatomy_before_using_it() -> None:
     lesson = markdown(
         NOTEBOOKS
-        / "lecture-03-packages-numpy-pandas"
-        / "07-end-to-end-data-products.ipynb"
+        / "lecture-08-end-to-end-data-products"
+        / "00-end-to-end-data-products.ipynb"
     )
 
     for concept in (
@@ -158,7 +158,7 @@ def test_end_to_end_lesson_teaches_request_anatomy_before_using_it() -> None:
 def test_dependency_notebook_does_not_repeat_the_llm_client_description() -> None:
     lesson = markdown(
         NOTEBOOKS
-        / "lecture-03-packages-numpy-pandas"
+        / "lecture-03-projects-packages-testing"
         / "00-projects-environments-and-packaging.ipynb"
     )
 

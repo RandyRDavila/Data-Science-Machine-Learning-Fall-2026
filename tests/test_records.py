@@ -1,4 +1,4 @@
-"""Executable examples for the package-backed records revisited in Lecture 3.
+"""Executable examples for the package-backed records developed in Lecture 3.
 
 Each test states one behavior. Read a test as:
 

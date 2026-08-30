@@ -11,7 +11,7 @@ See [`What is an API?`](../../../supplementary-materials/computing-foundations/0
 for the zero-assumption introduction.
 
 ```text
-07-end-to-end-data-products/
+00-end-to-end-data-products/
 ├── backend/app.py                    # Uvicorn import target and runtime config
 ├── browser/
 │   ├── playwright.config.ts          # desktop/mobile browser projects
@@ -36,7 +36,7 @@ The notebook uses FastAPI `TestClient` and never opens a port. The optional
 local server target is:
 
 ```bash
-uv run uvicorn app:app --app-dir notebooks/lecture-03-packages-numpy-pandas/07-end-to-end-data-products/backend
+uv run uvicorn app:app --app-dir notebooks/lecture-08-end-to-end-data-products/00-end-to-end-data-products/backend
 ```
 
 That command is for deliberate local exploration. It is not run by notebook

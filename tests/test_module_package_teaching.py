@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).parents[1]
 NOTEBOOK_PATH = (
     PROJECT_ROOT
     / "notebooks"
-    / "lecture-03-packages-numpy-pandas"
+    / "lecture-03-projects-packages-testing"
     / "01-scripts-modules-and-packages.ipynb"
 )
 PACKAGE_DIRECTORY = PROJECT_ROOT / "src" / "rice_dsm"

@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY src ./src
-COPY notebooks/lecture-03-packages-numpy-pandas/07-end-to-end-data-products/backend ./backend
+COPY notebooks/lecture-08-end-to-end-data-products/00-end-to-end-data-products/backend ./backend
 RUN uv sync --locked --no-dev
 
 USER 10001

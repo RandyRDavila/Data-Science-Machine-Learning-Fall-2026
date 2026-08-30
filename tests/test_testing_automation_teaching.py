@@ -7,7 +7,7 @@ import nbformat
 
 PROJECT_ROOT = Path(__file__).parents[1]
 LECTURE_DIRECTORY = (
-    PROJECT_ROOT / "notebooks" / "lecture-03-packages-numpy-pandas"
+    PROJECT_ROOT / "notebooks" / "lecture-03-projects-packages-testing"
 )
 NOTEBOOK_PATH = LECTURE_DIRECTORY / "02-testing-and-automation.ipynb"
 METRICS_PATH = PROJECT_ROOT / "src" / "rice_dsm" / "metrics.py"

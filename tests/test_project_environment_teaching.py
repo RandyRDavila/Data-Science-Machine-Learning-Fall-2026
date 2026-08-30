@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).parents[1]
 NOTEBOOK_PATH = (
     PROJECT_ROOT
     / "notebooks"
-    / "lecture-03-packages-numpy-pandas"
+    / "lecture-03-projects-packages-testing"
     / "00-projects-environments-and-packaging.ipynb"
 )
 

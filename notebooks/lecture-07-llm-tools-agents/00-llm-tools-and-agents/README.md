@@ -66,7 +66,7 @@ approved model; only a narrow model-gateway adapter should change.
 From the repository root in VS Code's integrated terminal:
 
 ```bash
-uv run python notebooks/lecture-03-packages-numpy-pandas/06-llm-tools-and-agents/orchestration/training_workflow.py
+uv run python notebooks/lecture-07-llm-tools-agents/00-llm-tools-and-agents/orchestration/training_workflow.py
 ```
 
 It records one approved in-memory job and deliberately performs no training,

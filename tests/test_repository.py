@@ -28,7 +28,12 @@ NOTEBOOKS = sorted(
         "notebooks/PROFESSIONAL_PRACTICES.md",
         "notebooks/lecture-01-python-foundations/README.md",
         "notebooks/lecture-02-python-foundations-ii/README.md",
-        "notebooks/lecture-03-packages-numpy-pandas/README.md",
+        "notebooks/lecture-03-projects-packages-testing/README.md",
+        "notebooks/lecture-04-numpy-pandas/README.md",
+        "notebooks/lecture-05-visualization-simulation/README.md",
+        "notebooks/lecture-06-databases-data-systems/README.md",
+        "notebooks/lecture-07-llm-tools-agents/README.md",
+        "notebooks/lecture-08-end-to-end-data-products/README.md",
         "supplementary-materials/computing-foundations/README.md",
     ],
 )
@@ -51,6 +56,22 @@ def test_notebook_guidance_defines_the_artifact_boundary() -> None:
         "Schedule, deploy, monitor, or roll back work",
     ):
         assert required_idea in standard
+
+
+def test_readme_distinguishes_lecture_units_from_class_meetings() -> None:
+    """Numbered content units must not imply a one-unit-per-meeting schedule."""
+
+    readme = (PROJECT_ROOT / "README.md").read_text()
+    normalized = " ".join(readme.split())
+
+    assert "### Lecture units and class meetings" in readme
+    assert (
+        "not a promise that the unit occupies one complete class meeting" in normalized
+    )
+    assert (
+        "The syllabus and weekly announcement determine the live itinerary"
+        in normalized
+    )
 
 
 @pytest.mark.parametrize(

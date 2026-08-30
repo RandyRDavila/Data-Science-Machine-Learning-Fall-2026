@@ -1,4 +1,4 @@
-"""Contracts for Lecture 3's LLM tools and agents lesson."""
+"""Contracts for Lecture 7's LLM tools and agents lesson."""
 
 import json
 import tomllib
@@ -7,9 +7,9 @@ from pathlib import Path
 import nbformat
 
 PROJECT_ROOT = Path(__file__).parents[1]
-LECTURE_DIR = PROJECT_ROOT / "notebooks" / "lecture-03-packages-numpy-pandas"
-NOTEBOOK_PATH = LECTURE_DIR / "06-llm-tools-and-agents.ipynb"
-DEMO_DIR = LECTURE_DIR / "06-llm-tools-and-agents"
+LECTURE_DIR = PROJECT_ROOT / "notebooks" / "lecture-07-llm-tools-agents"
+NOTEBOOK_PATH = LECTURE_DIR / "00-llm-tools-and-agents.ipynb"
+DEMO_DIR = LECTURE_DIR / "00-llm-tools-and-agents"
 
 
 def notebook() -> nbformat.NotebookNode:

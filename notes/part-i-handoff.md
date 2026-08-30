@@ -52,21 +52,19 @@ notebook.
 3. Lambdas, `*args`, and `**kwargs`
 4. Native CSV and JSON data loaded into a custom knowledge graph
 
-### Lecture 3 — Professional data-science systems
+### Lectures 3--8 — Professional data-science systems
 
-1. Projects, environments, packaging, and versions
-2. Scripts, modules, packages, and public interfaces
-3. Testing and automation, including CI/CD
-4. NumPy and pandas foundations
-5. Visualization and simulation
-6. Local, remote, cloud, and larger-than-memory data systems
-7. LLM tools and agents for scientific software
-8. End-to-end data products: database to device
+1. Lecture 3: projects, environments, packages, testing, and CI/CD
+2. Lecture 4: NumPy arrays and pandas tables
+3. Lecture 5: visualization and simulation
+4. Lecture 6: local, remote, cloud, and larger-than-memory data systems
+5. Lecture 7: LLM tools and agents for scientific software
+6. Lecture 8: end-to-end data products from database to device
 
-Lecture 3 currently has the historical directory name
-`lecture-03-packages-numpy-pandas`. Its content is now much broader. Consider
-renaming the lecture during the second pass, but only with a careful update of
-all tests, links, workflows, and documentation.
+These numbers describe coherent instructional units, not calendar meetings. A
+three-hour in-person meeting may combine multiple units, devote most of its time
+to one long unit, or assign selected extensions as laboratory work. The syllabus
+and weekly announcement own the live itinerary.
 
 ## Decisions already made
 
@@ -103,7 +101,8 @@ know what “API” means.
 - Lecture 1 now defines the acronym at first use.
 - Lecture 2 formalizes a Python function/package API as a supported calling and
   compatibility contract.
-- Lecture 3 distinguishes in-process Python APIs from HTTP web APIs.
+- Lecture 3 introduces in-process Python APIs; Lectures 7 and 8 extend the term
+  to hosted-model and HTTP web APIs.
 - The LLM lesson explains the client → authenticated request → provider
   inference → response → validation path.
 - The end-to-end lesson defines method, path, query parameter, endpoint,
@@ -158,7 +157,7 @@ and preserve a navigable reference.
 - Ensure the advertised minute estimates are realistic.
 - Preserve the long-form notebooks as references without implying every cell
   must be lectured live.
-- Identify natural breakpoints if Lecture 3 must span multiple meetings.
+- Identify the core route and extension breakpoints for each class meeting.
 
 ### 4. Perform an editorial consistency pass
 
@@ -189,22 +188,12 @@ than presenting unexplained finished solutions.
   conclusion is valid.”
 - Maintain cross-platform and offline core behavior.
 
-### 7. Resolve the Lecture 3 roadmap conflict
+### 7. Maintain the settled lecture-unit structure
 
-The Lecture 3 README still lists planned notebooks 08–11 for deeper NumPy,
-pandas, feature matrices, and a capstone. This conflicts with the newer decision
-that notebook 07 is the final Part I synthesis.
-
-During the second pass, choose deliberately among:
-
-- remove those planned rows because notebook 03 already supplies the Part I
-  introduction;
-- move advanced NumPy/pandas material into Part II; or
-- retain it as optional supplementary practice outside the numbered Part I
-  sequence.
-
-Do not append those notebooks after the end-to-end synthesis without revisiting
-the Part I narrative.
+The former broad Lecture 3 has been divided into Lectures 3--8. Advanced NumPy,
+pandas, feature-matrix, and capstone work is not appended after the end-to-end
+synthesis; place that depth in Part II or in clearly labeled supplementary
+practice after its mathematical and computational role is designed.
 
 ### 8. Publish the settled Part I structure
 
@@ -221,8 +210,7 @@ After the review:
 
 - Is **Foundations of Professional Data Science Systems** the final Part I
   title?
-- Should the broad current Lecture 3 remain one numbered lecture directory or
-  be divided across several weekly lectures?
+- Which lecture units should be combined in each three-hour class meeting?
 - Where should advanced NumPy and pandas depth live after the end-to-end
   synthesis?
 - Should the canonical glossary be one student-facing document, notebook-local

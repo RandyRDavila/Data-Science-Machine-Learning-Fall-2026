@@ -107,7 +107,7 @@ risk and cost, not to force every test into one box.
 ## Core testing ideas
 
 Read
-[`02-testing-and-automation.ipynb`](../notebooks/lecture-03-packages-numpy-pandas/02-testing-and-automation.ipynb)
+[`02-testing-and-automation.ipynb`](../notebooks/lecture-03-projects-packages-testing/02-testing-and-automation.ipynb)
 for the complete lesson, including fixtures, monkeypatching, mocks, data and ML
 testing, flaky-test response, CI/CD, artifacts, approvals, monitoring, and
 rollback.

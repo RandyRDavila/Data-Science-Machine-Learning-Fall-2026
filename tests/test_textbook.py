@@ -36,6 +36,29 @@ def test_main_source_includes_part_i_in_order() -> None:
     assert positions == sorted(positions)
 
 
+def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
+    """Each chapter should direct students to the current executable unit."""
+
+    expected_links = {
+        "01-computational-workshop.tex": ("Lecture 1 notebook 00",),
+        "02-python-data-model.tex": ("Lecture 1 notebooks 01 through 05",),
+        "03-functions-classes-native-data.tex": ("Lecture 2 develops",),
+        "04-projects-packages-testing.tex": ("Lecture 3 notebooks 00 through 02",),
+        "05-arrays-tables-visual-evidence.tex": (
+            "Lecture 4 notebook 00",
+            "Lecture 5 notebook 00",
+        ),
+        "06-databases-data-systems.tex": ("Lecture 6 notebook 00",),
+        "07-llm-tools-agents.tex": ("Lecture 7 notebook 00",),
+        "08-end-to-end-data-products.tex": ("Lecture 8 notebook 00",),
+    }
+
+    for filename, required_links in expected_links.items():
+        source = (CHAPTER_ROOT / filename).read_text()
+        for required_link in required_links:
+            assert required_link in source
+
+
 @pytest.mark.parametrize("chapter", CONTENT_CHAPTERS, ids=lambda path: path.stem)
 def test_each_content_chapter_has_textbook_teaching_elements(chapter: Path) -> None:
     """A chapter should teach through explanation, practice, and reflection."""

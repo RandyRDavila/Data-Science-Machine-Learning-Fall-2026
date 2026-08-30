@@ -1,4 +1,4 @@
-"""Contracts for Lecture 3's end-to-end data-product lesson."""
+"""Contracts for Lecture 8's end-to-end data-product lesson."""
 
 import tomllib
 from pathlib import Path
@@ -6,9 +6,9 @@ from pathlib import Path
 import nbformat
 
 PROJECT_ROOT = Path(__file__).parents[1]
-LECTURE_DIR = PROJECT_ROOT / "notebooks" / "lecture-03-packages-numpy-pandas"
-NOTEBOOK_PATH = LECTURE_DIR / "07-end-to-end-data-products.ipynb"
-DEMO_DIR = LECTURE_DIR / "07-end-to-end-data-products"
+LECTURE_DIR = PROJECT_ROOT / "notebooks" / "lecture-08-end-to-end-data-products"
+NOTEBOOK_PATH = LECTURE_DIR / "00-end-to-end-data-products.ipynb"
+DEMO_DIR = LECTURE_DIR / "00-end-to-end-data-products"
 
 
 def notebook() -> nbformat.NotebookNode:

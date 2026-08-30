@@ -57,11 +57,17 @@ their contracts.
 │   │   ├── README.md
 │   │   ├── 00-functions-and-functional-patterns.ipynb
 │   │   └── ...
-│   ├── lecture-03-packages-numpy-pandas/
+│   ├── lecture-03-projects-packages-testing/
 │   │   ├── README.md
 │   │   ├── 00-projects-environments-and-packaging.ipynb
-│   │   └── ...
-│   └── ...                    # One directory per weekly lecture
+│   │   ├── 01-scripts-modules-and-packages.ipynb
+│   │   └── 02-testing-and-automation.ipynb
+│   ├── lecture-04-numpy-pandas/
+│   ├── lecture-05-visualization-simulation/
+│   ├── lecture-06-databases-data-systems/
+│   ├── lecture-07-llm-tools-agents/
+│   ├── lecture-08-end-to-end-data-products/
+│   └── ...                    # One directory per instructional unit
 ├── src/
 │   └── rice_dsm/
 │       ├── __init__.py
@@ -84,14 +90,21 @@ added only when they are needed rather than created in advance.
 
 ## Working conventions
 
-### Weekly lecture notebooks
+### Lecture units and class meetings
 
-Each weekly lecture has a directory in `notebooks/` using the naming convention
-`lecture-NN-short-topic/`. The lecture number preserves teaching order without
-coupling the material to a date that may change during the semester. Within a
-lecture directory, notebooks use the convention `NN-short-subtopic.ipynb` so
-they appear in the intended order. Lecture-specific figures and small supporting
-files may live in an `assets/` subdirectory alongside them.
+Each numbered lecture directory is a coherent **instructional unit**, not a
+promise that the unit occupies one complete class meeting. An in-person
+three-hour meeting may combine several shorter units, spend most of its time on
+one substantial unit, or follow a selected core route while assigning the
+remaining notebook sections as laboratory work. The syllabus and weekly
+announcement determine the live itinerary.
+
+Lecture units use the naming convention `lecture-NN-short-topic/`. Their numbers
+preserve conceptual order without coupling the material to dates or forcing a
+one-to-one relationship with meetings. Within a lecture directory, notebooks
+use `NN-short-subtopic.ipynb` so they appear in the intended local order.
+Lecture-specific figures and small supporting files may live beside them in a
+clearly named companion directory.
 
 Notebooks are experimental laboratories: they combine a question, executable
 investigation, evidence, and interpretation. They may demonstrate an
@@ -182,13 +195,45 @@ scientific knowledge graph using only Python's standard library. Its notebooks
 and detailed lecture plan live in
 [`notebooks/lecture-02-python-foundations-ii`](notebooks/lecture-02-python-foundations-ii/).
 
-### Lecture 3: Packages, NumPy, and pandas
+### Lecture 3: Projects, packages, and testing
 
 The third lecture explains the environment and commands used in Lectures 1 and
 2, including project configuration, dependencies, lockfiles, modules, packages,
-versioning, and tests. It then introduces array-oriented work with NumPy and
-tabular work with pandas. Its evolving notebook plan lives in
-[`notebooks/lecture-03-packages-numpy-pandas`](notebooks/lecture-03-packages-numpy-pandas/).
+versioning, testing, automation, and CI/CD. Its notebooks live in
+[`notebooks/lecture-03-projects-packages-testing`](notebooks/lecture-03-projects-packages-testing/).
+
+### Lecture 4: NumPy and pandas
+
+This unit moves from native Python containers to array-oriented numerical work
+with NumPy and labeled tabular work with pandas. Its notebook lives in
+[`notebooks/lecture-04-numpy-pandas`](notebooks/lecture-04-numpy-pandas/).
+
+### Lecture 5: Visualization and simulation
+
+This unit develops honest, accessible scientific visualization and uses
+simulation as a form of executable reasoning. Its notebook lives in
+[`notebooks/lecture-05-visualization-simulation`](notebooks/lecture-05-visualization-simulation/).
+
+### Lecture 6: Databases and data systems
+
+This unit treats local and remote databases, transactions, analytical files,
+cloud roles, and larger-than-memory workflows as parts of the scientific
+system. Its notebook lives in
+[`notebooks/lecture-06-databases-data-systems`](notebooks/lecture-06-databases-data-systems/).
+
+### Lecture 7: LLM tools and agents
+
+This unit places language models inside deterministic validation, authority,
+evaluation, and recovery boundaries. Its notebook and offline demonstrations
+live in
+[`notebooks/lecture-07-llm-tools-agents`](notebooks/lecture-07-llm-tools-agents/).
+
+### Lecture 8: End-to-end data products
+
+The Part I synthesis traces a value from durable storage through a service and
+HTTP API to a client, deployment workflow, and operational evidence. Its
+notebook and local vertical-slice demonstration live in
+[`notebooks/lecture-08-end-to-end-data-products`](notebooks/lecture-08-end-to-end-data-products/).
 
 ## Supplementary materials
 

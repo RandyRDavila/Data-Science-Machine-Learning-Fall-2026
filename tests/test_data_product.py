@@ -1,5 +1,6 @@
 """Tests for the package-backed end-to-end teaching data product."""
 
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from rice_dsm import data_product
 from rice_dsm.data_product import (
     MeasurementInput,
     MeasurementService,
@@ -67,6 +69,41 @@ def test_repository_makes_retries_idempotent(tmp_path: Path) -> None:
     assert second_created is False
     assert first.measurement_id == second.measurement_id
     assert len(repository.latest(limit=100)) == 1
+
+
+def test_repository_closes_every_sqlite_connection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Protect Windows cleanup, where an open database file remains locked."""
+
+    original_connect = sqlite3.connect
+
+    class TrackedConnection(sqlite3.Connection):
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+            super().close()
+
+    opened_connections: list[TrackedConnection] = []
+
+    def tracked_connect(*args: object, **kwargs: object) -> sqlite3.Connection:
+        kwargs["factory"] = TrackedConnection
+        connection = original_connect(*args, **kwargs)
+        assert isinstance(connection, TrackedConnection)
+        opened_connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(data_product.sqlite3, "connect", tracked_connect)
+
+    repository = SQLiteMeasurementRepository(tmp_path / "measurements.sqlite3")
+    measurement = MeasurementInput.model_validate(example_payload())
+    repository.save(measurement)
+    repository.latest(limit=10)
+    repository.is_ready()
+
+    assert len(opened_connections) == 4
+    assert all(connection.closed for connection in opened_connections)
 
 
 def test_api_exercises_database_service_and_http_contract(tmp_path: Path) -> None:

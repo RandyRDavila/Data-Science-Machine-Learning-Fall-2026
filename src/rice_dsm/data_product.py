@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from importlib.resources import files
@@ -83,13 +85,23 @@ class SQLiteMeasurementRepository:
         self._database_path = Path(database_path)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
-        """Open one short-lived connection with consistent configuration."""
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """Yield one configured connection and always close it.
+
+        The standard SQLite connection context manager controls transactions
+        but does not close the connection. Explicit ownership matters on
+        Windows, where an open connection keeps the database file locked.
+        """
 
         connection = sqlite3.connect(self._database_path, timeout=5.0)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        return connection
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys = ON")
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         """Create the teaching schema when it does not yet exist."""

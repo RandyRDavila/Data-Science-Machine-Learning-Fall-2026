@@ -1,0 +1,104 @@
+name: rice-dsm-monitoring-lab
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: projects/production-monitoring-lab/Containerfile
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_LOGS_EXPORTER: none
+      OTEL_METRICS_EXPORTER: none
+      OTEL_SERVICE_NAME: battery-prediction-api
+      RICE_DSM_MONITORING_DATABASE: /runtime/predictions.sqlite3
+      RICE_DSM_MONITORING_INCIDENT: /runtime/incident.json
+      RICE_DSM_MONITORING_LOG: /runtime/logs/api.jsonl
+      RICE_DSM_MODEL_VERSION: battery-risk-1.0.0
+      RICE_DSM_RELEASE_VERSION: course-lab-1.0.0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./runtime:/runtime
+    depends_on:
+      - alloy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=24h
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      api:
+        condition: service_healthy
+
+  loki:
+    image: grafana/loki:3.7.3
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+
+  tempo:
+    image: grafana/tempo:3.0.0
+    command: -config.file=/etc/tempo.yaml
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./monitoring/tempo.yml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+
+  alloy:
+    image: grafana/alloy:v1.10.2
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./monitoring/config.alloy:/etc/alloy/config.alloy:ro
+      - ./runtime/logs:/runtime/logs:ro
+    depends_on:
+      - loki
+      - tempo
+
+  grafana:
+    image: grafana/grafana:13.2.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: light
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+volumes:
+  grafana-data:
+  loki-data:
+  prometheus-data:
+  tempo-data:

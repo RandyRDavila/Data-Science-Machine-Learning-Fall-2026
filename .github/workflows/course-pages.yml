@@ -1,0 +1,114 @@
+name: Course Site Delivery
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "site/**"
+      - "scripts/build_course_site.py"
+      - "scripts/smoke_test_course_site.py"
+      - "textbook/**"
+      - "pyproject.toml"
+      - ".github/workflows/course-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: course-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build immutable site artifact
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the verified main revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.6"
+          enable-cache: true
+
+      - name: Install the pinned Python version
+        run: uv python install
+
+      - name: Compile the LaTeX textbook
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # v4.1.0
+        with:
+          root_file: textbook.tex
+          working_directory: textbook
+
+      - name: Reject unresolved references and layout warnings
+        shell: bash
+        run: |
+          if grep -E "LaTeX Warning|Package .* Warning|Overfull|Underfull|undefined references" textbook/textbook.log; then
+            echo "The textbook compiled with warnings that require review."
+            exit 1
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Build the bounded deployment artifact
+        run: >-
+          uv run --no-sync python scripts/build_course_site.py
+          --revision "$GITHUB_SHA"
+          --textbook textbook/textbook.pdf
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: build/course-site
+
+  deploy:
+    name: Deploy reviewed artifact
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy the exact Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+  verify:
+    name: Verify public deployment
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out verification code only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify page, revision, manifest, and textbook
+        env:
+          COURSE_SITE_URL: ${{ needs.deploy.outputs.page_url }}
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: >-
+          python3 scripts/smoke_test_course_site.py
+          --url "$COURSE_SITE_URL"
+          --revision "$EXPECTED_REVISION"

@@ -1,0 +1,28 @@
+name: Pull Request Labels
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: Label changed areas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # This workflow intentionally does not check out or execute pull-request code.
+      - name: Apply area labels from the base branch configuration
+        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+          dot: true

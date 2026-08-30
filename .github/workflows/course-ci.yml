@@ -2,14 +2,20 @@ name: Course CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  PYTHONUTF8: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
 concurrency:
-  group: course-ci-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,6 +34,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -53,11 +61,21 @@ jobs:
       - name: Run package, environment, and notebook tests
         run: uv run pytest -q
 
+      - name: Upload the Python distribution
+        if: matrix.os == 'ubuntu-latest' && success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rice-dsm-python-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
   ci-gate:
     name: CI gate
     if: always()
     needs: course-quality
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require every operating system to pass
         env:

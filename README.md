@@ -13,6 +13,10 @@ interfaces, deployment, and revision. The repository makes that argument
 executable through lecture notebooks, a progressively developed Python package,
 tests, data, exercises, and continuous integration.
 
+The repository also demonstrates delivery: reviewed `main` revisions publish a
+small course site, while version tags produce approved, checksummed releases of
+the textbook and Python package.
+
 The LaTeX source lives under [`textbook/`](textbook/), and the compiled text
 is published at
 [`output/pdf/data-science-machine-learning-textbook.pdf`](output/pdf/data-science-machine-learning-textbook.pdf).
@@ -90,8 +94,9 @@ their contracts.
 │   ├── raw/                   # Immutable source data, usually not committed
 │   └── processed/             # Derived data, usually reproducible
 ├── scripts/                   # Repeatable data, build, and maintenance tasks
+├── site/                      # Reviewed source for the deployed course site
 └── .github/
-    └── workflows/             # Package tests and other automated checks
+    └── workflows/             # Integration, delivery, and release automation
 ```
 
 The exact contents will evolve with the course. Empty directories should be
@@ -174,18 +179,44 @@ The [`tests/README.md`](tests/README.md) guide explains how to read and run the
 suite, interpret failures, choose edge cases, and use tests as executable
 specifications while the course package develops.
 
-## Continuous integration
+## Continuous integration and delivery
 
-GitHub Actions runs the locked setup on Linux, macOS, and Windows for every push
-and pull request. CI checks formatting, builds the package, verifies the source
-path and named kernel, runs the unit and repository tests, and executes every
-notebook from top to bottom.
+GitHub Actions runs the locked setup on Linux, macOS, and Windows for every pull
+request and every push to `main`. Restricting push runs to `main` prevents a
+branch with an open pull request from launching the same matrix twice. CI checks
+formatting, builds the package, verifies the source path and named kernel, runs
+the unit and repository tests, and executes every notebook from top to bottom.
 
 The workflow reports one stable required check named **CI gate**. In the GitHub
 repository settings, protect the teaching branch by requiring pull requests and
 the **CI gate** status check before merging. CI cannot stop a local `git push`,
 but that branch rule prevents an unverified change from entering the protected
 course branch.
+
+Companion workflows compile changed textbook source and upload the PDF for
+review, inspect changed dependencies for known high-severity vulnerabilities,
+and apply area labels without executing pull-request code. Dependabot proposes
+grouped updates for the `uv` environment and pinned GitHub Actions. The complete
+workflow, deployment, release, environment, and rollback explanation lives in
+[`.github/README.md`](.github/README.md).
+
+The static course site is a deliberately bounded production example. A relevant
+merge to `main` compiles the textbook, builds one identifiable site artifact,
+deploys it through GitHub Pages, and verifies the public revision and PDF
+checksum. A `course-vX.Y.Z` tag instead builds a checksummed textbook, wheel, and
+source archive, records provenance, and waits for approval at the
+`course-release` environment before creating a GitHub Release. Students can
+follow the entire worked example in [From CI to delivery and
+deployment](supplementary-materials/computing-foundations/08-continuous-delivery-and-deployment.md).
+
+## Contributing and reporting problems
+
+GitHub presents structured forms for software bugs, course-content corrections,
+instructional proposals, and public repository questions. Please read
+[`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request. Suspected
+vulnerabilities, exposed credentials, or private student information must be
+reported privately according to [`SECURITY.md`](SECURITY.md), never through a
+public issue.
 
 ## Lecture materials
 
@@ -269,6 +300,19 @@ Each directory currently contains its unit contract, planned detailed notebook
 sequence, and a CI-executable entry notebook. These entry points will be expanded
 into full laboratories one unit at a time. The textbook already carries the
 connected Part II mathematical and systems narrative.
+
+### Production monitoring laboratory
+
+The executable
+[`production-monitoring-lab`](projects/production-monitoring-lab/) places the
+battery-risk example inside an instrumented prediction service. Package modules
+implement the API, model, persistence, structured logging, metrics, and delayed
+outcome path. Scripts generate traffic and controlled incidents; Docker Compose
+runs Prometheus, Loki, Tempo, Grafana Alloy, and a provisioned Grafana dashboard.
+Students diagnose failures from operational evidence and write a post-incident
+review. The system is deliberately outside `notebooks/`: notebooks support live
+explanation and statistical investigation but do not serve as the production
+runtime.
 
 ## Supplementary materials
 

@@ -87,29 +87,216 @@ support inputs. Abstention or routing to human review can be safer than a forced
 prediction. Error responses must not leak secrets or silently substitute a
 different model.
 
-\section{Monitoring has layers}
+\section{Operating evidence is part of the model contract}
+\label{sec:production-observability}
 
-Operational monitoring covers request rate, latency, errors, saturation,
-artifact load, and dependency health. Data-quality monitoring covers schema,
-missingness, range, category, freshness, and join behavior. Distribution
-monitoring compares feature and score summaries with reference windows.
+Offline evaluation estimates behavior under a stated sampling and measurement
+process. Release changes the question. The team must now determine what code,
+data, model, policy, and dependencies actually served clients; whether the
+system met its operational objectives; and whether later outcomes support the
+original predictive claim. Source code alone cannot answer those questions.
+
+Four terms should be separated. \textbf{Telemetry} is evidence emitted by a
+running system. \textbf{Monitoring} repeatedly checks selected evidence and
+conditions. \textbf{Observability} is the property that permits investigators
+to infer useful internal behavior from available evidence. \textbf{Model
+monitoring} concerns feature validity, populations, scores, decisions, slices,
+and outcomes for a learned component. Installing a dashboard product does not
+make an uninstrumented or semantically ambiguous system observable.
+
+The first design question is not ``What can this tool display?'' It is ``Which
+failure must an operator distinguish, and what evidence would separate its
+competing causes?'' Instrumentation follows the diagnostic question.
+
+\section{Failure layers require different evidence}
+
+An HTTP 200 response proves that an endpoint produced a response under its
+transport contract. It does not prove that the request used the intended units,
+feature meanings, model, decision policy, or population. Conversely, an
+accurate model is not useful when its service is unavailable. Reliability
+therefore has several causal layers.
+
+\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.18\textwidth}>{\raggedright\arraybackslash}p{0.29\textwidth}>{\raggedright\arraybackslash}p{0.43\textwidth}@{}}
+\toprule
+\textbf{Layer} & \textbf{Representative failure} & \textbf{Evidence needed} \\
+\midrule
+\endhead
+Service & process unavailable, slow dependency, exhausted worker pool & request
+rate, status, latency distribution, saturation, dependency spans \\
+Data contract & missing field, unit mismatch, stale feature, new category &
+schema rejection, feature lineage, safe summaries, producer version \\
+Artifact & wrong or incompatible model loaded & artifact digest, model version,
+feature-contract version, load event \\
+Population & input or prevalence distribution changes & reference and current
+windows, slices, missingness, score and decision distributions \\
+Decision policy & threshold, abstention, or routing rule changes & policy
+version, action counts, cost and constraint evidence \\
+Outcome & calibration or predictive performance degrades & prediction-outcome
+join, target horizon, sample size, loss and slice estimates \\
+Client & response cannot be used or rendered & client event, synthetic journey,
+support report, release identity \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+The layers interact. A sensor firmware change can look like population shift; a
+unit conversion defect can look like model decay; a failed outcome join can
+make quality appear stable because the hardest cases disappear. An alert should
+therefore initiate diagnosis, not name a cause prematurely.
+
+\conceptcheck{Every prediction request is fast and returns HTTP 200, but the
+fraction routed to human review falls by half. Give three causes at different
+layers and one observation that would distinguish each cause.}
+
+\section{Logs, metrics, and traces answer different questions}
+
+A \textbf{structured log} records one discrete event as named fields: timestamp,
+event type, severity, request or prediction identifier, model and release
+versions, and approved diagnostic context. It should not serialize arbitrary
+arguments or complete feature vectors. Logs otherwise become an ungoverned copy
+of sensitive inputs, credentials, or proprietary data. Field policy, access,
+retention, and deletion are part of logging design.
+
+A \textbf{metric} is a numeric time series. Request count, error count, duration,
+queue depth, rejected-input count, score histogram, and joined-outcome count can
+be aggregated over time and across replicas. Labels define groups, so their
+value sets must remain bounded. Route, status class, risk band, and deployed
+model version may be controlled labels. Request IDs, prediction IDs, raw error
+messages, users, and timestamps are not: they can create an effectively
+unbounded number of time series. This \textbf{cardinality} failure can exhaust a
+monitoring system during the incident when it is most needed.
+
+A \textbf{trace} follows one unit of work through nested spans. An HTTP request
+may contain spans for schema transformation, feature lookup, model execution,
+database write, and downstream calls. Metrics establish scope; a sampled trace
+localizes representative work; logs explain selected events. A request ID is an
+application correlation identifier, while a trace ID belongs to the tracing
+system. Recording both can connect evidence without using either as a metric
+label.
+
+\textbf{Diagnostic order.} Begin with the client-visible symptom. Use metrics to
+determine scope, traces to locate work, and logs to inspect relevant events.
+Scrolling through all logs is not an investigation strategy, and absence of
+error logs is not proof of correctness.
+
+The common service summary called RED records request \textbf{rate},
+\textbf{errors}, and \textbf{duration}. Saturation and dependency health add
+capacity context. These signals remain necessary for a model service, but they
+cannot establish feature meaning or predictive quality.
+
+\section{Model monitoring needs a feedback path}
+
+Operational monitoring covers rate, latency, errors, saturation, artifact load,
+and dependency health. Data-quality monitoring covers schema, missingness,
+range, category, freshness, units, and joins. Distribution monitoring compares
+feature, score, and decision summaries with explicit reference windows.
 
 Covariate shift means the distribution of $X$ changes. Prior shift changes
 class prevalence. Concept shift changes the relationship between $X$ and $Y$.
-Unlabeled inputs can reveal the first imperfectly; they cannot by themselves
-measure predictive error or identify the third. Delayed outcomes are therefore
-not optional if performance claims are to remain testable.
+Unlabeled inputs can reveal aspects of the first and sometimes the second; they
+cannot by themselves measure predictive error or identify the third. A
+prediction record therefore needs a stable join key, prediction time, target
+horizon, score or action, model and policy identity, and lawful retention. When
+the outcome arrives, the feedback path validates and joins it to the original
+prediction rather than recomputing history from mutable current data.
 
-Monitor slices defined before release and investigate emerging slices carefully.
-Alerts need thresholds, owners, runbooks, and actions. A dashboard without a
-response policy is visualization, not operational control.
+Report quality estimates with their denominators, time windows, and slice
+definitions. A Brier score computed from eight convenient outcomes is not
+equivalent evidence to one computed from a representative sample of eight
+thousand. Monitor slices defined before release and investigate emerging slices
+carefully; repeated searching can turn random variation into an apparent
+incident.
+
+There are three important clocks: request time, outcome-availability time, and
+monitor-computation time. A system can detect schema rejection immediately,
+score shift after a monitoring window, and outcome degradation only after the
+target horizon. Alert policy must respect these information delays.
 
 \begin{misconceptionbox}
-\textbf{Misconception:} feature drift means the model must be retrained. 
-\textbf{Correction:} drift is evidence to investigate. Retraining can preserve
-the same defect, learn from corrupted labels, or degrade important groups.
-Action depends on outcomes, cause, severity, and the validated response policy.
+\textbf{Misconception:} feature drift means the model must be retrained.
+
+\textbf{Correction:} drift is evidence to investigate. A producer change,
+failed transformation, selection effect, or real population change may produce
+the same summary. Retraining can preserve the defect, learn from corrupted
+labels, or degrade important groups. Action depends on outcomes, cause,
+severity, and the validated response policy.
 \end{misconceptionbox}
+
+\section{Alerts connect objectives to owned action}
+
+A \textbf{service-level indicator} (SLI) is a measured quantity such as the
+fraction of eligible prediction requests completed successfully within 250 ms.
+A \textbf{service-level objective} (SLO) states a target over a window, for
+example at least 99.5\% over 28 days. The objective should reflect a client
+outcome and exclude only cases justified by the contract.
+
+An alert is useful when it detects a meaningful symptom early enough for an
+owner to act. Every alert needs a condition, evaluation window, urgency, owner,
+runbook, evidence links, duplicate suppression, and recovery condition. Page on
+sustained user impact or rapid consumption of an error budget, not every log
+line. Model-quality alerts often require longer windows, minimum sample sizes,
+and human review because their estimates are noisy and delayed.
+
+A dashboard without a response policy is visualization, not operational
+control. A runbook should state safe first checks, authority limits, reversible
+mitigations, escalation contacts, and verification. It should never instruct an
+operator to delete evidence, expose data, or retrain reflexively.
+
+\section{Incident diagnosis is disciplined inference}
+
+An incident response can be organized as a sequence of falsifiable decisions:
+
+\begin{enumerate}
+  \item state the exact client symptom and time interval;
+  \item preserve release, model, data, configuration, and deployment identity;
+  \item form at least two competing hypotheses;
+  \item use aggregate metrics to establish scope;
+  \item select a representative trace to localize work;
+  \item inspect correlated structured events rather than the entire log stream;
+  \item examine feature, score, decision, slice, and outcome evidence as needed;
+  \item apply the safest reversible mitigation within the responder's authority;
+  \item repeat the original client action and verify recovery; and
+  \item record the timeline, cause, impact, repair, and preventive controls.
+\end{enumerate}
+
+Restarting first can destroy diagnostic state. Changing several components at
+once prevents causal attribution. A useful post-incident review separates facts
+known at the time from later conclusions and assigns follow-up actions with
+owners and verifiable completion criteria.
+
+\begin{workedexample}{one application, two very different incidents}
+The repository's production monitoring laboratory operates a FastAPI battery-
+risk service backed by package modules and SQLite prediction lineage. A traffic
+script acts as the client. Prometheus stores metrics, Loki stores structured
+events, Tempo stores OpenTelemetry traces, and Grafana presents a provisioned
+dashboard. No notebook is part of the runtime.
+
+First, an instructor introduces delay in the feature-contract operation. The
+request-rate panel remains stable, the error ratio remains near zero, and the
+95th-percentile latency rises. A representative trace assigns most of the
+duration to \code{feature\_contract.apply}. The team restores the healthy
+configuration and verifies the original latency symptom with new traffic.
+
+Second, the service remains fast and returns HTTP 200, but the temperature
+transformation assumes Fahrenheit for inputs contracted as Celsius. Service
+health remains green while score and risk-band distributions shift. A
+\code{prediction\_completed} event records the model and release identities and
+the approved unit-assumption field; the correlated transformation span confirms
+where semantics changed. Retraining would not repair this defect. The correct
+response restores the feature contract, tests the unit boundary, and evaluates
+the affected predictions and later outcomes.
+
+The exercise makes a central distinction observable: software availability and
+model validity are related operational responsibilities, not the same claim.
+\end{workedexample}
+
+The lab manual, scripts, configurations, runbook, and tests live under
+\code{projects/production-monitoring-lab}. The application implementation lives
+under \code{src/rice\_dsm/monitoring\_lab}. This separation is intentional:
+modules implement the system; scripts operate it; configuration connects
+processes; tests preserve contracts; notebooks remain live computational
+laboratories.
 
 \section{Retraining is a release, not a reflex}
 
@@ -173,7 +360,8 @@ prompts investigation, while retraining and rollback remain governed releases.
 \end{chapterreview}
 
 \begin{notebooklink}
-Lecture 17 notebook 00 maps the three system paths. Companion capstone
-laboratories produce a release dossier, monitoring specification, outcome join,
-and tested incident and rollback exercise.
+Lecture 17 notebook 00 maps the three system paths; later notebooks analyze
+drift and outcome evidence. The operated, module-based exercise is
+\code{projects/production-monitoring-lab}; scripts operate it, tests preserve
+its contracts, and notebooks neither serve nor orchestrate it.
 \end{notebooklink}

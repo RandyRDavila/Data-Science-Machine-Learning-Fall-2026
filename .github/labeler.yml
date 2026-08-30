@@ -1,0 +1,51 @@
+"area: automation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "CONTRIBUTING.md"
+          - "SECURITY.md"
+
+"area: package":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+          - "pyproject.toml"
+          - "uv.lock"
+
+"area: tests":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+
+"area: notebooks":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "notebooks/**"
+          - "supplementary-materials/**"
+
+"area: textbook":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "textbook/**"
+          - "output/pdf/data-science-machine-learning-textbook.pdf"
+
+"area: syllabus":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "syllabus/**"
+
+"area: data":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "data/**"
+          - "scripts/**"
+
+"area: deployment":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "site/**"
+          - "scripts/build_course_site.py"
+          - "scripts/build_release_bundle.py"
+          - "scripts/smoke_test_course_site.py"
+          - ".github/workflows/course-pages.yml"
+          - ".github/workflows/course-release.yml"

@@ -14,8 +14,12 @@ PowerShell, VS Code, or Jupyter experience is assumed.
    best read with Lecture 3
 7. [What is an API?](07-what-is-an-api.md), before the hosted-model and
    end-to-end lessons
-8. [Guided exercises](exercises.md)
-9. [Workflow diagrams](diagrams.md), whenever a mental picture would help
+8. [From CI to delivery and deployment](08-continuous-delivery-and-deployment.md),
+   with Lecture 3 or the end-to-end systems unit
+9. [Observability and model monitoring](09-observability-and-model-monitoring.md),
+   before the production monitoring laboratory
+10. [Guided exercises](exercises.md)
+11. [Workflow diagrams](diagrams.md), whenever a mental picture would help
 
 ## What success looks like
 
@@ -28,7 +32,10 @@ After completing this module, you should be able to:
 - distinguish a shell, Python interpreter, virtual environment, and notebook
   kernel;
 - distinguish a Python package API from an HTTP web API and identify the parts
-  of a request and response; and
+  of a request and response;
+- distinguish an artifact, release, delivery, deployment, and environment;
+- distinguish logs, metrics, traces, alerts, and delayed model-quality evidence;
+  and
 - recover from common problems by checking location and interpreter before
   reinstalling software.
 

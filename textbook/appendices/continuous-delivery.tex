@@ -1,0 +1,591 @@
+\chapter{From Source to Release: CI/CD Through This Textbook}
+\label{app:cicd}
+
+This appendix follows one change through the automation that builds and
+publishes this book. The example is small enough to inspect completely, but it
+contains the same boundaries found in a scientific service or machine-learning
+product: reviewed source, clean builds, immutable artifacts, named
+environments, scoped authority, post-deployment verification, and recovery.
+
+No prior knowledge of CI/CD is assumed. The objective is not to memorize a
+particular GitHub Actions syntax. It is to learn which claim each stage makes,
+which evidence supports that claim, and which authority allows the system to
+change public state.
+
+After working through this appendix, you should be able to:
+
+\begin{itemize}
+  \item distinguish continuous integration, continuous delivery, and
+  continuous deployment;
+  \item distinguish source, a build, an artifact, a release, a deployment, and
+  an environment;
+  \item trace a pull request, a merge to \code{main}, and a version tag through
+  this repository's workflows;
+  \item explain why a later stage should promote the artifact that an earlier
+  stage verified rather than rebuild it;
+  \item read a deployment manifest and verify an artifact with a checksum;
+  \item identify the permissions and human decisions that control publication;
+  and
+  \item design a rollback or roll-forward response that preserves evidence.
+\end{itemize}
+
+\section{A public system has more state than its source}
+
+A source file is not a deployed system. The LaTeX sentence being read now is
+source. The compiled PDF is an artifact. A named collection containing that
+PDF, a Python wheel, and a source archive is a release bundle. A copy of the PDF
+served from the public course site is a deployment. These objects can agree or
+disagree. A disciplined pipeline makes their relationships explicit.
+
+\begingroup\small
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.19\textwidth}
+  >{\raggedright\arraybackslash}p{0.35\textwidth}
+  >{\raggedright\arraybackslash}p{0.36\textwidth}@{}}
+\toprule
+\textbf{Object} & \textbf{Meaning} & \textbf{Identity in this repository} \\
+\midrule
+\endhead
+Source revision & One immutable state of version-controlled inputs & Complete
+Git commit identifier \\
+Build & Process that transforms source into outputs & A particular workflow
+job and its logs \\
+Artifact & Bounded output intended to move between stages & Static-site
+archive, PDF, wheel, or source distribution \\
+Environment & Named destination with configuration and policy &
+\code{github-pages} or \code{course-release} \\
+Deployment & Placement of an artifact into an environment & One GitHub Pages
+deployment record \\
+Release & Named statement that artifacts represent a version & GitHub Release
+attached to \code{course-vX.Y.Z} \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+The word \emph{environment} is overloaded. A Python virtual environment
+isolates an interpreter and installed packages. A deployment environment names
+a destination such as staging or production and may impose approval,
+configuration, and secret policies. Context must identify which meaning is
+intended.
+
+\begin{professionalbox}
+A branch name such as \code{main} is movable. It is convenient for navigation,
+but it is not sufficient artifact identity. A defensible record binds public
+state to an immutable commit identifier and, when relevant, an artifact digest
+and release tag.
+\end{professionalbox}
+
+\section{The three terms in CI/CD}
+
+\term{Continuous integration} (CI) automatically tests an integrated source
+revision in a clean environment. A pull request is a candidate integration. CI
+asks whether the candidate satisfies the repository's encoded contracts before
+it enters the protected branch.
+
+\term{Continuous delivery} automatically produces a verified, releasable
+artifact but retains an explicit decision before production publication. The
+software is continuously in a state that \emph{could} be released. A reviewer,
+scheduled window, regulatory control, or business decision may govern the last
+promotion.
+
+\term{Continuous deployment} automatically publishes every qualifying change.
+There is no manual approval between the verified candidate and the production
+deployment. This does not remove control. Review, tests, branch protection,
+scoped permissions, deployment policy, smoke tests, and monitoring remain
+controls.
+
+Thus the slash in ``CI/CD'' is ambiguous. State whether \emph{CD} means
+delivery or deployment for the system under discussion. This repository uses
+both:
+
+\begin{itemize}
+  \item the course site uses continuous deployment from reviewed \code{main};
+  and
+  \item a versioned course release uses continuous delivery to a protected
+  approval boundary, followed by an approved publication.
+\end{itemize}
+
+Neither choice is intrinsically mature. The appropriate choice follows from
+consequence, reversibility, regulation, available evidence, and recovery cost.
+A static site can be replaced quickly and carries no database migration. A
+clinical model service has a different release boundary.
+
+\section{The running system}
+
+The repository contains four related products:
+
+\begin{enumerate}
+  \item LaTeX source under \code{textbook/};
+  \item a compiled PDF under \code{output/pdf/};
+  \item the \code{rice\_dsm} Python distribution built from \code{src/}; and
+  \item a static course site built from reviewed files under \code{site/}.
+\end{enumerate}
+
+The textbook is therefore both an explanation of delivery and a delivered
+artifact. The workflows are executable course material. Their checked-in YAML
+is the authority when an excerpt in the prose and the live configuration ever
+differ.
+
+\begin{center}
+\begin{tikzpicture}[node distance=7mm]
+  \node[flowbox,text width=23mm] (change) {Proposed\\change};
+  \node[flowbox,text width=28mm,right=of change] (matrix) {CI matrix\\Linux, macOS, Windows};
+  \node[flowbox,text width=23mm,right=of matrix] (gate) {Required\\CI gate};
+  \node[flowbox,text width=22mm,right=of gate] (merge) {Review\\and merge};
+  \node[flowbox,text width=24mm,below=12mm of matrix] (build) {Build one\\site artifact};
+  \node[flowbox,text width=24mm,right=of build] (pages) {Deploy to\\GitHub Pages};
+  \node[flowbox,text width=24mm,right=of pages] (smoke) {Verify public\\bytes};
+  \draw[flowarrow] (change) -- (matrix);
+  \draw[flowarrow] (matrix) -- (gate);
+  \draw[flowarrow] (gate) -- (merge);
+  \draw[flowarrow] (merge.south) |- (build.north);
+  \draw[flowarrow] (build) -- (pages);
+  \draw[flowarrow] (pages) -- (smoke);
+\end{tikzpicture}
+\end{center}
+
+The upper path is integration. The lower path is deployment. Passing the upper
+path does not imply that the lower path ran, and a successful upload in the
+lower path does not imply that users can retrieve the expected artifact. The
+final smoke test addresses that last boundary.
+
+\section{Path one: a pull request becomes verified source}
+
+The \code{course-ci.yml} workflow responds to pull requests, pushes to
+\code{main}, and manual dispatch. It creates one job for each supported
+operating system. Every job:
+
+\begin{enumerate}
+  \item checks out the exact revision without retaining write credentials;
+  \item installs the pinned \code{uv} tool and Python version;
+  \item reproduces the dependency graph from \code{uv.lock};
+  \item prepares the installed package and named notebook kernel;
+  \item checks Python style;
+  \item builds the wheel and source distribution; and
+  \item executes package, repository, and notebook tests.
+\end{enumerate}
+
+The matrix is not three redundant green lights. It probes distinct path,
+filesystem, shell, process, and environment behavior. A hard-coded POSIX path
+may pass on Linux and fail on Windows. A case mismatch may pass on a
+case-insensitive filesystem and fail elsewhere.
+
+After the matrix completes, a stable job named \code{CI gate} requires the
+entire matrix to succeed. Branch protection can require this one name even when
+the internal matrix changes. The gate makes evidence consequential: a failed
+candidate cannot enter protected \code{main} through the ordinary merge path.
+
+Other workflows add narrower evidence. The textbook workflow compiles relevant
+LaTeX changes, rejects unresolved references and layout warnings, and uploads
+the PDF for review. Dependency review examines newly introduced dependency
+risk. The pull-request labeler assigns review areas without checking out or
+executing untrusted pull-request code.
+
+\begin{checkpointbox}
+A pull request receives a green \code{CI gate}, but the new statistical test
+uses the wrong null hypothesis. What has CI established? What has it not
+established? Identify the missing review evidence without claiming that CI is
+useless.
+\end{checkpointbox}
+
+\section{Path two: \code{main} becomes a public course site}
+
+The \code{course-pages.yml} workflow is the repository's real continuous
+deployment example. A relevant merge to \code{main} triggers the path. Manual
+dispatch is also available, but the build job checks that the selected revision
+is \code{main}; a feature branch cannot use that route to deploy itself.
+
+\subsection{Build a bounded artifact}
+
+The workflow compiles the textbook, checks the LaTeX log, and runs
+\code{scripts/build\_course\_site.py}. The builder creates an empty output tree
+containing only:
+
+\begin{itemize}
+  \item the generated landing page and fallback page;
+  \item reviewed style and icon assets;
+  \item the compiled textbook at a stable public path; and
+  \item a machine-readable deployment manifest.
+\end{itemize}
+
+The builder refuses to merge files into a nonempty output directory. Without
+that check, a file left by an earlier run could survive even though the current
+source no longer produces it. Clean output is a simple defense against stale
+artifact state.
+
+The site artifact is deliberately smaller than the repository. It excludes
+tests, source history, local data, caches, notebook outputs, development tools,
+and secrets. A deployment boundary should state what enters production rather
+than publish whatever happens to be nearby.
+
+\subsection{Record identity in a manifest}
+
+The generated \code{manifest.json} binds the deployment to its inputs and
+primary artifact:
+
+\begin{lstlisting}[numbers=none]
+{
+  "course": "CMOR 438 / INDE 577",
+  "package_version": "0.1.0",
+  "revision": "8e66ba305f7bb22e5459a4c039999250e29aa35a",
+  "generated_at": "2026-08-30T18:00:00Z",
+  "artifacts": {
+    "textbook": {
+      "path": "textbook/data-science-machine-learning-textbook.pdf",
+      "bytes": 765614,
+      "sha256": "1119dc07f6a9a5cee16444c3272ac67d032c84c4fd1856f77054716595e8691f"
+    }
+  }
+}
+\end{lstlisting}
+
+The concrete values above illustrate one local build and will change. The
+commit identifier answers which source was built. The byte count catches gross
+truncation or substitution. SHA-256 supplies a content digest: changing one
+byte is expected to change the digest. A matching digest proves identity with
+the recorded bytes under the hash assumption; it does not prove that the book's
+mathematics or prose is correct.
+
+\subsection{Promote and then observe}
+
+The build job uploads one Pages artifact. A separate deploy job downloads and
+promotes that artifact to the \code{github-pages} environment. It does not
+compile the text again. Only that job receives permission to write Pages and
+request the short-lived identity token required by the deployment mechanism.
+
+After deployment, \code{scripts/smoke\_test\_course\_site.py} requests the
+public page, manifest, and textbook. It checks the page identity, complete
+source revision, PDF signature, byte count, and SHA-256 digest. Retries allow a
+new edge cache to converge, but retries are bounded. A persistent mismatch is a
+failed deployment, not an invitation to loop forever.
+
+This verification distinguishes three claims:
+
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.25\textwidth}
+  >{\raggedright\arraybackslash}p{0.31\textwidth}
+  >{\raggedright\arraybackslash}p{0.34\textwidth}@{}}
+\toprule
+\textbf{Claim} & \textbf{Evidence} & \textbf{Remaining uncertainty} \\
+\midrule
+\endhead
+The artifact was accepted & Deploy action completed & Public routing or cache
+may still be wrong \\
+The public site is reachable & HTTP request succeeded & It may expose an older
+or incorrect revision \\
+The intended PDF is public & Revision, size, and digest match & Content may
+still contain an untested error \\
+\bottomrule
+\end{longtable}
+
+\section{Path three: a version becomes an approved release}
+
+The course site answers ``What is currently published?'' A versioned release
+answers a different question: ``Which immutable files constitute version
+$v$?'' The \code{course-release.yml} workflow starts only from tags matching
+\code{course-v*}.
+
+The version declared in \code{pyproject.toml} is the source of truth. If the
+package version is \code{0.1.0}, the release tag must be exactly
+\code{course-v0.1.0}. The tag must be annotated rather than lightweight:
+
+\begin{lstlisting}[numbers=none]
+git tag -a course-v0.1.0 -m "Course release 0.1.0"
+git push origin course-v0.1.0
+\end{lstlisting}
+
+An annotated tag is a Git object with a tagger, message, date, and target. The
+workflow rejects a mismatched or lightweight tag before publication. It then
+reproduces the locked environment, reruns style and test checks, builds the
+Python distributions, compiles the textbook, and assembles:
+
+\begin{itemize}
+  \item \code{data-science-machine-learning-textbook.pdf};
+  \item the versioned \code{rice\_dsm} wheel;
+  \item the versioned \code{rice\_dsm} source archive;
+  \item \code{release-manifest.json}; and
+  \item \code{SHA256SUMS}.
+\end{itemize}
+
+The release builder selects exact distribution names for the declared version.
+A stale wheel with a similar name in a developer's \code{dist/} directory is
+not silently included. The checksum file allows a recipient to recompute the
+digest of every release file. Build provenance records that GitHub Actions
+produced the subjects from a particular repository workflow and revision.
+
+\begin{professionalbox}
+Provenance and checksums answer origin and identity questions. They do not make
+malicious source safe, make a weak test suite sufficient, or establish that a
+model is scientifically valid. Supply-chain evidence composes with source
+review, testing, access control, and domain evidence; it does not replace them.
+\end{professionalbox}
+
+\subsection{The approval boundary}
+
+The verified bundle is uploaded once as a workflow artifact. The publication
+job names the protected \code{course-release} environment and waits for its
+required reviewer. Approval authorizes public release of the already verified
+bundle. The job then downloads that exact bundle and attaches its files to the
+tag's GitHub Release.
+
+This is continuous delivery because automation reaches a releasable state and
+stops at an explicit production decision. The decision should inspect evidence,
+not merely confirm that somebody clicked a button. A useful approval view
+includes the source revision, tag and project version, completed checks,
+artifact names and digests, known limitations, and rollback plan.
+
+If publication is interrupted after creating the GitHub Release but before all
+attachments arrive, a rerun replaces the attachments with files from the
+verified workflow artifact. Idempotent or repairable operations matter because
+distributed systems can fail between two externally visible steps.
+
+\section{Build once, promote the same artifact}
+
+Suppose a build job tests PDF $A$, then an approval job checks out the same
+commit and recompiles PDF $B$ for publication. Even with identical source, the
+outputs may differ because a dependency, compiler, clock, generated input, or
+configuration changed. Approval evidence about $A$ does not necessarily apply
+to $B$.
+
+The safer rule is:
+
+\begin{quote}
+Build once. Identify the artifact. Verify it. Promote those same bytes.
+\end{quote}
+
+Configuration may vary by deployment environment, but changing configuration
+should not silently mutate the artifact. A container image digest, wheel hash,
+or PDF checksum provides a stable subject for evidence. This separation also
+makes rollback concrete: retain a known-good artifact and its compatible
+configuration rather than hoping an old source revision can be rebuilt later.
+
+Reproducible builds strengthen the design further by allowing independent
+builds to produce the same bytes. They do not eliminate the need to promote the
+verified artifact; reproducibility itself must be measured and maintained.
+
+\section{Authority is part of the pipeline}
+
+Automation that can only read source cannot publish. Automation that can write
+every repository resource has unnecessary authority. The workflows declare a
+read-only default and grant additional permissions to the narrow job that needs
+them.
+
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.25\textwidth}
+  >{\raggedright\arraybackslash}p{0.26\textwidth}
+  >{\raggedright\arraybackslash}p{0.39\textwidth}@{}}
+\toprule
+\textbf{Job} & \textbf{Additional authority} & \textbf{Reason} \\
+\midrule
+\endhead
+CI and build jobs & None beyond reading source & Untrusted or fallible build
+steps should not publish \\
+Pages deploy job & Pages write and short-lived identity token & Promote the one
+uploaded Pages artifact \\
+Release provenance job & Attestation write and identity token & Bind provenance
+to built subjects \\
+Release publication job & Repository contents write & Create or repair assets
+on the tagged GitHub Release \\
+\bottomrule
+\end{longtable}
+
+The repository does not need a personal access token, AWS key, or other
+long-lived credential for these paths. GitHub supplies a short-lived repository
+token to each job, and job-level permissions narrow its use. Third-party actions
+still execute code with the job's available authority, so actions are pinned to
+immutable commit identifiers and updated through review.
+
+If a later exercise deploys to a cloud provider, prefer workload identity or an
+equivalent short-lived exchange. Store unavoidable secrets in the platform's
+secret facility, scope them to the environment, prevent them from reaching
+untrusted pull-request code, mask them in logs, and plan rotation before an
+incident.
+
+\section{Failure is a state to diagnose}
+
+A pipeline is a state machine with evidence at each transition. ``CI/CD
+failed'' is too imprecise to diagnose.
+
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.23\textwidth}
+  >{\raggedright\arraybackslash}p{0.31\textwidth}
+  >{\raggedright\arraybackslash}p{0.36\textwidth}@{}}
+\toprule
+\textbf{Observed state} & \textbf{Likely boundary} & \textbf{First evidence} \\
+\midrule
+\endhead
+One matrix job fails & Platform-specific source or environment behavior & First
+causal traceback on that runner \\
+All tests pass; site build fails & Artifact construction contract & Missing
+input, unresolved template marker, nonempty output \\
+Deploy action fails & Hosting authority or environment policy & Deployment job,
+token permission, Pages configuration \\
+Deploy succeeds; smoke fails & Public routing, cache, or artifact mismatch &
+Requested URL, manifest revision, byte count, digest \\
+Release build rejects tag & Version identity policy & Tag object type and
+\code{pyproject.toml} version \\
+Release waits & Protected environment decision & Reviewer and environment
+policy \\
+Release exists with incomplete files & Interrupted publication & Release assets
+versus verified workflow artifact \\
+\bottomrule
+\end{longtable}
+
+Start with the earliest causal failure, not the last cascade message. Reproduce
+locally when the failing boundary exists locally. A Pages permission error
+cannot be reproduced by rerunning a unit test; a malformed manifest can.
+
+Flaky tests deserve diagnosis. Repeatedly rerunning until green changes the
+sample, hides uncertainty, and teaches the gate to accept noise. Record the
+failure, isolate nondeterminism, repair the test or system, and preserve a
+regression case.
+
+\section{Rollback and roll-forward}
+
+Static-site rollback is unusually simple because the artifact has no mutable
+database state. The normal repair is a focused revert or corrective pull
+request, followed by the same CI and deployment path used for forward changes.
+This preserves review, evidence, and an auditable transition. Directly editing
+files on a server creates unreviewed state that the next deployment will erase.
+
+A published version tag should not be deleted and moved to different source.
+Doing so makes two consumers receive different bytes under the same name. Fix a
+bad \code{course-v0.1.0} release by incrementing the project to
+\code{0.1.1}, merging the correction, and publishing
+\code{course-v0.1.1}. This is a roll-forward.
+
+Rollback becomes harder when a deployment mutates durable state. Old and new
+application versions may overlap during a rolling release. A database migration
+must often be backward-compatible until both versions no longer run. A model
+rollback may fail if the feature schema or population has changed. Recovery
+design must therefore name the state being reversed, compatibility assumptions,
+owner, trigger, and evidence of rehearsal.
+
+\section{A complete worked change}
+
+Consider a pull request that corrects one equation and changes one reusable
+Python function used by a notebook.
+
+\begin{enumerate}
+  \item \textbf{Propose.} The branch records the source diff. The pull request
+  explains the mathematical correction, interface consequence, and relevant
+  tests.
+  \item \textbf{Integrate.} The CI matrix rebuilds the package and executes
+  every notebook. The textbook workflow compiles the PDF and makes it available
+  for visual review. Neither artifact is public production state.
+  \item \textbf{Review.} A reviewer examines the equation, API behavior, test
+  evidence, and rendered page. The required \code{CI gate} passes.
+  \item \textbf{Merge.} The protected branch advances to the reviewed commit.
+  This event makes the revision eligible for site deployment.
+  \item \textbf{Build.} The Pages workflow compiles the text and creates one
+  bounded site artifact with a manifest naming the merge commit and PDF digest.
+  \item \textbf{Deploy.} The Pages job promotes the artifact to the public
+  environment with narrowly scoped authority.
+  \item \textbf{Observe.} The smoke job requests the public artifacts and
+  compares their identities with the manifest and expected commit.
+  \item \textbf{Release when intended.} If the change belongs to a named course
+  version, the maintainer increments \code{pyproject.toml} through a pull
+  request, creates the matching annotated tag after merge, inspects the release
+  evidence, and approves publication.
+\end{enumerate}
+
+The example contains two distinct public transitions. The site changes after
+merge; the immutable version changes only after a tag and approval. A team can
+choose other policies, but it must not blur these identities.
+
+\section{Inspect the system locally}
+
+Local execution cannot reproduce GitHub's identity tokens, environment
+approval, or Pages infrastructure. It can reproduce artifact construction and
+verification logic.
+
+Build the text and site from the repository root:
+
+\begin{lstlisting}[numbers=none]
+make -C textbook
+uv run python scripts/build_course_site.py \
+  --revision local-preview \
+  --textbook output/pdf/data-science-machine-learning-textbook.pdf
+uv run python -m http.server 8000 --directory build/course-site
+\end{lstlisting}
+
+Open \url{http://localhost:8000} and inspect the page and
+\code{manifest.json}. Stop the server with \code{Ctrl+C}. Before rebuilding,
+remove only the generated \code{build/course-site/} directory; the builder's
+refusal to mix old and new output is intentional.
+
+The following investigation distinguishes mechanisms:
+
+\begin{enumerate}
+  \item Recompute the PDF SHA-256 digest with an operating-system tool or a
+  short Python program and compare it with the manifest.
+  \item Change a copy of one byte in the PDF and recompute the digest. Do not
+  modify the tracked course PDF for this experiment.
+  \item Explain why a new digest detects the change but cannot say whether the
+  change improved the book.
+  \item Identify which workflow-only controls were absent from the local run.
+\end{enumerate}
+
+\section{Design exercises}
+
+\begin{enumerate}
+  \item Draw the state machine for the Pages workflow. Label every transition
+  with its triggering event, required evidence, and authority.
+  \item Suppose the public page identifies the expected commit but the PDF hash
+  differs. Give three non-equivalent hypotheses and the observation that would
+  distinguish each.
+  \item Design a staging environment for a model API. State which artifact is
+  promoted, which configuration varies, which tests run after deployment, and
+  which evidence permits production release.
+  \item A release approver sees green tests but no visual PDF review. Should the
+  release proceed? State the claim the missing review protects.
+  \item Extend the failure table for a database migration that succeeds on one
+  replica and fails on another. Identify why restoring application code alone
+  may be insufficient.
+  \item Compare a manual production approval with a fully automatic policy.
+  Name one system for which each is reasonable and justify the difference from
+  consequence and recovery evidence.
+  \item Write a release dossier for \code{course-v0.1.0}: source revision,
+  artifacts, digests, checks, approver, limitations, and recovery action.
+\end{enumerate}
+
+\section{Operational checklist}
+
+Before calling a pipeline complete, ask:
+
+\begin{itemize}
+  \item Is the source revision immutable and recorded?
+  \item Does the build start from a clean, locked environment?
+  \item Is each artifact bounded, named, and content-addressable by a digest?
+  \item Do later stages promote the verified bytes without rebuilding?
+  \item Are tests attached to risks at unit, integration, contract, system, and
+  deployed boundaries as appropriate?
+  \item Can untrusted source obtain a secret or publication permission?
+  \item Does each job have only the authority required for its stage?
+  \item Is the release decision automatic or manual, and is that policy stated?
+  \item Does post-deployment verification observe the public boundary?
+  \item Is recovery possible with a known-good artifact and compatible state?
+  \item Will a future investigator be able to connect public behavior to source,
+  configuration, evidence, and decision?
+\end{itemize}
+
+\section{Summary}
+
+CI tests an integrated source candidate. Continuous delivery produces a
+verified releasable artifact and retains an explicit production decision.
+Continuous deployment publishes every qualifying change automatically. This
+repository uses all three ideas: a cross-platform required gate, automatic
+course-site deployment from protected \code{main}, and an approved tagged
+release of the textbook and Python package.
+
+The central engineering invariant is not a product name or YAML keyword. It is
+the evidence chain:
+
+\begin{quote}
+immutable source $\longrightarrow$ bounded artifact $\longrightarrow$
+verification $\longrightarrow$ authorized promotion $\longrightarrow$
+operational observation.
+\end{quote}
+
+Breaking any arrow weakens the claim that a public result is the one that was
+reviewed and tested.

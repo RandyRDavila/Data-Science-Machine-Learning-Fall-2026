@@ -9,9 +9,10 @@ survive representation, implementation, evaluation, deployment, and revision.
 
 The prose carries the definitions, arguments, and compact examples. Lecture
 notebooks act as computational laboratories; the `rice_dsm` package contains
-reusable implementations; tests preserve executable contracts. The book is
-therefore the organizing artifact for the repository rather than a transcript
-of its lectures.
+reusable implementations; `projects/` contains operated systems made from
+modules, scripts, processes, and configuration; tests preserve executable
+contracts. The book is therefore the organizing artifact for the repository
+rather than a transcript of its lectures.
 
 ## Build
 
@@ -42,7 +43,7 @@ textbook.tex                book structure and metadata
 style/rice-dsm-book.sty     typography, colors, boxes, code, headers
 frontmatter/                preface and how to use the book
 chapters/                   numbered textbook chapters
-appendices/                 setup, Git/GitHub lessons, and glossary
+appendices/                 setup, Git/GitHub, CI/CD, and glossary
 ```
 
 ## Editorial status

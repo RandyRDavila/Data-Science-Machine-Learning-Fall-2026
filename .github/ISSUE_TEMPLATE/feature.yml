@@ -1,0 +1,61 @@
+name: Instructional or software proposal
+description: Propose a focused improvement to the course, package, laboratories, or automation.
+title: "[Proposal]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or learning need
+      description: Describe the concrete problem before proposing an implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Explain the smallest coherent change that would address the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: value
+    attributes:
+      label: Instructional or professional value
+      description: What should students or maintainers be able to understand, test, or do afterward?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and tradeoffs
+      description: Identify simpler alternatives, new dependencies, maintenance cost, or compatibility concerns.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Primary area
+      options:
+        - Python package
+        - Lecture notebook
+        - Textbook
+        - Supplementary material
+        - Data or pipeline
+        - Testing or automation
+        - Course site or release
+        - Course structure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues and the repository roadmap.
+          required: true
+        - label: This proposal does not contain graded work or private, secret, or restricted information.
+          required: true

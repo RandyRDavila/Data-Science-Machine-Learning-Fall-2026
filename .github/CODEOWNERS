@@ -1,0 +1,14 @@
+# Repository-wide ownership. More specific entries document high-risk surfaces.
+* @RandyRDavila
+
+/.github/ @RandyRDavila
+/pyproject.toml @RandyRDavila
+/uv.lock @RandyRDavila
+/src/ @RandyRDavila
+/tests/ @RandyRDavila
+/textbook/ @RandyRDavila
+/output/pdf/ @RandyRDavila
+/site/ @RandyRDavila
+/scripts/build_course_site.py @RandyRDavila
+/scripts/build_release_bundle.py @RandyRDavila
+/scripts/smoke_test_course_site.py @RandyRDavila

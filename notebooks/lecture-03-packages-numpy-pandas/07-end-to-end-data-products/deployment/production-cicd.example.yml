@@ -1,0 +1,34 @@
+name: Example production delivery
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-once:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        run: echo "Use a digest-pinned checkout action"
+      - name: Quality gates
+        run: echo "Lint, type-check, test, scan, and build"
+      - name: Publish immutable artifact
+        run: echo "Sign image digest and attach SBOM/provenance"
+
+  staging:
+    needs: build-once
+    environment: staging
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploy the exact published digest"
+      - run: echo "Run compatible migrations, smoke tests, and selected E2E"
+
+  production-canary:
+    needs: staging
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Shift a bounded traffic percentage to the same digest"
+      - run: echo "Evaluate server SLOs and client RUM; stop or promote"

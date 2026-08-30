@@ -1,0 +1,17 @@
+services:
+  api:
+    build:
+      context: ../../../..
+      dockerfile: notebooks/lecture-03-packages-numpy-pandas/07-end-to-end-data-products/deployment/Containerfile
+    environment:
+      RICE_DSM_DATABASE_PATH: /var/lib/rice-dsm/measurements.sqlite3
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - measurement-data:/var/lib/rice-dsm
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  measurement-data:

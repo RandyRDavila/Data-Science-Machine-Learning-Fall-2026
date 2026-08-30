@@ -1,0 +1,705 @@
+\chapter{The Part I systems view}
+\label{ch:part-i-overview}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish a learned model from the data-driven system that contains it;
+  \item trace a result across data, computational, software, statistical,
+  scientific, and operational boundaries;
+  \item state what each Part I chapter contributes to that system; and
+  \item match a correctness claim with evidence of the appropriate scope.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+This chapter fixes the level of abstraction for Part I. Python objects,
+statistical models, databases, APIs, and deployed applications will be studied
+as components of one evidence-bearing system. Later chapters supply the
+technical details; this chapter states the contracts those details must serve.
+\end{chapterconnection}
+
+\section{The model is one component}
+
+A machine-learning project is often summarized by its model: a random forest,
+neural network, or large language model. That description omits most of the
+system. A model does not determine whether measurements have the correct units,
+whether labels represent the intended quantity, whether features will exist at
+prediction time, or whether a result is safe to use. It also does not version
+its inputs, expose an interface, monitor its behavior, or recover from failure.
+
+\begin{definitionbox}{Machine-learning model}
+A \emph{machine-learning model} is a parameterized rule whose behavior is
+partly determined from data. Given an input representation, it produces an
+output such as a score, category, estimate, generated object, or proposed
+action.
+\end{definitionbox}
+
+\begin{definitionbox}{Data-driven software system}
+A \emph{data-driven software system} is a collection of data, programs,
+interfaces, infrastructure, and operating procedures whose behavior depends
+materially on observed data. It transforms evidence into a prediction,
+decision, explanation, or scientific claim under explicit technical and human
+responsibilities.
+\end{definitionbox}
+
+If a model is written as
+\[
+  f_{\theta}: \mathcal{X} \longrightarrow \mathcal{Y},
+\]
+then model fitting determines parameters \(\theta\) from training data. An
+operated prediction requires a larger composition:
+\[
+  r
+  \xrightarrow{\text{parse}}
+  v
+  \xrightarrow{\text{validate}}
+  x
+  \xrightarrow{f_{\theta}}
+  \widehat{y}
+  \xrightarrow{\text{present}}
+  a.
+\]
+Here \(r\) is a raw record, \(v\) a typed value, \(x\) the model input,
+\(\widehat{y}\) the model output, and \(a\) the result presented to a person or
+another program. A defect in any arrow can invalidate the final result even
+when \(f_{\theta}\) behaves exactly as tested.
+
+\begin{definitionbox}{Engineering boundary}
+An \emph{engineering boundary} is a point at which data, control, ownership, or
+trust passes between contexts. A function call is a small boundary; a file,
+database, remote API, deployment, and human approval cross larger ones. Each
+boundary requires a contract: what enters, what leaves, what may fail, and who
+is responsible.
+\end{definitionbox}
+
+\subsection{Three views of the same work}
+
+The same computation must be legible from three views:
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.20\textwidth}X X@{}}
+\toprule
+\textbf{View} & \textbf{Central questions} & \textbf{Typical failure} \\
+\midrule
+Scientific & What question is being asked? What observations and assumptions
+support the claim? & A proxy is treated as the phenomenon of interest, or
+prediction is mistaken for causation. \\
+Computational & How is meaning represented and transformed? What numerical,
+time, and memory limits apply? & Missingness becomes zero, an array has the
+wrong shape, or an algorithm is numerically unstable. \\
+Operational & How does behavior reach a user? Who may invoke it, how is it
+observed, and how is it recovered? & A stale model is served, an interface
+changes meaning, or a failure has no owner. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+For a classifier predicting material stability, the scientific view asks
+whether the experiment measures stability and whether the evaluation supports
+the stated population. The computational view asks how compositions,
+temperatures, and missing values become features. The operational view asks
+whether the service uses the same feature definition and identifies inputs
+outside the model's domain. These are not separate projects; they are separate
+claims about one result.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} a notebook that runs from top to bottom and reports high
+test accuracy constitutes a complete machine-learning system.
+
+\textbf{Correction:} successful execution describes one run in one
+environment. Test accuracy describes one metric under a sampling design.
+Neither alone establishes valid data, reproducibility, deployability, safety,
+or scientific relevance.
+\end{misconceptionbox}
+
+\subsection{The evidence loop}
+
+An operated system is a loop rather than a pipeline that ends at prediction.
+
+\begin{center}
+\begin{tikzpicture}[node distance=5mm and 5mm]
+  \node[flowbox] (evidence) {Evidence\\files, instruments};
+  \node[flowbox,right=of evidence] (meaning) {Typed meaning\\schema, units};
+  \node[flowbox,right=of meaning] (analysis) {Analysis\\features, models};
+  \node[flowbox,below=of analysis] (product) {Data product\\API, client};
+  \node[flowbox,left=of product] (operate) {Operation\\release, monitoring};
+  \node[flowbox,left=of operate] (learn) {Revision\\tests, redesign};
+  \draw[flowarrow] (evidence) -- (meaning);
+  \draw[flowarrow] (meaning) -- (analysis);
+  \draw[flowarrow] (analysis) -- (product);
+  \draw[flowarrow] (product) -- (operate);
+  \draw[flowarrow] (operate) -- (learn);
+  \draw[flowarrow] (learn) -- (evidence);
+\end{tikzpicture}
+\end{center}
+
+At each arrow, meaning changes representation or context. A file reader needs a
+format, encoding, schema, and missing-value policy. A prediction endpoint needs
+an input schema, authentication rule, model identity, output definition, and
+failure response. After release, logs, outcomes, and user reports become new
+evidence. They may justify a test, a retrained model, a changed interface, or
+retirement of the system.
+
+\begin{workedexample}{A plausible answer from a broken system}
+An instrument records \code{-999} when a temperature sensor fails. A program
+parses the column as numbers, converts every value from Fahrenheit to Celsius,
+and sends the result to a well-evaluated model. The model returns \(0.82\), and
+the interface displays \emph{82\% likely stable}.
+
+The conversion and model may both satisfy their local tests. The composition is
+wrong because a sentinel was treated as a physical measurement. A defensible
+boundary maps the documented sentinel to missingness, checks the physical
+range, preserves the raw record, and records whether the observation was
+rejected or imputed. Representation is part of the scientific argument, not
+merely data cleaning.
+\end{workedexample}
+
+\subsection{Why learned components require additional controls}
+
+Ordinary software already requires clear interfaces, version control, tests,
+security, and observability. Learned behavior adds four complications:
+
+\begin{enumerate}
+  \item \textbf{Data changes behavior.} Training population, labels,
+  preprocessing, and sampling can alter a model without changing its algorithm.
+  \item \textbf{Evaluation is conditional.} A metric has meaning only with its
+  dataset, split design, baseline, uncertainty, and intended use.
+  \item \textbf{Behavior can drift.} Instruments, schemas, populations, and
+  user behavior change after release.
+  \item \textbf{Outputs are not authority.} A score or agent proposal does not
+  acquire permission to create a consequential side effect merely because it
+  was produced automatically.
+\end{enumerate}
+
+Scientific discovery raises the standard further. Prediction may support a
+hypothesis, parameter estimate, mechanism, or experimental decision, but it is
+not identical to any of them. A scientific system must distinguish observation
+from inference, association from intervention, exploration from confirmation,
+and model uncertainty from measurement uncertainty.
+
+\begin{definitionbox}{Data product}
+A \emph{data product} is a maintained interface through which people or
+software obtain value from data. It may be a dataset, report, dashboard, API,
+decision-support tool, scientific workflow, or automated service. A model may
+be one component; contracts, users, delivery, operation, and feedback complete
+the product.
+\end{definitionbox}
+
+The appropriate architecture is the smallest one that protects the required
+contracts. A CSV file can be correct for a small immutable dataset. A database
+is justified by durable identity, queries, transactions, concurrency, or scale.
+An API is justified when a responsibility must cross a process, machine,
+language, team, or trust boundary.
+
+\conceptcheck{For a machine-learning application you know, identify the model,
+the data product, one scientific assumption, one software boundary, and the
+role responsible for recovery.}
+
+\section{The chapter map}
+
+Part I expands the engineering boundary while retaining earlier contracts. A
+deployed API still depends on correctly interpreted strings; a tool-using agent
+still depends on ordinary functions, exceptions, credentials, and tests.
+
+\begin{center}
+\begin{tikzpicture}[node distance=7mm and 5mm]
+  \node[flowbox,text width=27mm] (environment) {1. Environment\\interpreter, shell};
+  \node[flowbox,text width=27mm,right=of environment] (objects) {2. Objects\\values, collections};
+  \node[flowbox,text width=27mm,right=of objects] (contracts) {3. Contracts\\functions, classes, files};
+  \node[flowbox,text width=27mm,right=of contracts] (project) {4. Project\\package, tests, CI};
+  \node[flowbox,text width=27mm,below=of project] (evidence) {5. Evidence\\arrays, tables, plots};
+  \node[flowbox,text width=27mm,left=of evidence] (persistence) {6. Persistence\\SQL, remote data};
+  \node[flowbox,text width=27mm,left=of persistence] (agency) {7. Agency\\models, tools, policy};
+  \node[flowbox,text width=27mm,left=of agency] (product) {8. Product\\API, client, operations};
+  \draw[flowarrow] (environment) -- (objects);
+  \draw[flowarrow] (objects) -- (contracts);
+  \draw[flowarrow] (contracts) -- (project);
+  \draw[flowarrow] (project) -- (evidence);
+  \draw[flowarrow] (evidence) -- (persistence);
+  \draw[flowarrow] (persistence) -- (agency);
+  \draw[flowarrow] (agency) -- (product);
+\end{tikzpicture}
+\end{center}
+
+\subsection{Chapter-by-chapter capabilities}
+
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.05\textwidth}
+  >{\raggedright\arraybackslash}p{0.20\textwidth}
+  >{\raggedright\arraybackslash}p{0.32\textwidth}
+  >{\raggedright\arraybackslash}p{0.34\textwidth}@{}}
+\toprule
+\textbf{Ch.} & \textbf{Boundary} & \textbf{Result} &
+\textbf{Evidence} \\
+\midrule
+\endhead
+1 & Computing environment & Project-local Python environment and matching VS
+Code kernel & Interpreter path, version, and reproducible setup check \\
+2 & Native objects & Transformations using strings, sequences, mappings, sets,
+and iteration & Predicted values and types, explicit mutation, edge cases \\
+3 & Functions, classes, files & Documented domain model and native-file
+knowledge graph & Type hints, NumPy-style documentation, exceptions,
+round-trip tests \\
+4 & Package and workflow & Installable, versioned package with CI & Unit,
+integration, doctest, and notebook checks in a clean environment \\
+5 & Numerical evidence & Array- and table-based analysis with visual evidence &
+Shape and dtype checks, labels, justified encodings, reproducible figures \\
+6 & Durable data & Parameterized query and memory-bounded workflow & Schema,
+transaction, query-safety, and chunking evidence \\
+7 & Model and agent & Provider-independent tool workflow with bounded actions &
+Secret isolation, structured responses, evaluations, budgets, approvals \\
+8 & Operated product & Value traced from storage through API to client &
+Contract tests, release checks, monitoring, and recovery plan \\
+\bottomrule
+\end{longtable}
+
+The sequence has four dependencies. Chapters 1--2 establish computational
+identity and Python's object model. Chapters 3--4 turn reasoning into documented,
+tested, reusable software. Chapters 5--6 introduce numerical structures and
+durable data access. Chapters 7--8 place probabilistic and automated components
+inside operated systems.
+
+\subsection{Milestones}
+
+\begin{description}
+  \item[After Chapter 2: reproducible computation.] A reader can select the
+  correct interpreter, run the work, inspect its objects, and explain its native
+  transformations.
+  \item[After Chapter 4: maintainable component.] Reusable logic lives in an
+  installable package with documented interfaces, tests, and a version.
+  \item[After Chapter 6: evidence workflow.] The project retrieves, validates,
+  transforms, and visualizes data without assuming all data fits in memory.
+  \item[After Chapter 8: operated product.] The project exposes a bounded,
+  observable interface with explicit release and recovery procedures.
+\end{description}
+
+These are cumulative capabilities. When a later boundary exposes a weak earlier
+contract, the earlier contract must be repaired.
+
+\conceptcheck{Choose one chapter-map row. Explain why its result is insufficient
+without the listed evidence, and identify one later chapter that depends on it.}
+
+\section{Correctness has layers}
+
+The assertion \emph{the result is correct} is incomplete unless it names a
+requirement, context, and evidence. A program may compute a formula correctly
+while the formula answers the wrong scientific question. A model may be
+statistically sound while a service feeds it a different feature
+representation.
+
+\begin{definitionbox}{Correctness claim}
+A \emph{correctness claim} states that an artifact or behavior satisfies a
+specified requirement under stated conditions. \emph{The model works} is weak.
+\emph{Model 1.4 meets the prespecified recall threshold on the held-out 2026
+instrument dataset using feature pipeline 3} is testable.
+\end{definitionbox}
+
+\subsection{Six lenses for evaluating a result}
+
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.15\textwidth}
+  >{\raggedright\arraybackslash}p{0.28\textwidth}
+  >{\raggedright\arraybackslash}p{0.27\textwidth}
+  >{\raggedright\arraybackslash}p{0.22\textwidth}@{}}
+\toprule
+\textbf{Lens} & \textbf{Question} & \textbf{Representative evidence} &
+\textbf{Limit} \\
+\midrule
+\endhead
+Data & Do values represent the correct entities, units, identity, and
+missingness? & Provenance, schema, range, calibration, and duplicate checks &
+Does not establish that the measurements answer the question \\
+Computational & Does the algorithm implement the specified mathematics within
+acceptable error? & Reference cases, invariants, convergence and tolerance
+analysis & Does not establish that the algorithm is appropriate \\
+Software & Do components satisfy their contracts when composed? & Unit,
+integration, contract, security, and dependency checks & Tested cases may not
+represent future operation \\
+Statistical & Does the design support the estimator or generalization claim? &
+Sampling rationale, baselines, held-out evaluation, calibration, intervals &
+Association does not imply intervention or importance \\
+Scientific & Do evidence and assumptions support the domain claim? & Controls,
+theory, experimental design, replication, alternative explanations & Does not
+establish that deployment preserves the analysis \\
+Operational & Does the released system deliver intended behavior in use? &
+Version records, logs, metrics, traces, audits, outcomes & Reliability does not
+establish scientific validity \\
+\bottomrule
+\end{longtable}
+
+The limit column prevents evidence from being asked to prove too much. A unit
+test can verify a Fahrenheit-to-Celsius function; it cannot establish that the
+input was Fahrenheit. A held-out set estimates behavior under a sampling
+assumption; it cannot guarantee an unchanged deployment population.
+
+\subsection{Verification, validation, and reproducibility}
+
+\begin{definitionbox}{Verification}
+\emph{Verification} asks whether an implementation satisfies its specification:
+did we build the specified thing correctly? Tests, type checks, static analysis,
+schema checks, and comparison with known results provide verification evidence.
+\end{definitionbox}
+
+\begin{definitionbox}{Validation}
+\emph{Validation} asks whether the specification and system are appropriate for
+the intended use: did we build the right thing? It requires application,
+statistical, scientific, and user evidence.
+\end{definitionbox}
+
+\begin{definitionbox}{Reproducibility}
+\emph{Reproducibility} is the ability to reconstruct a result under documented
+conditions using identified data, code, configuration, dependencies, and
+procedures. It controls computational history; it does not prove validity.
+\end{definitionbox}
+
+A reproducible error remains an error. A validated claim that cannot be
+reconstructed remains difficult to audit or extend. Strong work seeks all
+three.
+
+\subsection{Composition and numerical judgment}
+
+Suppose a producer guarantees a temperature in Celsius and a consumer assumes
+Celsius. Their composition is meaningful only if the guarantee is true and at
+least as strong as the assumption. The type \code{float} cannot express unit,
+calibration, valid range, sample identity, or privacy status. Domain classes,
+schemas, validation, documentation, and tests make more of that contract
+explicit.
+
+Numerical claims also require tolerances. Floating-point equality may be the
+wrong contract; an acceptable tolerance must follow from the algorithm, scale,
+accumulated error, and downstream use. For iterative methods, report convergence
+evidence and nonconvergence. For randomized procedures, a fixed seed aids
+diagnosis but evaluation across seeds measures sensitivity.
+
+\begin{workedexample}{High accuracy, invalid scientific evidence}
+A laboratory records ten measurements from each of one hundred specimens and
+randomly splits the one thousand rows into training and test sets. A classifier
+reports \(94\%\) accuracy.
+
+The implementation can be correct and reproducible while the evaluation is
+invalid for new specimens: measurements from the same specimen occur in both
+sets. If specimen-specific signatures are easy to learn, the score overstates
+generalization. Splitting by specimen identity repairs the statistical
+contract. A regression test can then require disjoint specimen identifiers,
+but domain reasoning is what identified the correct grouping.
+\end{workedexample}
+
+\begin{professionalbox}
+Report only the precision supported by measurement and computation.
+\code{97.2000000000} does not make an instrument more precise. Measurement
+uncertainty, numerical error, rounding, and display formatting are distinct.
+\end{professionalbox}
+
+\subsection{Failure investigation}
+
+When a result is disputed:
+
+\begin{enumerate}
+  \item state the claim, version, conditions, units, tolerance, and intended use;
+  \item preserve and reconstruct the inputs, artifact, environment, and output;
+  \item trace provenance backward to the first violated contract;
+  \item reduce the violation to the smallest representative case;
+  \item repair the data, contract, implementation, or study design at its source;
+  \item add regression evidence at that layer and affected integrations; and
+  \item re-evaluate downstream claims before releasing the correction.
+\end{enumerate}
+
+The required evidence is proportional to consequence, but every consequential
+claim needs an owner and an evidence portfolio spanning the relevant lenses.
+
+\conceptcheck{A pipeline is reproducible, all tests pass, and the deployed model
+matches the evaluated version. Give one statistical and one scientific reason
+its conclusion could still be wrong.}
+
+\section{A professional-practice spine}
+
+\begin{definitionbox}{Professional practice}
+\emph{Professional practice} is the discipline that makes technical work
+understandable, reviewable, reproducible, safe to change, and recoverable. It
+coordinates software artifacts with explicit human responsibility.
+\end{definitionbox}
+
+The operating loop is:
+
+\begin{center}
+\begin{tikzpicture}[node distance=6mm and 5mm]
+  \node[flowbox,text width=25mm] (clarify) {Clarify\\claim, owner};
+  \node[flowbox,text width=25mm,right=of clarify] (preserve) {Preserve\\evidence, context};
+  \node[flowbox,text width=25mm,right=of preserve] (encode) {Encode\\contract, behavior};
+  \node[flowbox,text width=25mm,right=of encode] (verify) {Verify\\tests, review};
+  \node[flowbox,text width=25mm,below=of verify] (release) {Release\\version, approval};
+  \node[flowbox,text width=25mm,left=of release] (observe) {Observe\\signals, outcomes};
+  \node[flowbox,text width=25mm,left=of observe] (learn) {Learn\\repair, revision};
+  \draw[flowarrow] (clarify) -- (preserve);
+  \draw[flowarrow] (preserve) -- (encode);
+  \draw[flowarrow] (encode) -- (verify);
+  \draw[flowarrow] (verify) -- (release);
+  \draw[flowarrow] (release) -- (observe);
+  \draw[flowarrow] (observe) -- (learn);
+  \draw[flowarrow] (learn) -- (clarify);
+\end{tikzpicture}
+\end{center}
+
+Each stage has a concrete obligation.
+
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.22\textwidth}
+  >{\raggedright\arraybackslash}p{0.38\textwidth}
+  >{\raggedright\arraybackslash}p{0.31\textwidth}@{}}
+\toprule
+\textbf{Obligation} & \textbf{Practice} & \textbf{Representative artifact} \\
+\midrule
+\endhead
+Name the boundary & Specify producer, consumer, input, output, failure, and
+owner. & Type, schema, interface contract \\
+Preserve provenance & Retain source evidence and record transformations without
+assuming raw means correct. & Immutable input, checksum, lineage record \\
+Make contracts executable & Encode what software can check; document what
+requires domain judgment. & Validation, types, tests, database constraint \\
+Fail recoverably & Reject invalid states near entry, add safe context, and
+retain a known-good state. & Exception contract, rollback procedure \\
+Version behavior & Identify code, data, dependencies, model, configuration,
+schema, and prompt when they affect results. & Commit, lockfile, dataset and
+model versions \\
+Bound resources and authority & Limit rows, memory, time, retries, cost,
+permissions, and side effects. & Query limit, timeout, scoped credential,
+approval gate \\
+Observe outcomes & Collect signals that answer defined questions while
+protecting secrets and privacy. & Logs, metrics, traces, audits, outcome checks \\
+Design for review & Keep changes coherent and state intent, evidence, risk,
+compatibility, and recovery. & Pull request, CI result, release record \\
+\bottomrule
+\end{longtable}
+
+An exception should identify the violated contract and support a safe response.
+Catch it only to add context, recover, translate it to an interface response, or
+release resources. A retry is appropriate only for a plausibly transient
+failure and an operation safe to repeat.
+
+Version control must extend beyond source code. A commit identifies code but
+not an external dataset, a moving provider default, or an unrecorded training
+configuration. Credentials are configuration but never repository content;
+store them in environment variables or a secret service with the narrowest
+useful permissions.
+
+Observability is similarly scoped. Logs describe events, metrics summarize
+quantities over time, traces follow work across components, and audits record
+consequential authority. None is useful without a question, retention policy,
+and owner responsible for action.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} professional engineering begins only after exploration
+succeeds.
+
+\textbf{Correction:} rigor should match consequence, but a named environment,
+preserved input, explicit function, focused test, and recorded result make even
+exploratory work easier to evaluate and revisit.
+\end{misconceptionbox}
+
+\subsection{Scale rigor with consequence}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}
+  >{\raggedright\arraybackslash}p{0.24\textwidth}
+  >{\raggedright\arraybackslash}X
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Context} & \textbf{Reasonable minimum} & \textbf{Additional controls} \\
+\midrule
+Private exploration & Named environment, preserved input, recorded assumptions,
+reproducible notebook or script & Tests for reused logic, versioned output,
+resource bounds \\
+Shared analysis & Locked environment, provenance, review, statistical evidence &
+Independent reproduction, access control, release record \\
+User-facing product & Contract and end-to-end tests, versioned deployment,
+monitoring, owner, rollback & Security review, incident response, staged
+rollout, client evidence \\
+Consequential automation & Explicit authority, evaluation, approval, audit
+trail, failure analysis & Formal governance, adversarial testing, continuous
+outcome evaluation \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\emph{Done} is therefore contextual. At minimum, the intended behavior is
+implemented; relevant contracts and versions are identified; the evidence is
+appropriate to the claim; and plausible failures have detection, ownership,
+and recovery.
+
+\conceptcheck{Why can adding automation reduce engineering quality when
+authority, evidence, ownership, and recovery remain implicit?}
+
+\section{How to read and use this book}
+
+The text states concepts and contracts; notebooks make them executable; package
+source holds reusable behavior; tests preserve selected expectations. Read by
+moving deliberately among these artifacts.
+
+\begin{definitionbox}{Active computational reading}
+\emph{Active computational reading} treats prose and code as claims to be
+examined. The reader predicts behavior, executes in a known environment,
+inspects the result, explains discrepancies, and records reusable evidence.
+\end{definitionbox}
+
+\subsection{The predict-execute-explain loop}
+
+For each substantial example:
+
+\begin{enumerate}
+  \item state the question and the contract under examination;
+  \item predict the value, type, shape, unit, mutation, or exception;
+  \item execute the smallest relevant case in a known environment;
+  \item inspect values and metadata rather than merely noting success;
+  \item explain the observation from the language rule, algorithm, data, and
+  environment; and
+  \item vary one condition and convert a durable conclusion into a test or note.
+\end{enumerate}
+
+Prediction exposes the current mental model. Variation distinguishes an
+explanation from a story invented after seeing one output.
+
+\subsection{Read code as a contract}
+
+Ask three questions before execution:
+
+\begin{description}
+  \item[Interface.] What enters, returns, or is written? Which types, shapes,
+  units, schemas, and exceptions define the boundary?
+  \item[Mechanism.] Which operations transform the input? What mutable or
+  external state, randomness, file, service, or database affects the result?
+  \item[Evidence.] Which ordinary, boundary, and failure cases are exercised?
+  What important claim remains untested?
+\end{description}
+
+\begin{workedexample}{Interrogating a probability function}
+\begin{lstlisting}
+def mean_probability(values: list[float]) -> float:
+    if not values:
+        raise ValueError("values must not be empty")
+    if any(value < 0 or value > 1 for value in values):
+        raise ValueError("probabilities must lie in [0, 1]")
+    return sum(values) / len(values)
+\end{lstlisting}
+
+The contract is a nonempty sequence of probabilities mapped to its arithmetic
+mean; empty or out-of-range input fails. Predict \code{[0.2, 0.4, 0.6]},
+\code{[]}, and \code{[0.4, 1.2]}. Then inspect what the hints do not enforce at
+runtime and test \code{nan}. Even complete software tests would not establish
+that averaging probabilities is scientifically appropriate.
+\end{workedexample}
+
+\subsection{Use notebooks as laboratories}
+
+\begin{definitionbox}{Notebook state}
+\emph{Notebook state} is the set of names, imported modules, objects, random
+states, environment settings, files, and external resources available to the
+kernel. Visible cell order does not prove execution order.
+\end{definitionbox}
+
+Before treating a notebook as evidence:
+
+\begin{enumerate}
+  \item select and verify the project kernel;
+  \item restart it to remove hidden state;
+  \item run all cells from top to bottom;
+  \item inspect warnings, paths, seeds, inputs, execution order, and invariants;
+  \item after the final edit, restart and run all again.
+\end{enumerate}
+
+When behavior differs from the text, preserve the error, read the final
+exception line, locate the first frame in code you control, and reduce the
+problem before changing dependencies. For \code{ModuleNotFoundError}, first
+compare \code{sys.executable} with the project environment. For a missing file,
+inspect the working directory and use \code{pathlib.Path}. For a numerical
+difference, record inputs, versions, dtype, shape, seed, and tolerance.
+
+\subsection{Move reusable work into durable artifacts}
+
+An exploratory expression belongs in a notebook. Repeated or consequential
+logic belongs in a named function with type hints, a NumPy-style docstring, and
+explicit failure behavior. Package source provides a stable import boundary;
+tests preserve ordinary, edge, and invalid cases; version history records the
+change and its rationale. Import the tested function back into the notebook so
+that the notebook carries the analytical argument rather than a private
+implementation.
+
+A short computational record should identify the question, code and data
+versions, environment, prediction, observed evidence, interpretation, and next
+action. The standard is reconstruction, not length.
+
+\conceptcheck{Why is a cleanly executed notebook necessary but insufficient
+evidence that its author understands the computation or that its scientific
+claim is valid?}
+
+\section{A running case study}
+
+Part I repeatedly enlarges a scientific knowledge system. It begins with small
+records describing entities and relationships:
+
+\begin{enumerate}
+  \item native Python values establish identifiers, labels, and edges;
+  \item classes state invariants, and functions reject invalid relationships;
+  \item CSV and JSON preserve records, with round-trip tests for identity;
+  \item a package and CI make transformations reusable and reviewable;
+  \item arrays, tables, and figures support numerical investigation;
+  \item a database retrieves bounded neighborhoods without loading everything;
+  \item a language-model tool may propose descriptions or edges under schema
+  validation and human review; and
+  \item an API exposes validated queries to a client with operational evidence.
+\end{enumerate}
+
+The point is cumulative design: the deployed product still depends on the
+meaning of a dictionary key and the exception contract defined much earlier.
+Examples will vary across probability, mathematics, physics, chemistry, and
+industrial engineering so that the software principles do not depend on one
+domain.
+
+\conceptcheck{For one value in this system, list the identity, unit or schema,
+provenance, transformation, version, and uncertainty required to interpret it.}
+
+\newpage
+\section{Exercises}
+
+\subsection*{Foundational}
+\begin{enumerate}
+  \item Distinguish a model, a data product, and a data-driven software system.
+  Give one example in which all three have different owners.
+  \item For the claim \emph{the reported temperature is \(97.2\)}, list the
+  missing context under each of the six correctness lenses.
+  \item Explain why verification, validation, and reproducibility are mutually
+  supportive but logically distinct.
+\end{enumerate}
+
+\subsection*{Applied}
+Select one result from a class, laboratory, or public dataset. Trace it backward
+to source evidence and forward to its audience. At each boundary, record the
+representation, contract, owner, likely failure, and available evidence.
+
+\subsection*{Design}
+Write a one-page system charter for a small data product. Specify its question,
+users, evidence, output contract, privacy and safety constraints, version
+identity, resource and authority bounds, monitoring, and recovery. Choose
+technologies only after these responsibilities are explicit.
+
+\begin{chapterreview}
+\textbf{Key ideas.} A learned model is one component of an evidence-bearing
+software system. Correctness claims are scoped by assumptions and require
+different evidence at data, computational, software, statistical, scientific,
+and operational layers. Professional practice makes boundaries, versions,
+authority, ownership, observation, and recovery explicit.
+
+\textbf{Vocabulary.} model; data product; boundary; contract; provenance;
+verification; validation; reproducibility; observability; responsibility.
+
+\textbf{Explain aloud.} How can a model with excellent benchmark performance
+belong to an invalid or unsafe data product?
+\end{chapterreview}
+
+\begin{notebooklink}
+The operational checklist is in
+\code{notebooks/PROFESSIONAL\_PRACTICES.md}. Lecture notebooks supply the
+executable investigations.
+\end{notebooklink}

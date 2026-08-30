@@ -1,0 +1,1052 @@
+\chapter{Git and GitHub: evidence, collaboration, and recovery}
+\label{app:git-github}
+
+Git is sometimes introduced as a place to save code and GitHub as a place to
+upload it. Both descriptions are too weak. A professional data project changes
+continuously: code is revised, datasets acquire new versions, notebooks are
+rerun, assumptions are corrected, and several people may work at once. Without
+an inspectable history, the team cannot reliably answer which change produced a
+result, why a decision was made, whether two analyses used the same source, or
+how to return to the last known good state.
+
+Git makes coherent project states identifiable and comparable. GitHub adds a
+shared location and collaboration system around that history. Together they
+support review, attribution, automation, release, and recovery. They do not
+replace backups, data governance, testing, or scientific records; they connect
+those practices to concrete versions of the project.
+
+\begin{learningobjectives}
+After working through this appendix, you should be able to:
+\begin{itemize}
+  \item distinguish Git, GitHub, a repository, a commit, a branch, a remote,
+  and a pull request;
+  \item explain the working tree, staging area, local repository, and remote
+  repository without relying on memorized commands;
+  \item inspect, stage, commit, compare, and recover changes deliberately;
+  \item use a branch-based GitHub workflow for a small reviewed change;
+  \item synchronize with collaborators and resolve a simple merge conflict;
+  \item protect secrets, large data, environments, and generated artifacts;
+  \item interpret a GitHub Actions workflow and use CI evidence during review;
+  and
+  \item follow a conservative daily workflow that works in VS Code on Windows,
+  macOS, and Linux.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Version control is part of the professional-practice spine, not an isolated
+tool. It identifies the code and documentation used by notebooks, packages,
+tests, data pipelines, models, APIs, and deployments. Chapter~5 develops tests
+and CI; this appendix supplies the history and review workflow that make those
+checks useful during change.
+\end{chapterconnection}
+
+\section{Why version control matters in data science}
+
+A data-science result is rarely produced by one immutable script. Exploration
+creates alternatives; cleaning rules evolve; features are redefined; model
+parameters change; plots are revised; and conclusions are challenged. The
+history matters for at least six reasons.
+
+\begin{description}
+  \item[Reproducibility.] A result can name the exact source revision that
+  produced it rather than ``the code from last month.''
+  \item[Review.] A collaborator can inspect the proposed difference instead of
+  rereading the entire project and guessing what changed.
+  \item[Attribution.] Commits record authorship, time, and intent. They help a
+  team locate the person or discussion with relevant context; they are not a
+  measure of individual productivity.
+  \item[Parallel work.] Branches allow independent changes to proceed without
+  continuously overwriting one shared directory.
+  \item[Recovery.] Recorded snapshots provide known states to compare, restore,
+  or counteract when an experiment or release fails.
+  \item[Automation.] CI systems can test the precise revision proposed for
+  integration and attach the evidence to its review.
+\end{description}
+
+Version control is evidence about artifacts and decisions. It does not prove
+that the data was valid, the analysis was unbiased, or the conclusion was true.
+A perfectly versioned invalid experiment remains invalid. The value of Git is
+that the exact artifact can be examined, challenged, and connected to other
+evidence.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} Git is useful only when several programmers collaborate.
+
+\textbf{Correction:} a solo researcher also changes assumptions, revisits old
+results, makes mistakes, and needs to communicate with a future version of
+themself. Small coherent commits make that reasoning inspectable before a second
+person joins the project.
+\end{misconceptionbox}
+
+\section{Git and GitHub are different systems}
+
+\term{Git} is an open-source distributed version-control system that runs on
+your computer. Most Git operations, including commits, branches, comparisons,
+and history inspection, do not require a network connection. A clone contains a
+project history and can create new history locally.
+
+\term{GitHub} is a hosted collaboration platform built around Git repositories.
+It provides remote hosting, accounts and permissions, pull requests, reviews,
+issues, releases, Actions, and other services. GitHub is not required to use
+Git, and Git can communicate with hosting services other than GitHub.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}
+  >{\raggedright\arraybackslash}p{0.22\textwidth}
+  >{\raggedright\arraybackslash}X
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Question} & \textbf{Git} & \textbf{GitHub} \\
+\midrule
+Where does it operate? & Primarily in a local repository on your computer & As
+a network service containing hosted repositories and collaboration records \\
+What does it identify? & Snapshots, commits, branches, tags, and relationships
+between them & Accounts, repositories, pull requests, reviews, issues, workflow
+runs, releases, and permissions \\
+Does it require the internet? & Not for ordinary local history operations & Yes
+for interacting with the hosted service \\
+Typical commands or actions & \code{status}, \code{diff}, \code{add},
+\code{commit}, \code{switch}, \code{merge}, \code{log} & Open a pull request,
+review files, inspect checks, manage an issue, merge an approved change \\
+What does ``save'' mean? & Writing a file is separate from committing a staged
+snapshot & Pushing transfers local commits; the GitHub copy is not updated by a
+local save or commit alone \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+VS Code supplies a graphical Source Control view for many Git operations, but
+the underlying states are the same. This appendix shows commands because they
+make inputs and effects explicit and transfer across operating systems. You may
+use the graphical interface after you can predict which Git state it will
+change.
+
+\begin{workedexample}{Saved is not committed, and committed is not shared}
+A student edits \code{analysis.py} in VS Code and saves it. The file is now on
+disk in the working tree, but no Git history contains the edit. The student runs
+\code{git add analysis.py}; the current contents enter the staging area, but no
+commit exists yet. After \code{git commit}, the snapshot exists in the local
+repository. A collaborator still cannot see it on GitHub until the containing
+branch is pushed to a remote the collaborator can access.
+
+Each claim has distinct evidence: the editor or filesystem shows the saved file;
+\code{git diff} and \code{git status} show the working change;
+\code{git diff --staged} shows the proposed snapshot; \code{git log} shows the
+local commit; and the GitHub branch or a fetch from the remote shows that the
+commit was shared. Saying ``I saved it'' leaves all but the first state unknown.
+\end{workedexample}
+
+\section{The four-state mental model}
+
+Most beginner confusion disappears when four locations are kept distinct.
+
+\begin{center}
+\begin{tikzpicture}[node distance=10mm]
+  \node[flowbox] (work) {Working tree\\files you edit};
+  \node[flowbox,right=of work] (stage) {Staging area\\next snapshot};
+  \node[flowbox,right=of stage] (local) {Local repository\\commits};
+  \node[flowbox,right=of local] (remote) {Remote repository\\shared commits};
+  \draw[flowarrow] (work) -- (stage);
+  \draw[flowarrow] (stage) -- (local);
+  \draw[flowarrow] (local) -- (remote);
+  \draw[flowarrow] (remote.south) .. controls +(0,-0.65) and +(0,-0.65) .. (local.south);
+\end{tikzpicture}
+
+\smallskip
+{\small
+\code{git add}: working tree $\rightarrow$ staging \quad
+\code{git commit}: staging $\rightarrow$ local repository\\[2pt]
+\code{git push}: local $\rightarrow$ remote \quad
+\code{git fetch}: remote $\rightarrow$ local
+}
+\end{center}
+
+\textbf{The working tree} is the checked-out directory visible in VS Code. Saving
+a file changes the working tree, not Git history.
+
+\textbf{The staging area}, also called the index, is Git's proposed content for
+the next commit. Staging is selection, not a permanent save. If a staged file is
+edited again, one version can be staged while newer edits remain unstaged.
+
+\textbf{The local repository} is the history stored under the hidden
+\code{.git} directory. A commit records the staged project snapshot, metadata,
+a message, and parent commit. It does not automatically appear on GitHub.
+
+\textbf{A remote repository} is another repository reachable through a named
+network location. \code{origin} is a conventional local nickname for the remote
+used when cloning; it is not a special server or a branch.
+
+These locations explain common surprises. \code{git diff} normally shows
+unstaged working-tree changes. \code{git diff --staged} shows what the next
+commit would contain. A clean working tree says that tracked local files match
+the current commit; it does not say the branch has been pushed or is current
+with GitHub.
+
+\begin{professionalbox}
+Use \code{git status} before and after every unfamiliar Git command. Read its
+output as evidence: current branch, relationship to its upstream branch, staged
+changes, unstaged changes, and untracked files. Do not treat status as an error
+message to dismiss.
+\end{professionalbox}
+
+\section{Commits, branches, and HEAD}
+
+Git stores project snapshots as commits connected to parent commits. The
+resulting history is a directed graph. A branch is a movable name pointing to a
+commit; creating one does not duplicate the entire project. \code{HEAD} normally
+refers to the branch currently checked out.
+
+\begin{center}
+\begin{tikzpicture}[
+  commit/.style={circle,draw=RiceBlue,fill=RiceLightBlue,minimum size=7mm,font=\scriptsize},
+  labelnode/.style={font=\small,align=left}
+]
+  \node[commit] (a) at (0,0) {A};
+  \node[commit] (b) at (2,0) {B};
+  \node[commit] (c) at (4,0) {C};
+  \node[commit] (d) at (6,0.9) {D};
+  \node[commit] (e) at (6,-0.9) {E};
+  \draw[flowarrow] (a) -- (b);
+  \draw[flowarrow] (b) -- (c);
+  \draw[flowarrow] (c) -- (d);
+  \draw[flowarrow] (c) -- (e);
+  \node[labelnode,right=3mm of d] {\code{main}};
+  \node[labelnode,right=3mm of e] {\code{feature}\\\code{HEAD}};
+\end{tikzpicture}
+\end{center}
+
+In this graph, both branches share commits A through C. Work on \code{main}
+produced D; work on \code{feature} produced E. A later merge can integrate the
+histories. Switching branches moves \code{HEAD} and updates the working tree to
+the selected snapshot. Git may refuse to switch when uncommitted changes would
+be overwritten; that refusal protects evidence.
+
+Commit identifiers are content-derived hexadecimal names, usually displayed in
+abbreviated form. A branch name is convenient and movable; a commit identifier
+names one historical state. Results that require durable reproducibility should
+record a commit identifier or release tag, not only ``main,'' because
+\code{main} will move.
+
+\section{First-time setup}
+
+Install Git using the current instructions for your operating system, then open
+the repository folder in VS Code and use \textbf{Terminal: New Terminal}. The
+integrated terminal may be PowerShell on Windows and a shell such as zsh or bash
+on macOS or Linux. The Git commands in this appendix are the same in each; we
+avoid shell-specific commands for creating or editing files.
+
+Verify Git and set the identity written into future commits:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git --version
+git config --global user.name "Your Name"
+git config --global user.email "you@example.edu"
+git config --global init.defaultBranch main
+git config --global --list
+\end{lstlisting}
+
+The name and email are commit metadata, not GitHub authentication. They should
+identify your work accurately. If email privacy matters, use the no-reply address
+provided by your GitHub account and follow the account's current email settings.
+Repository-specific settings can override global settings by omitting
+\code{--global} while inside that repository.
+
+Authentication is a separate boundary. GitHub supports HTTPS and SSH remote
+URLs. For HTTPS, a credential manager or \code{gh auth login} can complete a
+browser-based sign-in; account passwords are not used as Git credentials. SSH
+uses a private key on your computer and a corresponding public key registered
+with GitHub. Follow GitHub's current setup instructions rather than pasting a
+token into a command, file, notebook, or remote URL.
+
+\begin{warningbox}
+Never commit a password, API key, access token, private SSH key, database URL, or
+credential file. Deleting it in a later commit does not remove it from earlier
+history. Revoke or rotate an exposed credential immediately, then follow the
+repository owner's incident and history-cleanup process.
+\end{warningbox}
+
+\section{Worked lesson 1: build a local history}
+
+This lesson requires no GitHub account and makes no network changes. Create an
+empty folder named \code{git-practice} outside the course repository, open that
+folder in a separate VS Code window, and open its integrated terminal.
+
+\subsection*{Step 1: initialize and inspect}
+
+\begin{lstlisting}[language=bash,numbers=none]
+git init -b main
+git status
+\end{lstlisting}
+
+\code{git init} creates the hidden local repository. The \code{-b main} option
+names the initial branch. No project snapshot exists until the first commit.
+
+\subsection*{Step 2: create the first artifact}
+
+In VS Code, create \code{README.md} containing:
+
+\begin{lstlisting}[numbers=none,commentstyle=\color{CodeComment}]
+# Probability experiment
+
+This project records a small reproducible experiment.
+\end{lstlisting}
+
+Save the file, then inspect and stage it:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status
+git diff -- README.md
+git add README.md
+git status
+git diff --staged
+\end{lstlisting}
+
+Before \code{git add}, the file is untracked, so ordinary \code{git diff} may not
+display its contents. After staging, \code{git diff --staged} shows the exact
+snapshot proposed for the commit.
+
+\subsection*{Step 3: make and inspect a commit}
+
+\begin{lstlisting}[language=bash,numbers=none]
+git commit -m "Document the probability experiment"
+git status
+git log --oneline --decorate
+git show --stat --oneline HEAD
+\end{lstlisting}
+
+The commit message completes the sentence ``If applied, this commit will...''
+with a concise action. \code{HEAD} refers to the current commit. A clean status
+now means the working tree and staging area match that commit.
+
+\subsection*{Step 4: separate two changes}
+
+Create \code{experiment.py} in VS Code:
+
+\begin{lstlisting}
+outcomes = [True, False, True, True, False]
+estimated_probability = sum(outcomes) / len(outcomes)
+print(estimated_probability)
+\end{lstlisting}
+
+Also add a sentence to \code{README.md} explaining that the estimate is the
+fraction of observed successes. Save both files and run:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status --short
+git diff
+git add experiment.py
+git diff --staged
+git commit -m "Add a Bernoulli probability estimate"
+git status --short
+\end{lstlisting}
+
+Only \code{experiment.py} entered that commit. The README edit remains in the
+working tree. Now review, stage, and commit it separately:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git diff -- README.md
+git add README.md
+git diff --staged
+git commit -m "Explain the probability estimate"
+git log --oneline --decorate --graph --all
+\end{lstlisting}
+
+This is the purpose of staging: construct one reviewable snapshot from selected
+work. \code{git add .} is convenient but broad; named paths make intent visible
+and reduce accidental inclusion.
+
+\begin{checkpointbox}
+Edit \code{experiment.py}, stage it, and then edit it again. Use \code{git status},
+\code{git diff}, and \code{git diff --staged} to identify which version is in
+each state. Explain what a commit would record before running any commit command.
+\end{checkpointbox}
+
+\section{Design coherent commits}
+
+A useful commit is a review and recovery unit. It should express one coherent
+intent, include the tests and documentation required by that intent, and avoid
+unrelated formatting or generated noise. ``One intent'' does not mean one file:
+a feature may properly change source, tests, documentation, and configuration
+together.
+
+Before committing, ask:
+
+\begin{itemize}
+  \item Can I state the purpose in one specific sentence?
+  \item Does every staged line contribute to that purpose?
+  \item Did I include tests, documentation, schema, or migration changes needed
+  for the contract?
+  \item Did I inspect both unstaged and staged differences?
+  \item Did I run the relevant checks from the intended environment?
+  \item Is any secret, private data, large generated file, or local path present?
+\end{itemize}
+
+Prefer an imperative subject such as ``Validate probability bounds'' over
+``changes,'' ``updates,'' or ``worked on notebook.'' The body of a larger commit
+can explain why the change is needed, important constraints, and consequences
+that are not obvious from the diff. A commit message should explain intent; it
+should not repeat filenames already visible in the snapshot.
+
+\section{Ignore local and generated state deliberately}
+
+A \code{.gitignore} file names untracked paths that Git should normally omit
+from status and staging. This repository ignores the project virtual
+environment, Python caches, notebook checkpoints, LaTeX intermediates, editor
+state, local secrets, and most local data. That policy keeps the repository
+small and prevents machine-specific artifacts from obscuring meaningful change.
+
+\begin{lstlisting}[numbers=none]
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.env
+data/raw/*
+data/processed/*
+\end{lstlisting}
+
+Ignoring is not security. It reduces accidental staging but does not protect a
+file that was already tracked, explicitly forced into staging, copied elsewhere,
+or exposed outside Git. Use \code{git check-ignore -v PATH} to determine which
+rule ignores a path. Use \code{git ls-files PATH} to determine whether Git already
+tracks it.
+
+Git is optimized for source-like artifacts, not arbitrary data storage. Do not
+commit virtual environments, dependency downloads, database files, model
+checkpoints, or large raw datasets merely for convenience. Store reproducible
+instructions, schemas, small teaching fixtures, checksums, and controlled
+references instead. When a project genuinely requires versioned large binaries,
+choose an approved artifact store or Git LFS and document the retrieval and
+retention policy. GitHub currently warns for regular Git files above 50 MiB and
+blocks files above 100 MiB; institutional and repository policies may be
+stricter.
+
+\section{Worked lesson 2: branches isolate change}
+
+Return to \code{git-practice} with a clean working tree. Create and switch to a
+branch in one command:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status
+git switch -c feature/validate-probabilities
+git branch --show-current
+git log --oneline --decorate --graph --all
+\end{lstlisting}
+
+Edit \code{experiment.py} so that invalid values are rejected. One possible
+version is:
+
+\begin{lstlisting}
+def mean_probability(values: list[float]) -> float:
+    if not values:
+        raise ValueError("values must not be empty")
+    if any(value < 0 or value > 1 for value in values):
+        raise ValueError("probabilities must lie in [0, 1]")
+    return sum(values) / len(values)
+
+
+print(mean_probability([1.0, 0.0, 1.0, 1.0, 0.0]))
+\end{lstlisting}
+
+Review and commit:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git diff --check
+git diff -- experiment.py
+git add experiment.py
+git diff --staged
+git commit -m "Validate probability inputs"
+git log --oneline --decorate --graph --all
+\end{lstlisting}
+
+Switch to the main branch and inspect the file:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch main
+git log --oneline --decorate --graph --all
+git switch feature/validate-probabilities
+\end{lstlisting}
+
+The function disappears on \code{main} and returns on the feature branch because
+the working tree follows \code{HEAD}. No work was lost. The branch names point
+to different commits.
+
+To integrate the completed branch locally:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch main
+git merge --ff-only feature/validate-probabilities
+git log --oneline --decorate --graph --all
+git branch -d feature/validate-probabilities
+\end{lstlisting}
+
+A fast-forward moves \code{main} to the descendant commit without creating a
+merge commit. Deleting the merged branch removes a movable name, not the commits
+now reachable from \code{main}. In a shared GitHub repository, integration
+normally happens through a reviewed pull request instead of a local merge.
+
+\section{Connect a repository to GitHub}
+
+There are two common starting paths.
+
+\textbf{Clone an existing repository.} On GitHub, copy the HTTPS or SSH URL from
+the repository's Code menu. In a parent directory, run:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git clone <repository-url>
+cd <repository-directory>
+git remote -v
+git status
+\end{lstlisting}
+
+Cloning creates a new directory, copies reachable history, checks out a branch,
+and records the source remote as \code{origin}. Angle-bracketed names above are
+placeholders; replace them, including the brackets, with actual values.
+
+\textbf{Publish an existing local repository.} First create an empty GitHub
+repository without an automatically generated README or license, then connect
+the local history:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git remote add origin <repository-url>
+git remote -v
+git push -u origin main
+\end{lstlisting}
+
+The \code{-u} option records \code{origin/main} as the upstream for local
+\code{main}, allowing later \code{git push} and status comparisons to infer the
+destination. Pushing transfers commits and branch references; it does not upload
+uncommitted files.
+
+If you lack write permission to a repository, GitHub's fork model can create a
+repository under your account from which you propose a pull request. A fork is
+a GitHub repository relationship, not the same concept as a local branch.
+
+\section{The daily branch and pull-request workflow}
+
+GitHub flow is a lightweight branch-based workflow. For this course, use the
+following conservative sequence unless an assignment specifies otherwise.
+
+\subsection*{1. Begin from an inspected, current base}
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status
+git switch main
+git fetch origin
+git status -sb
+git pull --ff-only
+\end{lstlisting}
+
+\code{git fetch} downloads remote commits and updates remote-tracking names such
+as \code{origin/main}; it does not rewrite your working files. Inspect before
+integrating. \code{git pull --ff-only} permits only an unambiguous fast-forward
+and stops if local and remote history diverged.
+
+\subsection*{2. Create one purpose-specific branch}
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch -c feature/add-calibration-check
+\end{lstlisting}
+
+Use a short descriptive name. Separate unrelated work into separate branches so
+review, delay, or rejection of one change does not entangle another.
+
+\subsection*{3. Work in small verified steps}
+
+Edit in VS Code. Frequently inspect:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status --short
+git diff
+uv run pytest -q
+uv run ruff check src tests scripts
+\end{lstlisting}
+
+Stage explicit paths and review the proposed commit:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git add src/rice_dsm tests
+git diff --staged --check
+git diff --staged
+git commit -m "Validate calibration ranges"
+\end{lstlisting}
+
+\subsection*{4. Publish the branch}
+
+\begin{lstlisting}[language=bash,numbers=none]
+git push -u origin feature/add-calibration-check
+\end{lstlisting}
+
+The feature branch now exists locally and on GitHub. Future commits pushed to
+that branch automatically update its pull request.
+
+\subsection*{5. Open a pull request}
+
+On GitHub, choose the feature branch as the compare branch and \code{main} as the
+base branch. The pull request asks to integrate the feature history into the
+base; it is not merely a notification that coding is finished. A strong
+description answers:
+
+\begin{itemize}
+  \item What problem or scientific need does this change address?
+  \item What behavior, assumptions, data, or interfaces changed?
+  \item What evidence was run, and what does it not prove?
+  \item What should the reviewer inspect especially carefully?
+  \item What could fail, and how would the team recover?
+\end{itemize}
+
+Use a draft pull request when the design or evidence needs early discussion.
+Read the Files changed tab as the integrated proposal, not merely commit by
+commit. Inspect automated checks and respond to review with additional commits;
+do not resolve a conversation until the concern is actually addressed or moved
+to an explicit follow-up issue.
+
+\subsection*{6. Merge and clean up}
+
+After required review and checks pass, use the repository's selected merge
+strategy. GitHub may offer merge commits, squash merging, or rebasing; the team
+should choose deliberately and consistently. Delete the merged remote branch,
+then synchronize locally:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch main
+git pull --ff-only
+git branch -d feature/add-calibration-check
+\end{lstlisting}
+
+\begin{professionalbox}
+Never push directly to a protected default branch simply because you have
+permission. Branch protection, review, and required checks make integration a
+visible decision. Administrator ability is not evidence that bypassing the
+process is appropriate.
+\end{professionalbox}
+
+\section{Review is a technical skill}
+
+A reviewer is not a final syntax checker. Review challenges the change at
+several levels.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}
+  >{\raggedright\arraybackslash}p{0.20\textwidth}
+  >{\raggedright\arraybackslash}X
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Lens} & \textbf{Reviewer question} & \textbf{Possible evidence} \\
+\midrule
+Intent & Does the diff solve the stated problem without unrelated change? &
+Issue, pull-request description, coherent commits \\
+Contract & Are inputs, outputs, errors, schemas, units, and compatibility clear? &
+Types, docstrings, validation, interface tests \\
+Correctness & Does behavior hold for ordinary, boundary, and failure cases? &
+Focused tests, properties, independent calculation \\
+Data and science & Are provenance, leakage, uncertainty, and interpretation
+addressed? & Data checks, split design, evaluation, domain review \\
+Operations & Can the change be observed, bounded, secured, and recovered? &
+Logs, limits, permissions, migration and rollback plan \\
+Maintainability & Can a future contributor understand and safely change it? &
+Names, structure, documentation, small diff \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Review comments should identify the observation and its consequence. Prefer
+``This parser accepts a missing unit, so Celsius and Fahrenheit records can
+become indistinguishable; could validation reject an absent unit?'' over ``This
+looks wrong.'' Ask questions when context is missing. Mark nonblocking
+suggestions as such. Authors should explain disagreement with evidence rather
+than silently obeying or dismissing feedback.
+
+\section{Synchronize without guessing}
+
+Three commands are often confused:
+
+\begin{description}
+  \item[\code{git fetch origin}] Downloads remote objects and updates local
+  remote-tracking references. It does not integrate them into the current branch.
+  \item[\code{git merge origin/main}] Integrates the fetched \code{origin/main}
+  history into the current branch, possibly by fast-forward or merge commit.
+  \item[\code{git pull}] Fetches and then integrates according to configuration
+  and options. Because it combines steps, inspect status and use an explicit
+  policy such as \code{--ff-only} when that is the intended result.
+\end{description}
+
+Useful comparisons after fetching include:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status -sb
+git log --oneline --decorate --graph --all -n 20
+git log main..origin/main --oneline
+git diff main...origin/main
+\end{lstlisting}
+
+The two-dot log above asks which commits are reachable from \code{origin/main}
+but not local \code{main}. The three-dot diff compares each side from their
+merge base and is useful for reviewing branch work. These notations are precise
+but easy to reverse; state the question before trusting the output.
+
+When a shared base moves while your feature branch is open, fetch first. The
+repository may prefer merging \code{origin/main} into the feature or rebasing
+the feature onto it. Rebasing rewrites commit identities and therefore requires
+coordination; do not rebase commits that other people may have based work upon
+unless the team workflow explicitly permits it.
+
+\section{Worked lesson 3: create and resolve a conflict}
+
+A conflict is not Git corruption. It means two histories made incompatible
+changes and Git refuses to invent the intended result. Practice locally in
+\code{git-practice} while its status is clean.
+
+\subsection*{Step 1: create competing histories}
+
+Create a branch from \code{main}:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch main
+git switch -c experiment/use-observed-rate
+\end{lstlisting}
+
+Edit one specific README sentence to say ``The reported estimate is the observed
+success rate.'' Commit it:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git add README.md
+git commit -m "Define the estimate as an observed rate"
+\end{lstlisting}
+
+Return to \code{main}, create another branch, and change the same original
+sentence to ``The reported estimate is a model probability.''
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch main
+git switch -c experiment/use-model-probability
+git add README.md
+git commit -m "Define the estimate as a model probability"
+\end{lstlisting}
+
+\subsection*{Step 2: attempt integration}
+
+While on \code{experiment/use-model-probability}, run:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git merge experiment/use-observed-rate
+git status
+\end{lstlisting}
+
+Git should report a content conflict. VS Code will show a merge editor or the
+underlying markers:
+
+\begin{lstlisting}[numbers=none]
+  <<<<<<< HEAD
+The reported estimate is a model probability.
+  =======
+The reported estimate is the observed success rate.
+  >>>>>>> experiment/use-observed-rate
+\end{lstlisting}
+
+\code{HEAD} is the checked-out side; the other label names the merged side. The
+final answer need not be either side verbatim. Decide the domain meaning first.
+For this example, replace the entire marked region with a scientifically precise
+sentence such as ``The script reports an observed success rate; it estimates a
+probability only under stated sampling assumptions.'' Remove all markers.
+
+\subsection*{Step 3: validate and complete}
+
+\begin{lstlisting}[language=bash,numbers=none]
+git diff --check
+git diff
+git add README.md
+git status
+git commit -m "Reconcile the probability interpretation"
+git log --oneline --decorate --graph --all
+\end{lstlisting}
+
+Staging the file marks the conflict as resolved because you have selected its
+final content. The merge commit records both parent histories. Run relevant
+tests after resolution: choosing text that removes markers does not prove the
+combined behavior is correct.
+
+If you realize the merge began from the wrong state and have not committed its
+resolution, \code{git merge --abort} normally returns to the pre-merge state.
+Inspect \code{git status} before and after. Do not use destructive cleanup
+commands merely to make the conflict display disappear.
+
+\begin{checkpointbox}
+Explain why Git could not safely choose between ``observed rate'' and ``model
+probability.'' Then identify the scientific assumption introduced by the
+resolved sentence. The conflict was textual, but the correct resolution required
+domain reasoning.
+\end{checkpointbox}
+
+\section{Recover conservatively}
+
+Recovery begins by classifying the state: untracked, unstaged, staged,
+committed locally, pushed publicly, or merged. A command appropriate for one
+state may destroy evidence in another.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}
+  >{\raggedright\arraybackslash}p{0.23\textwidth}
+  >{\raggedright\arraybackslash}p{0.27\textwidth}
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Intent} & \textbf{Conservative command} & \textbf{Meaning and caution} \\
+\midrule
+Inspect current state & \code{git status}; \code{git diff};
+\code{git diff --staged} & Read before changing anything \\
+Remove a path from staging & \code{git restore --staged PATH} & Keeps the
+working-tree edit but removes it from the proposed commit \\
+Discard an unstaged tracked edit & \code{git restore PATH} & Overwrites
+uncommitted content; inspect and preserve needed work first \\
+Correct the most recent unpushed commit & \code{git commit --amend} & Replaces
+that commit with a new identity; avoid after sharing \\
+Counteract a shared commit & \code{git revert COMMIT} & Creates a new commit
+whose change reverses the selected commit, preserving public history \\
+Abandon an unfinished merge & \code{git merge --abort} & Attempts to restore the
+pre-merge state; check status and preserve unrelated work \\
+Locate recently moved references & \code{git reflog} & Diagnostic record that
+can help an experienced user recover otherwise unreachable commits \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Commands such as \code{git reset --hard}, \code{git clean -fd}, and force push
+can permanently discard uncommitted work or rewrite shared history. They are
+not routine fixes. Stop, inspect exact targets, copy irreplaceable files outside
+the repository, and seek review before using them. Never follow a destructive
+command copied from an error search without understanding which state it changes.
+
+\begin{warningbox}
+Git does not record ordinary uncommitted edits. If a file was never committed or
+stashed, Git may be unable to recover it after a destructive restore, clean, or
+reset. Version control complements backups and editor recovery; it is not a
+substitute for either.
+\end{warningbox}
+
+\section{Notebooks, data, and generated artifacts}
+
+Jupyter notebooks are JSON documents containing source, metadata, execution
+counts, and possibly outputs. A tiny logical edit can therefore create a noisy
+diff, and hidden kernel state can make a recorded output disagree with visible
+source. Before committing a teaching or analysis notebook:
+
+\begin{enumerate}
+  \item select the intended project kernel;
+  \item restart and run all cells from top to bottom;
+  \item inspect warnings, outputs, execution order, and data paths;
+  \item remove accidental exploration, secrets, and machine-specific metadata;
+  \item retain outputs only when repository policy says they teach or document
+  something useful;
+  \item inspect the Git diff and run the notebook regression tests; and
+  \item keep reusable logic in package modules with focused tests.
+\end{enumerate}
+
+Data requires a separate versioning design. Git can identify small immutable
+fixtures, schemas, metadata, and transformation code. It is often the wrong
+storage system for sensitive records, frequently changing databases, or large
+scientific arrays. Record a dataset identifier, checksum, provenance, schema,
+access procedure, and transformation revision so that Git history can refer to
+the evidence without embedding it improperly.
+
+Generated artifacts should have an explicit policy. If a PDF, figure, or model
+is tracked, document why the built output belongs in review and how to reproduce
+it. Otherwise ignore it and let CI or a release system build it. Avoid commits in
+which meaningful source changes are hidden beneath hundreds of regenerated
+lines.
+
+\section{GitHub Actions turns history into automated evidence}
+
+GitHub Actions is an automation platform attached to repository events. A
+\term{workflow} is a YAML file under \code{.github/workflows}. An event such as
+a push, pull request, manual dispatch, or schedule triggers one or more jobs.
+Each job runs on a runner and contains ordered steps. A step may run a shell
+command or invoke a reusable action.
+
+This repository's \code{course-ci.yml} workflow runs on pushes, pull requests,
+and manual dispatch. It grants read-only repository contents permission, cancels
+obsolete runs for the same branch, and evaluates the course on Linux, macOS,
+and Windows. Each runner installs the pinned tools, reproduces the locked
+environment, prepares the notebook kernel, checks style, builds the package, and
+runs all package, repository, and notebook tests. A final gate requires every
+operating-system job to pass.
+
+The core structure is:
+
+\begin{lstlisting}[numbers=none]
+name: Course CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  course-quality:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: uv sync --locked
+      - run: uv run ruff check src tests scripts
+      - run: uv run pytest -q
+\end{lstlisting}
+
+The excerpt omits setup steps for focus; the checked-in workflow is the
+executable authority. Third-party actions are code executed with the workflow's
+permissions. Pinning an action to a reviewed commit identifier reduces the risk
+that a moving tag silently changes behavior. Keep workflow permissions narrow,
+avoid exposing secrets to untrusted changes, set timeouts and concurrency
+deliberately, and review dependency updates.
+
+A green check has a precise meaning: the configured workflow passed for that
+revision under those runner conditions. It does not prove the tests are
+sufficient, the statistical design is valid, or deployment is safe. A red check
+is evidence to inspect, not a button to rerun until it turns green. Open the job,
+find the first meaningful failure, reproduce it locally when possible, repair
+the cause, and push a new commit.
+
+\section{A command map by intention}
+
+Memorize questions before commands.
+
+\begin{longtable}{@{}
+  >{\raggedright\arraybackslash}p{0.31\textwidth}
+  >{\raggedright\arraybackslash}p{0.58\textwidth}@{}}
+\toprule
+\textbf{Question or intention} & \textbf{Command} \\
+\midrule
+\endhead
+Where am I and what changed? & \code{git status}; \code{git status --short} \\
+Which branch is checked out? & \code{git branch --show-current} \\
+What is unstaged? & \code{git diff} \\
+What is staged for the next commit? & \code{git diff --staged} \\
+Does the diff contain whitespace errors? & \code{git diff --check};
+\code{git diff --staged --check} \\
+Select a path for the next commit & \code{git add PATH} \\
+Unstage while keeping the working edit & \code{git restore --staged PATH} \\
+Record the staged snapshot & \code{git commit -m "Imperative summary"} \\
+Inspect compact history & \code{git log --oneline --decorate --graph --all} \\
+Inspect one commit & \code{git show COMMIT} \\
+Create and switch to a branch & \code{git switch -c BRANCH} \\
+Switch to an existing branch & \code{git switch BRANCH} \\
+List local and remote-tracking branches & \code{git branch -avv} \\
+List configured remotes & \code{git remote -v} \\
+Download remote history without integrating & \code{git fetch origin} \\
+Fast-forward the current branch from its upstream & \code{git pull --ff-only} \\
+Publish a new branch and record its upstream & \code{git push -u origin BRANCH} \\
+Integrate only if a fast-forward is possible & \code{git merge --ff-only BRANCH} \\
+Abort an unfinished merge & \code{git merge --abort} \\
+Create a public counteracting commit & \code{git revert COMMIT} \\
+Determine why a path is ignored & \code{git check-ignore -v PATH} \\
+Determine whether a path is tracked & \code{git ls-files PATH} \\
+\bottomrule
+\end{longtable}
+
+Run \code{git COMMAND --help} for the complete installed manual. Options and
+defaults matter; read the command you are about to execute rather than assembling
+fragments from unrelated examples.
+
+\section{Principles to carry into professional work}
+
+\begin{enumerate}
+  \item \textbf{Inspect before changing state.} Status and diffs are part of the
+  operation, not optional cleanup.
+  \item \textbf{Commit one coherent intent.} Make history readable enough to
+  review, test, and reverse selectively.
+  \item \textbf{Branch by purpose.} Keep unrelated work and review conversations
+  independent.
+  \item \textbf{Never use the repository as a secret store.} Ignore files for
+  convenience; use credential systems for security.
+  \item \textbf{Keep data identity separate from data bulk.} Version schemas,
+  provenance, code, and identifiers; store sensitive or large evidence in an
+  appropriate controlled system.
+  \item \textbf{Treat pull requests as reasoning records.} Explain intent,
+  evidence, risk, and review decisions.
+  \item \textbf{Protect shared history.} Prefer additive correction with revert;
+  coordinate any history rewrite.
+  \item \textbf{Interpret CI precisely.} A check supports only the contracts it
+  actually exercises.
+  \item \textbf{Make recovery proportional and conservative.} Classify the state,
+  preserve evidence, then choose the narrowest operation.
+  \item \textbf{Name released artifacts by immutable revisions.} Moving branch
+  names are convenient for development, not sufficient provenance for a result.
+\end{enumerate}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+
+\begin{enumerate}
+  \item Draw the working tree, staging area, local repository, and remote
+  repository. Place \code{add}, \code{commit}, \code{push}, and \code{fetch} on
+  the correct transitions. Explain what each command does not do.
+  \item Distinguish a branch, a remote-tracking branch, a fork, and a pull
+  request. Give a situation in which all four appear.
+  \item A file is listed as both staged and modified. Explain how this state can
+  arise and which two diff commands reveal its two versions.
+\end{enumerate}
+
+\subsection*{Applied}
+
+Complete Worked Lessons 1 through 3 in a disposable practice repository. Submit
+the output of \code{git log --oneline --decorate --graph --all}, one staged diff,
+and a short explanation of the conflict resolution. Do not submit the hidden
+\code{.git} directory.
+
+Inspect this course repository's \code{.gitignore} and
+\code{.github/workflows/course-ci.yml}. For five ignored path groups, explain
+the failure prevented. For every CI step, name the contract it checks and one
+important failure it cannot detect.
+
+\subsection*{Design}
+
+Design a GitHub workflow for a four-person scientific software team. Specify
+branch naming, commit expectations, required pull-request evidence, reviewers,
+CI checks, data and secret policy, merge strategy, release tags, and emergency
+recovery authority. Include one case where a green CI run should still block
+merge and one case where rewriting history is justified but requires
+coordination.
+
+\begin{chapterreview}
+\textbf{Key ideas.} Git records selected project snapshots and their history;
+GitHub organizes shared review and automation around that history. The staging
+area constructs the next commit. Branches are movable commit references, not
+copied folders. Pull requests expose proposed integration, discussion, and CI
+evidence. Recovery begins by identifying state and choosing the narrowest safe
+operation.
+
+\textbf{Vocabulary.} repository; working tree; staging area; commit; branch;
+HEAD; remote; remote-tracking branch; clone; fetch; push; merge; conflict; fork;
+pull request; workflow; runner; revert.
+
+\textbf{Explain aloud.} Why are ``my file is saved,'' ``my change is committed,''
+and ``my branch is on GitHub'' three different claims?
+\end{chapterreview}
+
+\section{Official references}
+
+Interfaces and recommendations evolve. Verify account, authentication, and
+workflow details against the current official documentation:
+
+\begin{itemize}
+  \item \href{https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository}{Pro Git: Recording Changes to the Repository}
+  \item \href{https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell}{Pro Git: Branches in a Nutshell}
+  \item \href{https://git-scm.com/docs}{Git command reference}
+  \item \href{https://docs.github.com/en/get-started/using-github/github-flow}{GitHub flow}
+  \item \href{https://docs.github.com/en/authentication}{GitHub authentication}
+  \item \href{https://docs.github.com/en/pull-requests}{Pull requests and review}
+  \item \href{https://docs.github.com/en/actions}{GitHub Actions}
+  \item \href{https://docs.github.com/en/repositories/working-with-files/managing-large-files}{GitHub large-file guidance}
+\end{itemize}
+
+\conceptcheck{A teammate says, ``Everything is safe because I pushed it to a
+branch and CI passed.'' Which claims are supported, which are not, and what
+additional evidence would you request before merging?}

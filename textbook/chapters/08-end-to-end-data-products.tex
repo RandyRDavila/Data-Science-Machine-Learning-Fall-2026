@@ -1,0 +1,322 @@
+\chapter{End-to-end data products}
+\label{ch:end-to-end}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item define the endpoints and real boundaries of an end-to-end claim;
+  \item trace one value through database, service, API, network, and client;
+  \item distinguish build, deployment, serving, and monitoring responsibilities; and
+  \item select tests and telemetry for client and server failure modes.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+This chapter is the Part I synthesis. It follows one value across every boundary
+introduced earlier: typed representation, validation, reusable software,
+tests, durable storage, an HTTP interface, a client, deployment, and operational
+evidence. No single layer can protect the complete path by itself.
+\end{chapterconnection}
+
+\section{End to end is a scoped claim}
+
+``End to end'' means from an explicitly named beginning to an explicitly named
+end through the real boundaries claimed by a workflow or test. An instrument
+event to a curated database row, a browser action to visible confirmation, and
+a Git commit to a running artifact are different end-to-end paths.
+
+An in-process API test with a temporary database is a valuable vertical-slice
+test. It is not a deployed browser test through DNS, TLS, a load balancer,
+application instances, and a managed database. Name the actual boundary rather
+than using ``end to end'' as a synonym for comprehensive.
+
+\section{One request across the system}
+
+Consider an instrument submitting a temperature measurement:
+
+\begin{center}
+\begin{tikzpicture}[node distance=5mm]
+  \node[flowbox] (client) {Instrument\\client};
+  \node[flowbox,right=of client] (api) {HTTP API\\validation};
+  \node[flowbox,right=of api] (service) {Domain\\service};
+  \node[flowbox,right=of service] (repo) {Repository\\transaction};
+  \node[flowbox,below=of repo] (db) {Database\\durable state};
+  \node[flowbox,left=of db] (read) {Read API\\bounded query};
+  \node[flowbox,left=of read] (browser) {Browser\\visible state};
+  \draw[flowarrow] (client) -- (api);
+  \draw[flowarrow] (api) -- (service);
+  \draw[flowarrow] (service) -- (repo);
+  \draw[flowarrow] (repo) -- (db);
+  \draw[dataarrow] (db) -- (read);
+  \draw[dataarrow] (read) -- (browser);
+\end{tikzpicture}
+\end{center}
+
+The client sends JSON over HTTPS with identity, time, value, unit, and an
+idempotency key. The API validates the public request model and HTTP semantics.
+The domain service applies scientific or business policy. The repository owns
+parameterized storage operations. The database enforces persistent constraints.
+A later bounded query maps private rows into a public response that browser code
+renders safely.
+
+Each arrow is a contract. Ask about schema, units, identity, authentication,
+authorization, retry behavior, ordering, latency, failure, and compatibility.
+
+\section{Request anatomy}
+
+For \code{GET /api/v1/measurements/latest?limit=20}, \code{GET} is the HTTP
+method, \code{/api/v1/measurements/latest} is the path, and \code{limit=20} is a
+query parameter. Method plus path identify an endpoint. Request headers carry
+metadata. A request body can carry structured input. A response includes a
+status code, headers, and optional result or error body.
+
+The API is the agreement about these operations and semantics. JSON is one data
+representation, HTTP is a protocol, and the server is a running implementation.
+
+\section{Retries make writes ambiguous}
+
+If a client times out after a POST request, it may not know whether the server
+committed the write. Blind retry can create a duplicate. An idempotency key lets
+the service recognize the same logical request and return the established
+result. The key needs a defined scope, retention period, and transaction with
+the effect it protects.
+
+Explicit error models are part of the public API. Validation errors, conflicts,
+authorization failures, unavailable dependencies, and internal defects should
+produce stable machine-readable categories without exposing internal secrets.
+
+\section{Frontend, backend, and hosting}
+
+The \term{backend} implements server-side API, policy, orchestration, and
+integrations. The \term{frontend} presents state and interaction, commonly in a
+browser. A \term{client} may instead be a phone, instrument, script, or another
+service.
+
+A production request may pass through DNS, a content delivery network, web
+application firewall, TLS termination, and a load balancer or API gateway before
+reaching application compute. The application may use a managed database,
+object store, queue, model service, and telemetry pipeline. Cloud products fill
+roles; the architecture should be understandable without vendor names.
+
+\section{CI/CD for production}
+
+A release pipeline should build one immutable artifact, scan and test it,
+deploy the same digest through environments, run migrations with compatible
+application versions, and preserve rollback or roll-forward options.
+
+Continuous delivery retains an explicit production decision. Continuous
+deployment automates that decision for qualifying changes. Canary and blue-green
+strategies reduce exposure; they do not replace compatibility design, database
+recovery, or incident ownership.
+
+\section{Monitor the client and server}
+
+Server logs alone cannot explain a blank browser screen that failed before an
+API request. A complete operational picture combines:
+
+\begin{itemize}
+  \item structured logs for discrete events and diagnostic context;
+  \item metrics for rates, distributions, saturation, and alerting;
+  \item traces for causal paths across services and dependencies;
+  \item real-user monitoring for page, network, device, and JavaScript outcomes;
+  \item synthetic journeys for controlled external checks; and
+  \item privacy-reviewed retention and cardinality policies.
+\end{itemize}
+
+Correlation or trace identifiers connect evidence across boundaries. Do not use
+personal data or secrets as identifiers. Service-level objectives translate
+user-relevant reliability into measurable targets and response policy.
+
+\section{Testing the real boundary}
+
+Unit tests protect domain behavior. Repository integration tests exercise real
+database semantics. Contract tests protect producer-consumer compatibility.
+Vertical-slice tests send requests through API, service, and test database.
+Browser component tests cover rendering and accessibility with controlled data.
+Deployed journeys cover selected real network and hosting boundaries.
+
+Phone and operating-system testing also has layers: responsive browser
+viewports, browser engines, Android emulators, iOS simulators, cloud device
+farms, and physical devices. Changing a user-agent string is not phone
+emulation.
+
+\begin{checkpointbox}
+Define an end-to-end test for one measurement becoming visible on a phone. Name
+the exact start, end, real dependencies, test data, cleanup, expected evidence,
+and failures that remain outside the claim.
+\end{checkpointbox}
+
+\section{Worked example: trace one value without skipping a boundary}
+
+An instrument records \code{21.7} degrees Celsius at 14:03:12 UTC. We will
+follow that value until a scientist sees it in a browser.
+
+\begin{workedexample}{measurement to visible evidence}
+\textbf{1. Client representation.} The instrument constructs a request with
+\code{experiment\_id}, a timestamp including its time-zone convention,
+\code{value=21.7}, \code{unit="degC"}, and an idempotency key. Local validation
+catches malformed fields but cannot authenticate the instrument to the server.
+
+\textbf{2. Network request.} The client sends an authenticated HTTPS POST. TLS
+protects transport to the configured endpoint; server-side authorization still
+decides whether this identity may write to this experiment.
+
+\textbf{3. Public API model.} The API parses JSON into typed fields, rejects
+unknown or invalid input, and maps expected failures to stable HTTP responses.
+It does not pass an arbitrary client dictionary directly to SQL.
+
+\textbf{4. Domain service.} Application policy checks experiment state, allowed
+units, plausible bounds, and duplicate-request behavior. Unit conversion, if
+permitted, occurs in one named and tested place.
+
+\textbf{5. Repository transaction.} The repository binds values to a
+parameterized statement. The measurement and idempotency record commit in the
+same transaction so a retry cannot produce a second logical observation.
+
+\textbf{6. Read path.} A bounded query retrieves the stored record. A response
+model exposes only public fields and states the unit explicitly.
+
+\textbf{7. Browser rendering.} Client code checks the response status, decodes
+JSON, escapes text, formats the timestamp, and renders \code{21.7 degrees C}.
+Accessibility semantics ensure that the result is not communicated by color
+alone.
+
+\textbf{8. Operational evidence.} A correlation identifier connects safe log
+events and traces across the request. Metrics count latency and failures. A
+client error reporter can reveal a rendering defect that server telemetry
+cannot see.
+\end{workedexample}
+
+At every stage, distinguish the value from its representation. The floating
+point number in Python, bytes in JSON, a typed database column, and text in the
+browser are not the same object. Contracts preserve identity, units, and
+meaning across conversions.
+
+\section{A timeout is an uncertainty about state}
+
+Suppose the server commits the measurement, but the response is lost. The
+client observes a timeout. It cannot infer that the transaction failed. If it
+retries with a new request identity, the server may record a duplicate. If it
+retries with the same idempotency key, the service can return the result of the
+original logical request.
+
+This is why retry policy cannot be added as a generic networking convenience.
+Read operations are often safe to repeat, while writes require application
+semantics. The database constraint, idempotency record, and effect must share a
+transaction boundary or a crash can separate them.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} end-to-end testing means testing everything, so one
+large browser test can replace lower-level tests.
+
+\textbf{Correction:} every end-to-end claim has named endpoints and omitted
+risks. Broad tests give valuable integration evidence but are slower and less
+diagnostic. Unit, integration, contract, vertical-slice, and deployed tests
+protect different boundaries and should form a deliberate portfolio.
+\end{misconceptionbox}
+
+\section{From commit to production}
+
+The following stages answer different questions:
+
+\begin{longtable}{@{}p{0.19\textwidth}p{0.33\textwidth}p{0.38\textwidth}@{}}
+\toprule
+\textbf{Stage} & \textbf{Question} & \textbf{Typical evidence} \\
+\midrule
+\endhead
+Build & Can source become an immutable artifact? & dependency lock, compiler or
+package output, artifact digest \\
+Verify & Does the candidate satisfy declared checks? & tests, type checks,
+security and license scans \\
+Deploy & Can that exact artifact enter an environment? & deployment record,
+configuration validation, migration status \\
+Release & Should users receive traffic now? & approval or policy decision,
+canary health, feature flag state \\
+Operate & Does the product meet user-relevant objectives? & metrics, traces,
+logs, client outcomes, incident record \\
+\bottomrule
+\end{longtable}
+
+Building twice for two environments weakens traceability because the binaries
+may differ. Configuration can vary, but the verified artifact digest should
+remain stable. Database changes require special care: old and new application
+versions may overlap during rolling deployment, so schema evolution must be
+compatible with both until the transition completes.
+
+\section{Worked incident: the API is healthy but the page is blank}
+
+Server dashboards show low latency and no increase in 5xx responses, yet users
+report a blank results panel. This evidence narrows the hypothesis; it does not
+prove the product is healthy.
+
+Start with the user-visible path. Real-user monitoring shows a rise in browser
+exceptions after frontend release \code{web-184}. Traces show that the API
+returned 200 responses with a newly nullable field. A client log identifies a
+formatting function that assumes the field is always numeric. The incident is a
+consumer-contract failure: transport and backend serving succeeded while the
+client could not render valid new data.
+
+Recovery may disable the release or activate a feature flag. Prevention may
+add a contract test for the nullable field, a component test for its visible
+fallback, and a canary check that observes browser rendering. Each artifact
+answers a specific question; ``add more monitoring'' is too vague to be an
+action.
+
+\conceptcheck{For the blank-page incident, what would logs, metrics, traces,
+real-user monitoring, and a synthetic journey each contribute? Which signal is
+closest to the user's actual outcome?}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+\begin{enumerate}
+  \item Distinguish JSON, HTTP, an endpoint, an API, a server, and a client.
+  \item Explain authentication versus authorization using the instrument
+  request.
+  \item Compare a log event, metric, and trace. Give one question each answers.
+\end{enumerate}
+
+\subsection*{Applied}
+\begin{enumerate}
+  \item Specify success and error responses for creating a measurement. Include
+  validation, duplicate, authorization, and dependency failures.
+  \item Design a vertical-slice test from HTTP request through a temporary real
+  database. State what production boundaries it intentionally omits.
+  \item Write a release checklist for a schema change that makes a response
+  field nullable. Include producer, consumer, rollout, and rollback evidence.
+\end{enumerate}
+
+\subsection*{Design}
+Define an end-to-end path for a scientific or industrial product of your
+choice. Draw every process, network, data, and human boundary. For each arrow,
+state the contract, likely failure, test layer, telemetry, authority, and
+recovery owner. End with one precise service-level objective tied to a user
+outcome.
+
+\begin{chapterreview}
+\textbf{Key ideas.} End to end is a scoped statement about real boundaries.
+Meaning must survive representation changes. Retries can make write outcomes
+ambiguous, so idempotency is a domain and transaction concern. CI/CD moves one
+verified artifact through controlled environments. Operational evidence must
+include the client-visible outcome.
+
+\textbf{Vocabulary.} client; server; API; endpoint; HTTP method; status code;
+JSON; authentication; authorization; idempotency; frontend; backend; artifact;
+deployment; release; canary; log; metric; trace; real-user monitoring; SLO.
+
+\textbf{Explain aloud.} How can every server dashboard look healthy while the
+data product is unusable, and what evidence would reveal the gap?
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 3 notebook 07 implements a package-backed FastAPI, service, repository,
+SQLite database, and responsive client. Companion files map the local vertical
+slice to containers, CI/CD, browser testing, and monitoring artifacts.
+\end{notebooklink}
+
+\section{Part I takeaway}
+
+A professional data scientist must be able to follow meaning across boundaries.
+Part I began with a Python value and ends with an operated system. Models become
+useful products only when data, interfaces, software, infrastructure, evidence,
+and responsibility work together.

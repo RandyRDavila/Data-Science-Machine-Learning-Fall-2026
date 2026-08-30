@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Scientific Measurement Monitor</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        color-scheme: light dark;
+      }
+
+      body {
+        margin: 0;
+        background: Canvas;
+        color: CanvasText;
+      }
+
+      main {
+        width: min(70rem, calc(100% - 2rem));
+        margin-inline: auto;
+        padding-block: 1.5rem;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      button {
+        min-height: 2.75rem;
+        padding-inline: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid currentColor;
+        font: inherit;
+      }
+
+      #measurements {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 0;
+        list-style: none;
+      }
+
+      .measurement {
+        border: 1px solid color-mix(in srgb, CanvasText 25%, transparent);
+        border-radius: 0.75rem;
+        padding: 1rem;
+      }
+
+      @media (min-width: 48rem) {
+        #measurements {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Scientific Measurement Monitor</h1>
+      <p>Latest validated temperatures from the teaching API.</p>
+      <div class="toolbar">
+        <button id="refresh" type="button">Refresh measurements</button>
+        <output id="status" aria-live="polite">Ready.</output>
+      </div>
+      <ul id="measurements" aria-label="Latest measurements"></ul>
+    </main>
+    <script>
+      const statusOutput = document.querySelector("#status");
+      const measurementList = document.querySelector("#measurements");
+      const refreshButton = document.querySelector("#refresh");
+
+      function renderMeasurements(measurements) {
+        measurementList.replaceChildren();
+        for (const measurement of measurements) {
+          const item = document.createElement("li");
+          item.className = "measurement";
+          item.textContent = `${measurement.sensor_id}: ${measurement.temperature_c} °C (${measurement.risk_level})`;
+          measurementList.append(item);
+        }
+      }
+
+      async function loadMeasurements() {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 5000);
+        statusOutput.textContent = "Loading…";
+        refreshButton.disabled = true;
+        try {
+          const response = await fetch("/api/v1/measurements/latest?limit=20", {
+            headers: {"Accept": "application/json"},
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const measurements = await response.json();
+          renderMeasurements(measurements);
+          statusOutput.textContent = `Loaded ${measurements.length} measurements.`;
+        } catch (error) {
+          statusOutput.textContent = "Measurements are temporarily unavailable.";
+          console.error("measurement request failed", error);
+        } finally {
+          window.clearTimeout(timeout);
+          refreshButton.disabled = false;
+        }
+      }
+
+      refreshButton.addEventListener("click", loadMeasurements);
+      loadMeasurements();
+    </script>
+  </body>
+</html>

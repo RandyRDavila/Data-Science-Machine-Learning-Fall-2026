@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Privacy-reviewed client event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event",
+    "frontend_release",
+    "route",
+    "device_class",
+    "browser_family",
+    "duration_ms",
+    "outcome",
+    "request_id"
+  ],
+  "properties": {
+    "event": {"type": "string", "maxLength": 80},
+    "frontend_release": {"type": "string", "maxLength": 80},
+    "route": {"type": "string", "maxLength": 120},
+    "device_class": {"enum": ["wide-pointer", "narrow-touch", "other"]},
+    "browser_family": {"enum": ["chromium", "firefox", "webkit", "other"]},
+    "duration_ms": {"type": "number", "minimum": 0},
+    "outcome": {"enum": ["success", "error", "timeout", "offline"]},
+    "request_id": {"type": "string", "maxLength": 80}
+  }
+}

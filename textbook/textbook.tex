@@ -1,0 +1,40 @@
+\documentclass[11pt,letterpaper,openany]{book}
+
+\usepackage{style/rice-dsm-book}
+
+\begin{document}
+
+\frontmatter
+\input{frontmatter/title}
+\input{frontmatter/preface}
+\tableofcontents
+
+\mainmatter
+\part{Foundations for Data-Driven Software Systems}
+\input{chapters/00-part-i-overview}
+\input{chapters/01-computational-workshop}
+\input{chapters/02-python-data-model}
+\input{chapters/03-functions-classes-native-data}
+\input{chapters/04-projects-packages-testing}
+\input{chapters/05-arrays-tables-visual-evidence}
+\input{chapters/06-databases-data-systems}
+\input{chapters/07-llm-tools-agents}
+\input{chapters/08-end-to-end-data-products}
+
+\appendix
+\input{appendices/setup-reference}
+\input{appendices/git-github}
+\input{appendices/glossary}
+
+\backmatter
+\chapter*{Where the book goes next}
+\addcontentsline{toc}{chapter}{Where the book goes next}
+Part I establishes the computational and engineering language needed to study
+machine learning responsibly. Later parts will develop the statistical and
+mathematical theory of learning, supervised and unsupervised methods, model
+assessment, and modern applications. Their structure will be added only after
+the corresponding course arc is designed and tested.
+
+\printindex
+
+\end{document}

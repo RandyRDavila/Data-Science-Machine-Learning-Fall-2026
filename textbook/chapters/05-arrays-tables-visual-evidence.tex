@@ -1,0 +1,469 @@
+\chapter{Arrays, tables, and visual evidence}
+\label{ch:arrays-tables-viz}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item reason about a NumPy array using shape, axes, and data type;
+  \item distinguish vectorization from a mere syntax shortcut;
+  \item use pandas labels while guarding alignment and missingness; and
+  \item design a visualization as an honest, reproducible scientific argument.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+The preceding chapters built trustworthy Python interfaces. We now use mature
+scientific packages through those interfaces. NumPy adds regular numerical
+structure, pandas adds labels and heterogeneous columns, and visualization
+turns selected relationships into arguments that other people must interpret.
+\end{chapterconnection}
+
+\section{From Python containers to arrays}
+
+A Python list can hold references to heterogeneous objects. A NumPy
+\term{array} stores a regular, multidimensional collection governed by a shape
+and data type. That structure supports compact memory layouts and operations
+implemented over entire blocks of values.
+
+For an array with shape $(m,n)$, axis 0 indexes $m$ rows and axis 1 indexes $n$
+columns. An operation such as \code{mean(axis=0)} reduces rows and returns one
+mean per column. ``Across rows'' is ambiguous; name the axis and resulting
+shape.
+
+\begin{lstlisting}
+import numpy as np
+
+measurements = np.array(
+    [[20.1, 101.2], [20.4, 100.9], [20.8, 101.0]],
+    dtype=np.float64,
+)
+
+column_means = measurements.mean(axis=0)
+assert measurements.shape == (3, 2)
+assert column_means.shape == (2,)
+\end{lstlisting}
+
+The data type is part of the numerical contract. Integer overflow, floating
+roundoff, missing-value representation, and implicit coercion can change a
+result without changing array shape.
+
+\section{Vectorization and broadcasting}
+
+Vectorization expresses operations over arrays so optimized compiled loops can
+perform the elementwise work. It often improves clarity and performance, but it
+does not remove algorithmic cost or memory allocation.
+
+Broadcasting compares dimensions from the right and permits compatible
+singleton dimensions to act as if repeated. Always predict the result shape
+before relying on broadcasting. An operation that runs can still combine the
+wrong scientific axes.
+
+\begin{warningbox}
+Vectorization can allocate enormous temporary arrays. Measure the working set,
+use in-place operations only when ownership is safe, and consider chunked or
+streaming computation when the full result cannot fit comfortably in memory.
+\end{warningbox}
+
+\section{Shape is syntax; axis meaning is semantics}
+
+NumPy can verify whether dimensions are compatible. It cannot know what the
+dimensions mean. An array with shape $(100,3)$ might represent 100 patients and
+three biomarkers, 100 time points and three spatial coordinates, or 100
+simulations and three model parameters. The same matrix multiplication can be
+dimensionally valid in all three cases while answering entirely different
+questions.
+
+Before an important operation, write a small shape ledger:
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Name} & \textbf{Shape} & \textbf{Axis meaning} \\
+\midrule
+\code{x} & $(n,d)$ & observations $\times$ features \\
+\code{beta} & $(d,)$ & one coefficient per feature \\
+\code{x @ beta} & $(n,)$ & one score per observation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The ledger makes the intended contraction visible: the feature axis of
+\code{x} meets the feature axis of \code{beta}. If \code{x} were transposed,
+the operation should fail rather than be reshaped until it runs. A reshape
+changes an interpretation unless you can explain where every axis went.
+
+\begin{definitionbox}{vectorization}
+Vectorization expresses a collection of related operations through an array
+interface whose looping occurs in optimized lower-level code. It changes where
+iteration is expressed; it does not make the iteration, memory traffic, or
+algorithmic complexity disappear.
+\end{definitionbox}
+
+\section{Data type is a numerical design decision}
+
+An array's \term{dtype} determines how each value is represented and which
+operations are available. Integers are exact inside a finite range. Floating
+point values cover a much larger dynamic range but approximate most real
+numbers. Boolean arrays support logical masks. Date-time types attach a time
+unit. Strings and generic Python-object arrays have different storage and
+performance behavior from regular numeric arrays.
+
+Three questions belong in every numerical review:
+
+\begin{enumerate}
+  \item \textbf{Range:} can the representation hold the largest magnitude that
+  an intermediate computation may produce?
+  \item \textbf{Precision:} can it distinguish changes that matter to the
+  analysis?
+  \item \textbf{Missingness:} how will absent, invalid, censored, or not-yet-
+  observed values be represented without confusing their meanings?
+\end{enumerate}
+
+For floating point work, equality is often the wrong contract. A computed value
+may differ from an algebraically equivalent result by a small rounding error.
+Use a tolerance derived from the problem's scale and numerical method, then
+state whether the tolerance is absolute, relative, or both. The convenience of
+\code{np.allclose} does not choose a scientifically meaningful tolerance.
+
+For sums of values with very different magnitudes, operation order may matter.
+For probabilities near zero or one, algebraically equivalent formulas can have
+very different numerical stability. Numerical analysis is not a repair applied
+after modeling; it is part of deciding what computation the model actually
+performs.
+
+\section{pandas adds labeled structure}
+
+A pandas \term{Series} combines values with an index. A \term{DataFrame}
+combines columns, row labels, and heterogeneous column data types. Labels reduce
+some positional errors and introduce alignment behavior that must be understood.
+
+Arithmetic between Series aligns by index label, not necessarily by physical
+position. A join encodes assumptions about key uniqueness and relationship
+cardinality. Missing values interact with each column's data type and with the
+semantics of an aggregation.
+
+\begin{professionalbox}
+Before a groupby, join, or pivot, state what one row represents, which keys are
+unique, whether missing groups should appear, and how row counts should change.
+Check those claims after the operation.
+\end{professionalbox}
+
+Tables are not automatically tidy, independent, or statistically valid. pandas
+makes transformations expressive; scientific meaning still belongs to the
+analyst and data contract.
+
+\subsection*{State what one row means}
+
+Suppose a table has columns \code{experiment}, \code{sensor}, \code{time\_s},
+and \code{temperature\_c}. If one row is one sensor reading, then grouping by
+experiment and taking a mean produces one row per experiment only after we
+decide how sensors and time points should be weighted. If one sensor recorded
+twice as often, a naive mean weights that sensor twice as much. pandas will
+execute the aggregation faithfully; it cannot determine whether that weighting
+matches the estimand.
+
+Indexes also carry assumptions. A default integer index may merely identify
+current row positions. A domain index such as \code{experiment\_id} claims that
+the labels have stable meaning and perhaps uniqueness. Set an index because its
+semantics support an operation, not because it makes the display attractive.
+
+\begin{definitionbox}{tidy observational table}
+In a common tidy representation, each row is one observational unit, each
+column is one variable, and each cell contains one value. This convention is a
+useful design tool, not a proof that observations are independent or that the
+table is suitable for a particular statistical model.
+\end{definitionbox}
+
+\section{Visualization is a transformation}
+
+A figure maps data and decisions into marks, positions, color, size, facets,
+scales, labels, and annotations. Every choice emphasizes some comparisons and
+suppresses others.
+
+Matplotlib supplies low-level control and a broad scientific ecosystem. Seaborn
+adds statistical plotting conventions over pandas data. Plotly supports
+interactive graphics. Tool choice follows the communication goal, audience,
+output medium, accessibility requirements, and reproducibility needs.
+
+An honest workflow records:
+
+\begin{itemize}
+  \item the data snapshot and filtering rules;
+  \item units, transformations, aggregation, and uncertainty;
+  \item scale limits and whether an axis is linear or logarithmic;
+  \item random seed and simulation parameters;
+  \item color choices that remain interpretable without color alone; and
+  \item the code and package versions that produced the artifact.
+\end{itemize}
+
+\subsection*{Choose an encoding from the comparison}
+
+A chart type should follow the question rather than habit:
+
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.28\textwidth}
+>{\raggedright\arraybackslash}p{0.28\textwidth}
+>{\raggedright\arraybackslash}p{0.35\textwidth}@{}}
+\toprule
+\textbf{Question} & \textbf{Useful starting point} & \textbf{Common risk} \\
+\midrule
+\endhead
+How does one quantity vary with another? & scatter plot, perhaps with a
+model summary & overplotting, hidden groups, implying causation \\
+How does a quantity evolve in ordered time? & line plot with observed points &
+connecting missing intervals or unrelated units \\
+How do distributions differ across groups? & ECDF, interval plot, box or violin
+plot with observations & hiding sample size, multimodality, or unequal support \\
+How uncertain is an estimate? & point and interval with the estimand named &
+unlabeled interval type or visually treating uncertainty as error \\
+How are values arranged over two dimensions? & heat map with a justified scale
+and color map & perceptual distortion, inaccessible color, hidden normalization \\
+\bottomrule
+\end{longtable}
+
+Position along a common scale usually supports more precise comparison than
+area, volume, or angle. Color can reveal grouping or magnitude, but it should
+not carry the only copy of essential information. Interactive hover text can
+add detail; the unhovered figure still needs a title, axes, units, legend,
+caption, and visible central claim.
+
+\section{Simulation as executable reasoning}
+
+Simulation can make probability and dynamical behavior visible. A random seed
+supports reproducibility of one run; it does not prove robustness. Compare
+multiple seeds or summarize a distribution when variability matters.
+
+For a Monte Carlo estimator $\widehat{\theta}_n$, distinguish numerical error,
+sampling variability, model assumptions, and implementation defects. More
+samples may reduce Monte Carlo variance while leaving structural bias intact.
+
+\begin{workedexample}{use probability theory to test a simulation}
+Let $X_1,\ldots,X_n$ be independent Bernoulli random variables with success
+probability $p$. The sample mean
+
+\[
+  \widehat{p}=\frac{1}{n}\sum_{i=1}^{n}X_i
+\]
+
+has expectation $p$ and standard deviation
+$\sqrt{p(1-p)/n}$. We can use this mathematical result as an independent oracle
+for a vectorized simulation.
+
+\begin{lstlisting}
+import numpy as np
+
+rng = np.random.default_rng(438)
+p = 0.30
+n = 1_000
+repetitions = 5_000
+
+success_counts = rng.binomial(n=n, p=p, size=repetitions)
+estimates = success_counts / n
+
+empirical_center = estimates.mean()
+empirical_sd = estimates.std(ddof=1)
+theoretical_sd = np.sqrt(p * (1 - p) / n)
+
+assert estimates.shape == (repetitions,)
+assert np.isclose(empirical_center, p, atol=0.01)
+assert np.isclose(empirical_sd, theoretical_sd, rtol=0.05)
+\end{lstlisting}
+
+\textbf{Step 1: identify the simulated object.} Each entry of
+\code{success\_counts} is one binomial count summarizing 1,000 Bernoulli trials.
+The array axis indexes repeated experiments, not individual observations.
+
+\textbf{Step 2: vectorize at the right level.} We request 5,000 independent
+counts directly. Materializing a $(5000,1000)$ Boolean array would also work,
+but it would consume more memory to answer the same probability question.
+
+\textbf{Step 3: separate reproducibility from validity.} The local random-number
+generator and seed reproduce this particular stream. They do not establish that
+the binomial model is appropriate for real observations.
+
+\textbf{Step 4: compare with theory.} The analytic standard deviation is a test
+oracle independent of the random sample. Tolerances reflect expected Monte
+Carlo fluctuation; they are not selected merely to make the assertions pass.
+
+\textbf{Step 5: visualize the sampling distribution.} A histogram or empirical
+cumulative distribution function should be labeled as a distribution of
+\emph{estimates across repeated experiments}. It is not the distribution of
+individual Bernoulli observations.
+\end{workedexample}
+
+This example illustrates a reusable scientific pattern: derive what should be
+true, implement the simulation, compare independent evidence, and explain the
+remaining modeling assumptions. Simulation complements probability theory; it
+does not replace it.
+
+\begin{checkpointbox}
+You receive a table with one row per sensor reading. Design a figure comparing
+two instruments over time. State the row meaning, units, missing-data policy,
+aggregation, uncertainty representation, accessibility choices, and two tests
+for the transformation feeding the plot.
+\end{checkpointbox}
+
+\section{Worked example: standardize three sensor channels}
+
+Suppose rows represent time points and columns represent sensors. We want to
+subtract each sensor's mean and divide by its standard deviation. The formula
+for entry $(i,j)$ is
+
+\[
+  z_{ij}=\frac{x_{ij}-\bar{x}_j}{s_j}.
+\]
+
+The subscript $j$ matters: statistics are computed down rows separately for
+each column.
+
+\begin{workedexample}{predict shape before execution}
+\begin{lstlisting}
+import numpy as np
+
+x = np.array(
+    [
+        [10.0, 100.0, 1.1],
+        [12.0, 104.0, 0.9],
+        [14.0, 102.0, 1.0],
+        [16.0, 106.0, 1.2],
+    ]
+)
+
+means = x.mean(axis=0)
+scales = x.std(axis=0, ddof=1)
+z = (x - means) / scales
+\end{lstlisting}
+
+\textbf{Step 1: annotate shapes.} \code{x.shape} is $(4,3)$. Reducing axis 0
+gives \code{means.shape == (3,)} and \code{scales.shape == (3,)}.
+
+\textbf{Step 2: predict broadcasting.} NumPy compares trailing dimensions.
+The length-3 vectors align with the three columns and act across four rows.
+The result retains shape $(4,3)$.
+
+\textbf{Step 3: check invariants.} Each standardized column should have mean
+close to zero and sample standard deviation close to one.
+
+\begin{lstlisting}
+assert z.shape == x.shape
+assert np.allclose(z.mean(axis=0), 0.0)
+assert np.allclose(z.std(axis=0, ddof=1), 1.0)
+\end{lstlisting}
+
+\textbf{Step 4: ask scientific questions.} Is standardization appropriate for
+all three sensors? Are the observations independent? Should calibration ranges
+or robust statistics replace the sample mean and standard deviation? Shape
+correctness does not answer these questions.
+\end{workedexample}
+
+If we mistakenly reduce \code{axis=1}, NumPy may still produce values after a
+reshape. The program can run while standardizing each time point across sensors
+with incompatible units. Predicting dimensions and naming their meaning catches
+an error that syntax cannot.
+
+\section{Worked example: pandas alignment is not row order}
+
+Consider two Series of corrections indexed by sensor identifier. pandas aligns
+labels before arithmetic.
+
+\begin{lstlisting}
+import pandas as pd
+
+reading = pd.Series({"A": 10.0, "B": 20.0})
+offset = pd.Series({"B": 1.5, "A": 0.5})
+corrected = reading - offset
+
+assert corrected["A"] == 9.5
+assert corrected["B"] == 18.5
+\end{lstlisting}
+
+The physical order differs, but labels preserve the intended pairing. If one
+Series uses \code{"sensor-A"} and the other uses \code{"A"}, alignment produces
+missing values rather than guessing equivalence. That behavior is safer than
+silent positional pairing only when the analyst checks the resulting index and
+missingness.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} pandas prevents incorrect joins because columns have
+names.
+
+\textbf{Correction:} names permit explicit alignment; they do not prove key
+uniqueness, cardinality, unit compatibility, or semantic identity. A many-to-many
+join can multiply rows exactly as requested and still invalidate an analysis.
+\end{misconceptionbox}
+
+\section{From analytical question to figure}
+
+Suppose the question is whether sensor bias changes with temperature. A useful
+figure might place reference temperature on the horizontal axis and residual
+on the vertical axis, show individual observations with transparency, add a
+zero reference line, and facet by sensor model. A line chart connecting
+unrelated samples would imply an ordering that does not exist.
+
+Before plotting, write the sentence the figure should support. Then identify
+the comparison, encodings, uncertainty, and possible confounders. After
+plotting, try to state a false conclusion the design might encourage. This
+adversarial reading is part of visual quality assurance.
+
+\conceptcheck{Why might truncating the residual axis make a small bias appear
+important? When is a nonzero baseline nevertheless appropriate?}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+\begin{enumerate}
+  \item For shapes $(20,4)$ and $(4,)$, explain broadcasting. Repeat for
+  $(20,4)$ and $(20,)$. Which operation fails, and why?
+  \item Distinguish NumPy data type, array shape, and axis meaning.
+  \item Explain why a random seed makes one simulation reproducible but does not
+  establish that its conclusion is stable.
+  \item For a Bernoulli sample mean, derive how the theoretical standard
+  deviation changes when $n$ is multiplied by four.
+\end{enumerate}
+
+\subsection*{Applied}
+\begin{enumerate}
+  \item Modify the standardization example to retain means with shape $(1,3)$
+  using \code{keepdims=True}. Explain whether this changes values or only makes
+  broadcasting intent more visible.
+  \item Construct two pandas Series whose inconsistent labels produce missing
+  output. Add assertions that detect the mismatch before arithmetic.
+  \item Modify the binomial experiment across four values of $n$. Compare the
+  observed standard deviations with theory and design one figure that makes the
+  $1/\sqrt{n}$ relationship visible.
+  \item Design a static and interactive version of the same scientific figure.
+  State what interaction adds and what information must remain visible without
+  hovering.
+\end{enumerate}
+
+\subsection*{Design}
+Write a figure specification before writing plotting code. Include audience,
+claim, data snapshot, row meaning, units, encodings, aggregation, uncertainty,
+accessibility, caption, and two misleading alternatives you rejected.
+
+\begin{chapterreview}
+\textbf{Key ideas.} NumPy arrays require joint reasoning about values, shape,
+axes, and dtype. Broadcasting is a dimensional rule, not evidence of semantic
+compatibility. pandas aligns labels and therefore requires explicit key and
+missingness checks. A visualization is a reproducible transformation and
+argument, not decoration.
+
+\textbf{Vocabulary.} array; shape; axis; dtype; vectorization; broadcasting;
+Series; DataFrame; index; alignment; join cardinality; scale; encoding;
+uncertainty; simulation; Monte Carlo error.
+
+\textbf{Explain aloud.} How can an array operation have the correct output shape
+and still combine the wrong scientific quantities?
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 3 notebooks 03 and 04 connect native Python containers to NumPy and
+pandas, then develop static, statistical, interactive, and simulation-based
+visualizations. Reproduce the probability experiment there before changing its
+sample size, seed, or visualization.
+\end{notebooklink}
+
+\section{Takeaway}
+
+Arrays make structure computationally explicit, tables add labels, and figures
+turn selected relationships into visible evidence. None of these layers chooses
+the scientific contract automatically.

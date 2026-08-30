@@ -1,0 +1,299 @@
+\chapter{A reproducible computational workshop}
+\label{ch:workshop}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish a terminal, shell, Python interpreter, virtual environment,
+  VS Code, Jupyter, and a kernel;
+  \item explain what the course setup command changes and what it does not;
+  \item verify the interpreter used by a notebook; and
+  \item diagnose environment failures from evidence before reinstalling tools.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+The overview named the full evidence-to-product system. This chapter begins at
+the smallest operational boundary: one student, one repository, and one Python
+process. Before reasoning about data, we must know which program is executing
+the code and how another machine can reproduce that choice.
+\end{chapterconnection}
+
+\section{A project has a place and a runtime}
+
+A reproducible result depends on both source files and the software that
+interprets them. Two students may open identical notebooks yet run different
+Python versions or package sets. One notebook may use the project environment;
+another may silently use a system interpreter.
+
+\begin{definitionbox}{repository}
+A repository is the project directory whose version-controlled files describe
+the work. It includes source, notebooks, tests, configuration, and documentation.
+The repository is not the same object as a Python installation or virtual
+environment.
+\end{definitionbox}
+
+A \term{path} identifies a location in a filesystem. Absolute paths begin from
+a filesystem root and often contain machine-specific details. Relative paths
+begin from an agreed working directory. Course code should discover the project
+root from stable markers such as \code{pyproject.toml}, accept paths from
+callers, or use package resources. Hard-coding a student's home directory is
+not portable.
+
+\section{Terminal, shell, and Python}
+
+These names refer to different layers:
+
+\begin{description}
+  \item[Terminal.] A text-oriented application that displays a session and
+  sends keystrokes to a shell or another command-line program.
+  \item[Shell.] A program such as PowerShell, Bash, or Zsh that parses commands,
+  locates programs, expands variables, and connects input and output.
+  \item[Python interpreter.] The executable process that parses and runs Python
+  code.
+  \item[VS Code.] An editor and development environment that can host a terminal,
+  edit notebooks, and connect extensions to Python tools.
+\end{description}
+
+Typing \code{python analysis.py} asks the shell to locate a program named
+\code{python} and pass it the path \code{analysis.py}. The shell is not Python,
+and Python does not interpret shell syntax.
+
+\begin{warningbox}
+Copying an activation command for the wrong shell is a common failure. A Bash
+command such as \code{source .venv/bin/activate} is not PowerShell syntax. The
+course uses \code{uv run} so the essential workflow does not depend on students
+memorizing shell-specific activation.
+\end{warningbox}
+
+\section{Virtual environments solve project isolation}
+
+A \term{virtual environment} is a project-specific Python environment with its
+own interpreter-facing package installation area. It answers:
+
+\begin{quote}
+Which Python and package versions should this project use without treating the
+whole computer as one shared project?
+\end{quote}
+
+It does not emulate a new operating system, guarantee identical hardware, or
+make arbitrary code safe. It is dependency isolation, not a security sandbox.
+
+The repository declares intent in \code{pyproject.toml}. The lockfile records a
+resolved dependency graph. The local \code{.venv} realizes that graph on one
+machine. These are related but distinct artifacts.
+
+\begin{center}
+\begin{tikzpicture}[node distance=7mm]
+  \node[wideflowbox] (project) {\code{pyproject.toml}\\declared requirements};
+  \node[wideflowbox,right=of project] (lock) {\code{uv.lock}\\resolved versions};
+  \node[wideflowbox,right=of lock] (venv) {\code{.venv}\\local installation};
+  \node[wideflowbox,below=of lock] (process) {Python process\\imports and runs code};
+  \draw[flowarrow] (project) -- (lock);
+  \draw[flowarrow] (lock) -- (venv);
+  \draw[flowarrow] (venv) -- (process);
+\end{tikzpicture}
+\end{center}
+
+\section{Jupyter and the kernel}
+
+A notebook file stores cells, metadata, and possibly outputs. It does not run
+itself. A \term{kernel} is a long-running language process that receives code
+from a notebook interface, retains state, and returns results.
+
+VS Code's notebook editor is the visible interface. The Jupyter extension sends
+cells to the selected kernel. The kernel runs a specific Python executable.
+Selecting the wrong kernel therefore produces a characteristic puzzle: a
+package is installed in one environment but cannot be imported by the Python
+process actually serving the notebook.
+
+\begin{lstlisting}[caption={Inspect the Python process serving a notebook.}]
+import sys
+from pathlib import Path
+
+print("Python version:", sys.version.split()[0])
+print("Python executable:", Path(sys.executable))
+\end{lstlisting}
+
+The important evidence is \code{sys.executable}. An activated terminal can use
+one Python while an already-running kernel continues using another. Restarting
+the kernel replaces the process and clears its in-memory state.
+
+\section{The one-command course setup}
+
+From the repository root in VS Code's integrated terminal, run:
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv run python scripts/setup_course.py
+\end{lstlisting}
+
+This workflow synchronizes the project environment, verifies that the
+\code{rice\_dsm} package imports from this repository, and registers a named
+\textbf{Rice DSM} kernel. It does not launch JupyterLab, edit a student's
+notebook, upload code, or install packages globally.
+
+After setup, open a notebook in VS Code and select the Rice DSM kernel. Then
+verify:
+
+\begin{lstlisting}
+import rice_dsm
+import sys
+
+print(rice_dsm.__version__)
+print(rice_dsm.__file__)
+print(sys.executable)
+\end{lstlisting}
+
+The package location should point into this project, and the executable should
+belong to the project environment.
+
+\section{Diagnose before reinstalling}
+
+When an import fails, collect evidence in this order:
+
+\begin{enumerate}
+  \item Confirm the repository root: does \code{pyproject.toml} exist here?
+  \item Inspect \code{sys.executable} in the failing notebook or process.
+  \item Compare that path with the project's \code{.venv}.
+  \item Verify the selected VS Code kernel name.
+  \item Run the course setup command and read its complete output.
+  \item Restart the kernel and run the notebook from the first cell.
+\end{enumerate}
+
+Repeated installation can make the system harder to understand by creating
+additional environments. Diagnosis should identify the process and boundary
+before changing state.
+
+\begin{checkpointbox}
+In your own words, distinguish Python, a virtual environment, Jupyter, and a
+kernel. Then explain why installing a package in one environment does not make
+it available to a kernel using another interpreter.
+\end{checkpointbox}
+
+\section{Worked diagnosis: an import that succeeds in the terminal only}
+
+Imagine that Maya runs the following command in VS Code's terminal:
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv run python -c "import rice_dsm; print(rice_dsm.__file__)"
+\end{lstlisting}
+
+It succeeds. In a notebook, however, \code{import rice\_dsm} raises
+\code{ModuleNotFoundError}. It is tempting to conclude that installation is
+random or broken. The evidence supports a more specific hypothesis: the two
+commands reached different Python processes.
+
+\begin{workedexample}{follow the processes, not the icons}
+\textbf{Step 1: identify the successful process.} The shell sees \code{uv run},
+which resolves the project and starts Python inside the synchronized project
+environment.
+
+\textbf{Step 2: identify the failing process.} The notebook editor sends its
+cell to whichever kernel is selected in the upper-right kernel control. That
+kernel may have started hours earlier from a system Python installation.
+
+\textbf{Step 3: measure.} In the notebook, run only:
+
+\begin{lstlisting}
+import sys
+print(sys.executable)
+\end{lstlisting}
+
+If the printed path does not belong to the repository's \code{.venv}, the
+failure is explained. No package reinstall is needed.
+
+\textbf{Step 4: correct the boundary.} Select the Rice DSM kernel, restart it,
+and run from the first cell. A restart matters because changing a menu setting
+does not transform an already-running Python process into another interpreter.
+
+\textbf{Step 5: verify the correction.} Inspect \code{sys.executable},
+\code{rice\_dsm.\_\_file\_\_}, and the package version. Verification turns a
+plausible fix into evidence.
+\end{workedexample}
+
+This pattern generalizes. When two interfaces disagree, identify the actual
+process, configuration, working directory, and input used by each. Avoid
+reasoning from the fact that both windows ``look like Python.''
+
+\begin{misconceptionbox}
+\textbf{Misconception:} activating an environment permanently changes Python on
+the computer.
+
+\textbf{Correction:} activation usually changes shell variables so commands in
+that shell locate one interpreter first. It does not rewrite other terminals,
+running kernels, editor processes, or the operating system's Python. \code{uv
+run} selects the project environment for the command it launches.
+\end{misconceptionbox}
+
+\section{State explains surprising notebook behavior}
+
+A notebook kernel retains definitions and objects between cell executions. If a
+student runs cell 12 before cell 4, cell 12 may succeed because a name remains
+from yesterday, or fail because a required definition has not yet executed.
+The notebook file's visual order and the kernel's historical execution order
+are not necessarily the same.
+
+This is why ``Restart Kernel and Run All'' is an engineering check. It asks
+whether the document describes a complete computation from a fresh process.
+Clearing visible outputs without restarting does not clear memory. Restarting
+without running from the beginning removes hidden state but does not recreate
+it.
+
+\conceptcheck{A notebook displays output below every cell, but a fresh Run All
+fails at cell 7. Which evidence should be trusted when deciding whether the
+notebook is reproducible? Explain why.}
+
+\section{Exercises}
+
+\subsection*{Foundational}
+
+\begin{enumerate}
+  \item Draw separate boxes for VS Code, its integrated terminal, the shell, a
+  Python interpreter, a notebook file, and a kernel. Add arrows showing who
+  launches or communicates with whom.
+  \item Classify each item as source declaration, resolved plan, or local
+  realization: \code{pyproject.toml}, \code{uv.lock}, and \code{.venv}.
+  \item Explain why an absolute path copied from one student's computer is
+  unlikely to work for another student.
+\end{enumerate}
+
+\subsection*{Applied}
+
+\begin{enumerate}
+  \item Record \code{Path.cwd()}, \code{sys.executable}, Python's version, and
+  \code{rice\_dsm.\_\_file\_\_} from a working course notebook. Annotate what
+  each observation establishes and what it does not establish.
+  \item Deliberately select a different available kernel, observe the evidence,
+  and return to Rice DSM. Do not install anything. Write a three-sentence
+  diagnosis based only on paths and process identity.
+\end{enumerate}
+
+\subsection*{Design}
+
+Write a troubleshooting guide for a classmate who reports only ``Python is not
+working.'' Your guide must begin with read-only observations, branch based on
+evidence, and avoid global installation commands.
+
+\begin{chapterreview}
+\textbf{Key ideas.} A repository, environment, interpreter, editor, notebook,
+and kernel are distinct objects. Reproducibility requires knowing which process
+ran the code. Diagnose identity, path, and state before changing installation.
+
+\textbf{Vocabulary.} repository; path; terminal; shell; interpreter; virtual
+environment; dependency; lockfile; notebook; kernel; working directory.
+
+\textbf{Explain aloud.} Why can \code{pip install} report success while the
+next notebook import fails?
+\end{chapterreview}
+
+\begin{notebooklink}
+Work through Lecture 1 notebook 00 and the computing-foundations guides. The
+repository tests also exercise setup, imports, the named kernel, and every
+notebook from top to bottom.
+\end{notebooklink}
+
+\section{Takeaway}
+
+Reproducibility starts by naming the project, interpreter, dependencies, and
+process that produced a result. Tools become easier to debug when each is given
+one precise responsibility.

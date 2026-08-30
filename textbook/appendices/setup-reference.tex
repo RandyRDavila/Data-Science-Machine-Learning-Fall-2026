@@ -1,0 +1,70 @@
+\chapter{Course setup reference}
+\label{app:setup}
+
+This appendix is a compact operational reference. Chapter~\ref{ch:workshop}
+explains why the steps work.
+
+\section{Initial setup}
+
+\begin{enumerate}
+  \item Install \code{uv} using its current official instructions.
+  \item Clone or download the course repository.
+  \item Open the repository folder in VS Code.
+  \item Open VS Code's integrated terminal at the repository root.
+  \item Run:
+\end{enumerate}
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv run python scripts/setup_course.py
+\end{lstlisting}
+
+Open a notebook and select the \textbf{Rice DSM} kernel. The setup command does
+not launch JupyterLab.
+
+\section{Verify the active notebook process}
+
+\begin{lstlisting}
+import sys
+from pathlib import Path
+import rice_dsm
+
+print("Python:", sys.version.split()[0])
+print("Executable:", Path(sys.executable))
+print("Package:", Path(rice_dsm.__file__))
+print("Version:", rice_dsm.__version__)
+\end{lstlisting}
+
+The executable should belong to the repository's \code{.venv}, and the package
+should resolve to this repository's \code{src/rice\_dsm} tree.
+
+\section{Run checks}
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv run pytest
+uv run ruff check src tests scripts
+\end{lstlisting}
+
+The test suite includes package behavior, repository contracts, instructional
+standards, and execution of every notebook from top to bottom.
+
+\section{Build this textbook}
+
+With a LaTeX distribution and \code{latexmk} installed:
+
+\begin{lstlisting}[language=bash,numbers=none]
+make -C textbook
+\end{lstlisting}
+
+The compiled book is written to
+\code{output/pdf/data-science-machine-learning-textbook.pdf}.
+
+\section{First diagnostic questions}
+
+\begin{enumerate}
+  \item Am I at the repository root?
+  \item Which executable does \code{sys.executable} report?
+  \item Which kernel is selected in VS Code?
+  \item Does \code{rice\_dsm.\_\_file\_\_} point into this repository?
+  \item Did I restart the kernel after changing the environment?
+  \item Does the complete setup output identify an earlier failure?
+\end{enumerate}

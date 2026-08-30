@@ -1,0 +1,26 @@
+source_id,predicate,target_id,confidence,evidence
+scientific_measurement,REPRESENTED_AS,vector,0.95,Measurements are commonly encoded as numerical feature vectors.
+vector,STACKED_INTO,data_matrix,1.0,Observation vectors can be arranged as rows of a data matrix.
+data_matrix,IS_A,matrix,1.0,A numerical data matrix is a matrix.
+matrix,HAS_DIRECTION,eigenvector,0.95,Eigenvectors identify invariant directions of a square linear transformation.
+principal_component_analysis,USES,eigenvector,1.0,PCA directions are eigenvectors of a covariance matrix or equivalent singular-vector directions.
+principal_component_analysis,OPERATES_ON,data_matrix,1.0,PCA is commonly applied to a centered numerical data matrix.
+gradient,IS_A,derivative,1.0,A gradient collects first partial derivatives of a scalar-valued function.
+gradient,GUIDES,optimization,0.95,Gradient information guides many iterative optimization algorithms.
+optimization,FITS,linear_regression,0.95,Regression parameters can be estimated by minimizing a loss function.
+optimization,TRAINS,neural_network,0.95,Neural-network parameters are commonly learned by numerical optimization.
+probability_distribution,DEFINES,expectation,1.0,Expectation is computed with respect to a probability distribution.
+entropy,MEASURES_UNCERTAINTY_IN,probability_distribution,0.95,Shannon entropy quantifies uncertainty in a discrete probability distribution.
+bayes_rule,UPDATES,probability_distribution,1.0,Bayes' rule updates a prior distribution using observed evidence.
+markov_chain,USES,probability_distribution,1.0,A Markov transition kernel assigns next-state probability distributions.
+diffusion_model,USES,markov_chain,0.9,Discrete diffusion formulations use forward and reverse Markov chains.
+diffusion_model,USES,differential_equation,0.85,Continuous-time diffusion formulations can be expressed with differential equations.
+diffusion_model,USES,neural_network,0.95,Neural networks commonly parameterize learned denoising or score functions.
+differential_equation,MODELS,epidemic_model,0.95,Compartmental epidemic models are often systems of differential equations.
+differential_equation,MODELS,molecular_dynamics,0.9,Classical molecular dynamics evolves equations of motion numerically.
+probability_distribution,MODELS,scientific_measurement,0.9,Probability distributions can represent measurement variability and uncertainty.
+expectation,SUMMARIZES,scientific_measurement,0.85,Expected values can summarize repeated uncertain measurements.
+linear_regression,OPERATES_ON,data_matrix,0.95,Regression design and response data are commonly represented numerically.
+neural_network,OPERATES_ON,vector,0.95,Many neural-network interfaces accept and return numerical vectors or tensors.
+derivative,APPEARS_IN,differential_equation,1.0,Differential equations are defined through derivatives of unknown functions.
+entropy,TRAINS,neural_network,0.85,Cross-entropy objectives are widely used when training classification networks.

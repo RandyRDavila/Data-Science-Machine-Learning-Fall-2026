@@ -1,3 +1,11 @@
+# Data Science and Machine Learning
+
+*A Systems Approach*
+
+This repository is the source and executable companion for a developing
+graduate text used in **CMOR 438 / INDE 577: Data Science & Machine Learning**
+at Rice University.
+
 # Repository automation and governance
 
 This directory contains the repository-facing contracts that GitHub applies to

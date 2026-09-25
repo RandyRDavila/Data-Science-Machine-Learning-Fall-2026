@@ -74,6 +74,10 @@ and risky review areas.
 If you do not have write access, create a GitHub fork, clone your fork, and open
 a pull request from the fork's branch to the course repository's `main`. A fork
 is a GitHub repository relationship; it is not the same object as a branch.
+Course package contributions use this model. Follow [Contributing to the shared
+course package](11-contributing-to-the-shared-course-package.md) for exact
+remote configuration, scaffolding, peer review, CI security, and conflict
+recovery.
 
 ## Read CI as evidence
 

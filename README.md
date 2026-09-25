@@ -33,6 +33,10 @@ the canonical setup, verification, weekly-workflow, and troubleshooting route.
 - `notebooks/` provides executable investigations organized by lecture.
 - `src/rice_dsm/` holds reusable software developed under professional
   engineering conventions.
+- `src/rice_dsm/contrib/` provides isolated, tested subpackages developed by
+  students through public issues, fork-based pull requests, peer review, and CI.
+- `src/rice_dsm/ml/` is the interoperable class-built learning platform that
+  graduates reviewed contributions into tagged releases used by final products.
 - `tests/` and `.github/workflows/` make selected claims executable across
   supported operating systems.
 - `supplementary-materials/` provides slower introductions to terminals, VS
@@ -83,6 +87,8 @@ the canonical setup, verification, weekly-workflow, and troubleshooting route.
 ├── src/
 │   └── rice_dsm/
 │       ├── __init__.py
+│       ├── contrib/            # Onboarding and incubation namespace
+│       ├── ml/                 # Integrated class-built ML platform
 │       └── ...                # Reusable code developed during the course
 ├── tests/                     # Executable examples and repository safeguards
 ├── data/
@@ -91,6 +97,7 @@ the canonical setup, verification, weekly-workflow, and troubleshooting route.
 ├── notes/                     # Topic notes and supporting instructional content
 ├── supplementary-materials/   # Computing guides, readings, exercises, diagrams
 ├── projects/                  # Operated systems and longer engineering labs
+│   └── final-product-template/ # Contract for separate final-product repos
 ├── scripts/                   # Repeatable data, build, and maintenance tasks
 ├── site/                      # Reviewed source for the deployed course site
 └── .github/
@@ -216,6 +223,22 @@ instructional proposals, and public repository questions. Please read
 vulnerabilities, exposed credentials, or private student information must be
 reported privately according to [`SECURITY.md`](SECURITY.md), never through a
 public issue.
+
+Repository collaboration follows the [course repository collaboration
+standard](CODE_OF_CONDUCT.md). Review should be technically direct and
+evidence-based while remaining respectful, accessible, and focused on the work.
+
+Students can contribute without write access by working from a GitHub fork.
+The [shared course-package guide](supplementary-materials/computing-foundations/11-contributing-to-the-shared-course-package.md)
+provides the full issue-to-merge workflow, contribution scaffold, peer-review
+rubric, CI interpretation, conflict recovery, privacy boundary, and staged
+semester progression.
+
+The class-built platform and cumulative product relationship is specified in
+the [final-project architecture](notes/final-project-architecture.md). The
+[final-product template](projects/final-product-template/) defines the common
+regression, classification, unsupervised-learning, system, provenance, and
+team-ownership evidence expected from solo students and teams of up to four.
 
 ## Lecture materials
 

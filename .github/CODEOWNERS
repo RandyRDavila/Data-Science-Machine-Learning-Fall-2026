@@ -6,6 +6,8 @@
 /uv.lock @RandyRDavila
 /src/ @RandyRDavila
 /tests/ @RandyRDavila
+/src/rice_dsm/contrib/ @RandyRDavila
+/tests/contrib/ @RandyRDavila
 /textbook/ @RandyRDavila
 /output/pdf/ @RandyRDavila
 /site/ @RandyRDavila

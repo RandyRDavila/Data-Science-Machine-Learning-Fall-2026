@@ -50,12 +50,17 @@ def load_workflow(path: Path) -> dict[str, object]:
         ".github/ISSUE_TEMPLATE/content.yml",
         ".github/ISSUE_TEMPLATE/feature.yml",
         ".github/ISSUE_TEMPLATE/question.yml",
+        ".github/ISSUE_TEMPLATE/student-contribution.yml",
         ".github/workflows/course-ci.yml",
+        ".github/workflows/course-coordination.yml",
+        ".github/workflows/course-coordination-digest.yml",
         ".github/workflows/course-pages.yml",
         ".github/workflows/course-release.yml",
+        ".github/workflows/course-task-factory.yml",
         ".github/workflows/dependency-review.yml",
         ".github/workflows/pr-labeler.yml",
         ".github/workflows/textbook.yml",
+        "CODE_OF_CONDUCT.md",
         "CONTRIBUTING.md",
         "SECURITY.md",
         "site/index.html",
@@ -64,7 +69,23 @@ def load_workflow(path: Path) -> dict[str, object]:
         "scripts/build_course_site.py",
         "scripts/build_release_bundle.py",
         "scripts/smoke_test_course_site.py",
+        "scripts/scaffold_student_package.py",
+        "scripts/course_coordination.py",
+        "notes/student-contribution-program.md",
+        "notes/shared-platform-launch-lecture.md",
+        "notes/final-project-architecture.md",
+        ".github/course/coordination.json",
+        ".github/course/tasks.json",
+        ".github/course/README.md",
+        "src/rice_dsm/ml/base.py",
+        "src/rice_dsm/ml/README.md",
+        "projects/final-product-template/README.md",
+        "projects/final-product-template/COURSE_PACKAGE_PROVENANCE.md",
+        "projects/final-product-template/PRODUCT_CONTRACT.md",
+        "projects/final-product-template/TEAM_OWNERSHIP.md",
         "supplementary-materials/computing-foundations/08-continuous-delivery-and-deployment.md",
+        "supplementary-materials/computing-foundations/11-contributing-to-the-shared-course-package.md",
+        "supplementary-materials/computing-foundations/12-contribution-quickstart.md",
     ],
 )
 def test_governance_resource_exists(relative_path: str) -> None:
@@ -109,6 +130,7 @@ def test_pull_request_template_prompts_for_evidence_and_boundaries() -> None:
         "## What changed",
         "## Evidence",
         "## Contract and teaching impact",
+        "## Student contribution evidence",
         "## Reviewer notes",
         "## Related issue",
     ):
@@ -120,6 +142,7 @@ def test_pull_request_template_prompts_for_evidence_and_boundaries() -> None:
         "Rice DSM kernel",
         "visually inspected",
         "No secrets",
+        "requested classmates reviewed",
     ):
         assert required_evidence in template
 
@@ -154,6 +177,7 @@ def test_course_ci_avoids_duplicate_pr_runs_and_preserves_stable_gate() -> None:
     for command in (
         "uv sync --locked",
         "uv run python scripts/setup_course.py",
+        "uv run python scripts/course_coordination.py validate",
         "uv run ruff check src tests scripts",
         "uv build",
         "uv run pytest -q",
@@ -177,6 +201,66 @@ def test_privileged_labeler_never_executes_pull_request_code() -> None:
     assert "actions/checkout" not in workflow_text
     assert re.search(r"^\s*run:", workflow_text, re.MULTILINE) is None
     assert "actions/labeler@" in workflow_text
+
+
+def test_privileged_coordination_executes_only_reviewed_default_branch_code() -> None:
+    path = WORKFLOW_ROOT / "course-coordination.yml"
+    workflow = load_workflow(path)
+    workflow_text = read_utf8(path)
+
+    assert "issue_comment" in workflow["on"]
+    assert "pull_request_target" in workflow["on"]
+    assert "ref: ${{ github.event.repository.default_branch }}" in workflow_text
+    assert "persist-credentials: false" in workflow_text
+    assert "github.event.pull_request.head" not in workflow_text
+    assert "github.head_ref" not in workflow_text
+    assert "merge_commit_sha" not in workflow_text
+    assert "scripts/course_coordination.py handle-comment" in workflow_text
+    assert "scripts/course_coordination.py assign-reviewers" in workflow_text
+
+    assert "contents: read" in workflow_text
+    assert "issues: write" in workflow_text
+    assert "pull-requests: write" in workflow_text
+
+
+def test_task_factory_is_dry_run_first_and_apply_is_protected() -> None:
+    workflow_text = read_utf8(WORKFLOW_ROOT / "course-task-factory.yml")
+
+    assert "default: false" in workflow_text
+    assert "name: Preview task issues" in workflow_text
+    assert "--apply" in workflow_text
+    assert "environment: course-coordination" in workflow_text
+    assert "github.ref == 'refs/heads/main'" in workflow_text
+    assert workflow_text.count(
+        "ref: ${{ github.event.repository.default_branch }}"
+    ) == 2
+
+
+def test_coordination_digest_is_a_bounded_non_grading_issue_update() -> None:
+    workflow_text = read_utf8(WORKFLOW_ROOT / "course-coordination-digest.yml")
+    governance = read_utf8(GITHUB_ROOT / "README.md")
+
+    assert 'cron: "17 13 * * 1"' in workflow_text
+    assert "scripts/course_coordination.py update-digest" in workflow_text
+    assert "pull-requests: read" in workflow_text
+    assert "Coordination Digest" in governance
+    assert "not grades" in governance
+
+
+def test_untrusted_pull_request_code_has_read_only_permissions() -> None:
+    code_workflows = []
+
+    for workflow_path in WORKFLOWS:
+        workflow = load_workflow(workflow_path)
+        if "pull_request" in workflow["on"]:
+            code_workflows.append(workflow_path.name)
+            assert workflow["permissions"] == {"contents": "read"}
+
+    assert code_workflows == [
+        "course-ci.yml",
+        "dependency-review.yml",
+        "textbook.yml",
+    ]
 
 
 def test_textbook_workflow_builds_and_publishes_a_review_artifact() -> None:
@@ -282,6 +366,8 @@ def test_ownership_and_branch_policy_are_explicit() -> None:
 
     assert "* @RandyRDavila" in owners
     assert "/.github/ @RandyRDavila" in owners
+    assert "/src/rice_dsm/contrib/ @RandyRDavila" in owners
+    assert "/tests/contrib/ @RandyRDavila" in owners
     assert "Require the `CI gate` status check" in governance
     assert "Block force pushes and branch deletion" in governance
     assert "Do not require path-limited checks globally" in governance
@@ -290,6 +376,7 @@ def test_ownership_and_branch_policy_are_explicit() -> None:
 def test_contribution_and_security_guides_protect_course_data() -> None:
     contributing = read_utf8(PROJECT_ROOT / "CONTRIBUTING.md")
     security = read_utf8(PROJECT_ROOT / "SECURITY.md")
+    normalized_security = " ".join(security.split())
 
     for required_text in (
         "Windows, macOS, and Linux",
@@ -297,6 +384,8 @@ def test_contribution_and_security_guides_protect_course_data() -> None:
         "make -C textbook",
         "private student information",
         "stable `CI gate`",
+        "scaffold_student_package.py",
+        "CODE_OF_CONDUCT.md",
     ):
         assert required_text in contributing
 
@@ -307,5 +396,78 @@ def test_contribution_and_security_guides_protect_course_data() -> None:
         "untrusted serialized Python objects",
         "least-privilege token permissions",
         "revoke or rotate it first",
+        "Student contributions arrive from forks",
+        "Event titles, bodies, branch names, and comments are untrusted data",
     ):
-        assert required_text in security
+        assert required_text in normalized_security
+
+    conduct = read_utf8(PROJECT_ROOT / "CODE_OF_CONDUCT.md")
+    for required_text in (
+        "Critique code, evidence, interfaces, and claims rather than people",
+        "Protect private student information",
+        "Report conduct or course concerns privately",
+    ):
+        assert required_text in conduct
+
+
+def test_student_contribution_guide_defines_the_complete_public_workflow() -> None:
+    guide = read_utf8(
+        PROJECT_ROOT
+        / "supplementary-materials/computing-foundations"
+        / "11-contributing-to-the-shared-course-package.md"
+    )
+    namespace = read_utf8(PROJECT_ROOT / "src/rice_dsm/contrib/README.md")
+
+    for required_text in (
+        "upstream repository",
+        "git remote add upstream",
+        "scaffold_student_package.py",
+        "red-green-refactor",
+        "peer reviewer",
+        "git merge --abort",
+        "privacy",
+        "maintenance responsibility",
+    ):
+        assert required_text in guide
+
+    for required_text in (
+        "explicitly",
+        "NumPy-style docstrings",
+        "data provenance",
+        "Importing a contribution must not",
+    ):
+        assert required_text in namespace
+
+
+def test_shared_ml_platform_and_final_product_boundaries_are_explicit() -> None:
+    platform = read_utf8(PROJECT_ROOT / "src/rice_dsm/ml/README.md")
+    final_project = read_utf8(PROJECT_ROOT / "notes/final-project-architecture.md")
+    normalized_final_project = " ".join(final_project.split())
+    product_template = read_utf8(
+        PROJECT_ROOT / "projects/final-product-template/README.md"
+    )
+
+    for required_text in (
+        "tagged `rice-dsm` release",
+        "structural protocols",
+        "differential comparison",
+        "From incubation to integration",
+    ):
+        assert required_text in platform
+
+    for required_text in (
+        "approximately forty students",
+        "one to four participants",
+        "process evidence",
+        "Commit counts",
+    ):
+        assert required_text in normalized_final_project
+
+    for required_text in (
+        "at least one regression task",
+        "at least one classification task",
+        "unsupervised",
+        "Exact shared-platform dependency",
+        "Scope scales with team size",
+    ):
+        assert required_text in product_template

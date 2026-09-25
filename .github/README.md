@@ -13,8 +13,9 @@ issues, pull requests, dependencies, ownership, and automation.
 
 ## Workflows
 
-- **Course CI** runs the complete locked environment, build, lint, and test suite
-  on Ubuntu, macOS, and Windows. `CI gate` is the single stable required check.
+- **Course CI** runs the complete locked environment, coordination-manifest
+  validation, build, lint, and test suite on Ubuntu, macOS, and Windows. `CI
+  gate` is the single stable required check.
 - **Textbook** compiles relevant LaTeX changes without warnings and uploads the
   generated PDF for review. Because the workflow is path-limited, do not make it
   a universally required status check.
@@ -29,9 +30,45 @@ issues, pull requests, dependencies, ownership, and automation.
 - **Course Release** reruns the full verification suite for `course-v*` tags,
   assembles the PDF and Python distributions with checksums and provenance, and
   stops at the protected `course-release` environment before publication.
+- **Course Contribution Coordination** processes exact `/claim` and `/release`
+  commands and requests balanced peer reviewers. Privileged events execute only
+  the reviewed default-branch coordinator, never fork code.
+- **Course Task Factory** previews the reviewed task manifest and creates
+  missing issues only after an explicit maintainer request and the protected
+  `course-coordination` environment boundary.
+- **Course Coordination Digest** updates one public operational queue each week
+  after coordination is enabled. The digest reports workflow state, not grades
+  or contribution quality.
 
 Actions are pinned to immutable commits. Dependabot proposes updates to the
 human-readable versions recorded in comments.
+
+## Student contribution security boundary
+
+Students contribute from public forks and do not need collaborator or write
+access to this repository. Package extensions remain isolated below
+`rice_dsm.contrib` and enter `main` only through the ordinary pull-request and
+review path.
+
+Workflows that build or test pull-request code use the `pull_request` event and
+top-level `contents: read` permission. GitHub withholds repository secrets from
+untrusted fork runs. The labeler is the sole `pull_request_target` workflow; its
+contract test prevents checkout or `run` steps, so it can label a PR without
+executing contributor-controlled code with its write token. Site deployment
+runs only for a reviewed push to `main`, and course-release publication runs
+only for a maintainer-created version tag through its protected environment.
+
+Do not add a workflow that checks out or otherwise executes pull-request code
+under `pull_request_target`, `workflow_run`, `issue_comment`, or another
+privileged event. Do not expose a secret merely to make an untrusted test pass.
+Separate untrusted verification from trusted publication and promote only the
+reviewed artifact or revision.
+
+The coordination engine is disabled in
+`.github/course/coordination.json` until an opt-in GitHub-handle roster is
+reviewed. Its default-branch scripts may assign issue commenters, request public
+peer reviews, and update labels with narrowly scoped tokens. They never merge,
+deploy, publish grades, or decide whether a review is substantive.
 
 ## Recommended `main` ruleset
 
@@ -51,6 +88,11 @@ Configure these settings in GitHub after the files reach the default branch:
 Do not require path-limited checks globally: GitHub may have no matching check to
 report on a pull request that does not touch those paths.
 
+Under **Settings → Actions → General → Fork pull request workflows**, retain
+approval for first-time outside contributors. Approval permits a bounded CI run;
+it is not approval of the code or permission to merge. Review the changed
+workflow, dependency, and script files before authorizing execution.
+
 ## Delivery environments
 
 After this configuration reaches `main`, make these one-time repository-setting
@@ -61,6 +103,10 @@ changes:
 3. Create `course-release`, restrict it to tags matching `course-v*`, and add a
    required reviewer. If the repository has only one maintainer, do not prevent
    that maintainer from approving their own deployment.
+4. Create `course-coordination` with a required instructor reviewer before
+   enabling the public roster or applying task creation. Keep task previews
+   outside the protected environment so the exact proposed issues remain
+   inspectable without mutation.
 
 The site path is continuous deployment: a relevant, reviewed change on `main`
 is published automatically. The tagged-release path is continuous delivery: a
@@ -100,7 +146,27 @@ area: textbook
 area: syllabus
 area: data
 area: deployment
+area: student contribution
 ```
+
+The coordination workflow also creates these operational labels when task
+automation is deliberately enabled:
+
+```text
+course: task
+course: work
+course: coordination
+status: ready
+status: claimed
+review: peer-requested
+family: <manifest family>
+```
+
+For a GitHub Project, use its single broad auto-add rule with the filter
+`label:"course: work"`. The task factory applies that label to generated issues,
+and the peer-review coordinator applies it to relevant pull requests. Use
+Project views for workflow state and workload; never add grades or private
+feedback to the public Project.
 
 The issue forms use GitHub's standard `bug`, `documentation`, `enhancement`, and
 `question` labels. Labels must exist before GitHub can apply them automatically.

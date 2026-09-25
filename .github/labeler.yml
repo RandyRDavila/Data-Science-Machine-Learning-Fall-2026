@@ -12,6 +12,16 @@
           - "pyproject.toml"
           - "uv.lock"
 
+"area: student contribution":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/rice_dsm/contrib/**"
+          - "src/rice_dsm/ml/**"
+          - "tests/contrib/**"
+          - "tests/test_ml_*.py"
+          - ".github/course/**"
+          - "projects/final-product-template/**"
+
 "area: tests":
   - changed-files:
       - any-glob-to-any-file:

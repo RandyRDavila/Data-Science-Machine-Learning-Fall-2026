@@ -30,6 +30,13 @@ sensitive information or access.
 - GitHub Actions use least-privilege token permissions and immutable action
   references. Workflows triggered by untrusted pull requests must not execute
   code with write credentials.
+- Student contributions arrive from forks. Build and test them with the
+  read-only `pull_request` event; never check out or execute their code in a
+  privileged `pull_request_target`, `workflow_run`, or comment-triggered job.
+- Coordination jobs triggered by comments or `pull_request_target` may execute
+  only scripts explicitly checked out from the reviewed default branch. Event
+  titles, bodies, branch names, and comments are untrusted data and must never
+  be interpolated into executable shell or source text.
 - Dependency updates remain ordinary pull requests and must pass review and CI.
 - If a secret is exposed, revoke or rotate it first; removing it from the latest
   commit is not sufficient because Git history and logs may retain it.

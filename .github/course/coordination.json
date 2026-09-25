@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "enabled": false,
+  "max_active_tasks_per_participant": 1,
+  "default_max_task_team_size": 4,
+  "reviewers_per_pull_request": 2,
+  "stale_after_days": 7,
+  "contribution_paths": [
+    "src/rice_dsm/contrib/",
+    "src/rice_dsm/ml/",
+    "tests/contrib/",
+    "tests/test_ml_",
+    "projects/final-product-template/"
+  ],
+  "participants": []
+}

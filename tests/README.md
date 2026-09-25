@@ -65,6 +65,16 @@ domain-object invariants, then crosses JSON, CSV, graph, and command-line
 boundaries. A test's category follows the boundary it exercises, not the name
 of the file containing it.
 
+`tests/contrib/` mirrors student-developed subpackages below
+`src/rice_dsm/contrib/`. Each contribution owns focused tests for its public
+contract, while `test_student_contribution_scaffold.py` protects the shared
+layout, naming, documentation, and no-overwrite scaffolding boundary.
+
+`test_ml_platform_contracts.py` demonstrates the structural interfaces shared
+by integrated class-built algorithms. `test_course_coordination.py` validates
+the public roster schema, task dependency graph, dry-run issue rendering,
+reviewer balancing, and non-grading digest without contacting GitHub.
+
 `test_repository.py` protects the instructional structure. It validates every
 notebook, checks the selected kernel, and confirms that essential entry points
 exist. These tests prevent accidental repository changes from silently making

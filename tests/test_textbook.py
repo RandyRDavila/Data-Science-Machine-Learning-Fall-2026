@@ -164,6 +164,64 @@ def test_git_appendix_teaches_version_control_as_professional_practice() -> None
     assert len(appendix) >= 35_000
 
 
+def test_git_appendix_gives_exact_cross_platform_contribution_workflow() -> None:
+    """Students should be able to move from a problem ID to a reviewed PR."""
+
+    appendix = (TEXTBOOK_ROOT / "appendices" / "git-github.tex").read_text(
+        encoding="utf-8"
+    )
+
+    for required_idea in (
+        "Course contribution practicum: textbook problem to pull request",
+        "Step 0: preserve the problem identity",
+        "MLF-PR1",
+        "SLC-PR2",
+        "LR-PR3",
+        "GD-PR1",
+        "Windows PowerShell",
+        "On macOS or Linux",
+        "git remote add upstream",
+        "git fetch upstream",
+        "git merge --ff-only upstream/main",
+        "git rev-parse upstream/main",
+        "student/gd-pr1-optimizer-records",
+        "scripts/scaffold_student_package.py optimizer_records",
+        "git diff --staged --check",
+        "git merge --abort",
+        "Closes \\#ISSUE-NUMBER",
+        "base repository: RandyRDavila/Data-Science-Machine-Learning-Fall-2026",
+        "git branch -d student/gd-pr1-optimizer-records",
+    ):
+        assert required_idea in appendix
+
+
+def test_opening_part_ii_problem_sets_have_stable_tracks_and_pr_studios() -> None:
+    """Problem sets should integrate intuition, mathematics, evidence, and PRs."""
+
+    chapter_prefixes = {
+        "09-machine-learning-foundations.tex": "MLF",
+        "10-supervised-learning-systems.tex": "SLC",
+        "11-linear-regression.tex": "LR",
+        "12-gradient-descent.tex": "GD",
+    }
+
+    for filename, prefix in chapter_prefixes.items():
+        source = (CHAPTER_ROOT / filename).read_text(encoding="utf-8")
+        for heading in (
+            r"\subsection*{Intuition and explanation}",
+            r"\subsection*{Mathematical reasoning}",
+            r"\subsection*{Data and engineering investigations}",
+            r"\subsection*{Contribution studio}",
+        ):
+            assert heading in source, f"{filename} is missing {heading}"
+        for track in ("I", "M", "C", "PR"):
+            assert f"{prefix}-{track}" in source
+        assert "Appendix~\\ref{app:git-github}" in source or filename in {
+            "11-linear-regression.tex",
+            "12-gradient-descent.tex",
+        }
+
+
 def test_cicd_appendix_traces_the_textbook_release_system() -> None:
     """The CI/CD appendix should connect vocabulary to the live workflows."""
 
@@ -517,3 +575,76 @@ def test_compiled_textbook_is_present_and_nonempty() -> None:
 
     assert OUTPUT_PDF.is_file()
     assert OUTPUT_PDF.stat().st_size > 100_000
+
+
+def test_opening_part_ii_chapters_use_theorems_proofs_and_measured_evidence() -> None:
+    """The opening ML arc should read as a mathematical engineering text."""
+
+    required_by_chapter = {
+        "09-machine-learning-foundations.tex": (
+            "Finite interpolation does not determine prediction",
+            r"\begin{proof}",
+            "Performance is a vector, not one score",
+            "learning-landscape.pdf",
+        ),
+        "10-supervised-learning-systems.tex": (
+            "Squared loss elicits the conditional mean",
+            "What an independent test average estimates",
+            "Measure predictive performance as an experiment",
+            "supervised-evidence.pdf",
+        ),
+        "11-linear-regression.tex": (
+            "Least squares is orthogonal projection",
+            "Gauss-Markov",
+            "Computational cost belongs to the algorithm",
+            "regression-geometry.pdf",
+        ),
+        "12-gradient-descent.tex": (
+            "Exact convergence on a scalar quadratic",
+            "The negative gradient is Euclidean steepest descent",
+            "An identity neuron is affine linear regression",
+            "Momentum and acceleration remain first-order methods",
+            "Back-propagation differentiates; the optimizer updates",
+            "Measure optimizer performance without moving the goalposts",
+            "gradient-methods.pdf",
+        ),
+    }
+
+    for filename, required_ideas in required_by_chapter.items():
+        source = (CHAPTER_ROOT / filename).read_text(encoding="utf-8")
+        for required_idea in required_ideas:
+            assert required_idea in source, f"{filename} is missing {required_idea}"
+
+
+def test_part_ii_figures_are_reproducible_from_the_course_database() -> None:
+    """Textbook plots should have code, stable outputs, and a declared data path."""
+
+    figure_root = TEXTBOOK_ROOT / "figures"
+    generator = figure_root / "generate_part_ii_figures.py"
+    generator_source = generator.read_text(encoding="utf-8")
+
+    for required_idea in (
+        "course_datasets.sqlite",
+        "diabetes_observations",
+        "breast_cancer_observations",
+        "wine_observations",
+        "digits_observations",
+        "random_state=438",
+        "random_state=17",
+    ):
+        assert required_idea in generator_source
+
+    for stem in (
+        "learning-landscape",
+        "supervised-evidence",
+        "regression-geometry",
+        "gradient-methods",
+    ):
+        for suffix in (".pdf", ".png"):
+            figure = figure_root / "generated" / f"{stem}{suffix}"
+            assert figure.is_file(), figure
+            assert figure.stat().st_size > 10_000, figure
+
+    makefile = (TEXTBOOK_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "generate_part_ii_figures.py" in makefile
+    assert "../data/course_datasets.sqlite" in makefile

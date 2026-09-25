@@ -103,12 +103,15 @@ and [fork-to-review guide](supplementary-materials/computing-foundations/11-cont
 propose the work in an issue, fork the public repository, configure `origin`
 and `upstream`, and then use one branch for one coherent purpose:
 
+When the work comes from a textbook contribution studio, preserve its stable
+problem ID (such as `GD-PR1`) in the issue, branch, and pull request.
+
 ```text
-git switch -c student/short-description
+git switch -c student/problem-id-short-description
 git status
 git add PATHS-YOU-INTEND-TO-COMMIT
 git commit -m "Describe the completed change"
-git push -u origin student/short-description
+git push -u origin student/problem-id-short-description
 ```
 
 Push the branch to your fork and open a pull request against the course

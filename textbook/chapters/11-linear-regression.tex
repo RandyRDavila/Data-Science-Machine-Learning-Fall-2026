@@ -10,7 +10,8 @@ After this chapter, you should be able to:
   \item distinguish prediction, coefficient interpretation, and statistical
   uncertainty;
   \item distinguish ridge, lasso, and elastic-net regularization; and
-  \item evaluate a regression pipeline using residual and out-of-sample evidence.
+  \item evaluate a regression pipeline using residual and out-of-sample
+  evidence while measuring numerical and computational performance.
 \end{itemize}
 \end{learningobjectives}
 
@@ -109,15 +110,35 @@ space of $A$. At an optimum the residual $r=y-A\widehat\theta$ satisfies
 $A^Tr=0$. This geometric statement remains meaningful when coefficients are
 not unique.
 
-For any candidate fitted vector $Av$ in the column space,
+\begin{theorem}[Least squares is orthogonal projection]
+\label{thm:least-squares-projection}
+Let $\mathcal C(A)$ be the column space of a real matrix $A$. A vector
+$\widehat y=A\widehat\theta$ minimizes $\lVert y-Av\rVert_2^2$ over all $v$
+if and only if its residual $r=y-\widehat y$ is orthogonal to
+$\mathcal C(A)$, equivalently $A^Tr=0$. The fitted vector $\widehat y$ is
+unique even when the coefficient vector $\widehat\theta$ is not.
+\end{theorem}
+
+\begin{proof}
+Suppose first that $r\perp\mathcal C(A)$. For any candidate $Av$, the vectors
+$r=y-A\widehat\theta$ and $A\widehat\theta-Av$ are orthogonal. Pythagoras gives
 \[
 \lVert y-Av\rVert_2^2
 =\lVert y-A\widehat\theta\rVert_2^2
 +\lVert A\widehat\theta-Av\rVert_2^2.
 \]
-This Pythagorean identity proves that the orthogonal projection minimizes
-squared distance. It also separates unexplained residual length from the extra
-error caused by choosing another vector in the same model space.
+The right side is minimized at the projected vector. Conversely, if a
+minimizer had $A^Tr\ne0$, then for $d=A^Tr$ the directional derivative of
+$\lVert y-A(\widehat\theta+td)\rVert_2^2$ at $t=0$ would be
+$-2\lVert A^Tr\rVert_2^2<0$, contradicting minimality. Orthogonal projection
+onto a finite-dimensional subspace is unique, although a rank-deficient $A$
+can map several coefficient vectors to that same projection.
+\end{proof}
+
+The Pythagorean identity separates unexplained residual length from the extra
+error caused by choosing another vector in the same model space. It is also a
+unit test: a computed least-squares residual should satisfy $A^Tr\approx0$ up
+to a tolerance justified by scale and conditioning.
 
 If $A$ has full column rank, the normal equations give
 \[
@@ -134,6 +155,21 @@ $\widehat\theta=A^+y$ when the system is rank deficient. That convention makes
 a coefficient vector unique, but it does not make the individual coefficients
 scientifically identified. The choice comes from an algebraic preference among
 equally fitting solutions.
+
+Figure~\ref{fig:regression-geometry} shows the same fit in three coordinate
+systems. Data space displays predictions and residual segments. Residual space
+reveals structure hidden by one summary. Parameter space shows that least
+squares is an optimization problem with a geometric minimum. No single panel
+is a substitute for the other two.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/generated/regression-geometry.pdf}
+  \caption{One-feature ordinary least squares on the course diabetes table.
+  The coefficients are computed with \code{numpy.linalg.lstsq}; the same
+  predictions generate the data-space line, residual plot, and MSE contours.}
+  \label{fig:regression-geometry}
+\end{figure}
 
 \conceptcheck{Two columns record temperature in Celsius and Fahrenheit. What
 happens to rank, fitted values, and the uniqueness of their separate
@@ -169,6 +205,22 @@ singular values. Record the feature schema and units. Treat a large condition
 number as evidence requiring investigation, not as a warning to suppress.
 \end{professionalbox}
 
+\subsection{Computational cost belongs to the algorithm, not just the model}
+
+For dense $A\in\mathbb{R}^{n\times p}$ with $n\ge p$, a QR-based solve costs
+on the order of $np^2$ arithmetic operations and stores the design or a
+factorization of comparable scale. Forming $A^TA$ costs on the same leading
+order but worsens conditioning; explicitly inverting it is neither necessary
+nor the preferred benchmark. When $p$ is modest and repeated targets share the
+same design, a factorization can be reused. When $A$ is large and sparse,
+matrix-vector products and iterative solvers may be the only viable interface.
+
+Measure wall time after a warmup and across repeated fits, but also record
+problem shape, sparsity, numerical precision, thread count, and peak memory.
+Prediction cost for a dense linear model is $O(mp)$ for $m$ new rows and is
+often dominated by preprocessing or data movement. Time the complete pipeline
+and the estimator separately before deciding what to optimize.
+
 \section{Prediction assumptions differ from inferential assumptions}
 
 A common stochastic model is
@@ -196,6 +248,33 @@ mean response, a prediction interval for a new outcome, and variability of the
 entire fitted procedure under new training samples are different objects. A new
 outcome interval includes irreducible outcome variation and is therefore wider
 than an interval for the conditional mean under the same model.
+
+\begin{theorem}[Gauss-Markov]
+\label{thm:gauss-markov}
+In the fixed-design model $y=A\beta+\varepsilon$, assume $A$ has full column
+rank, $\mathbb{E}[\varepsilon\mid A]=0$, and
+$\operatorname{Var}(\varepsilon\mid A)=\sigma^2I$. Among estimators linear in
+$y$ and unbiased for every $\beta$, ordinary least squares has minimum
+covariance: for any such $\widetilde\beta$,
+$\operatorname{Var}(\widetilde\beta\mid A)-
+\operatorname{Var}(\widehat\beta_{\mathrm{OLS}}\mid A)$ is positive
+semidefinite.
+\end{theorem}
+
+\begin{proof}
+Write $C_0=(A^TA)^{-1}A^T$, so
+$\widehat\beta_{\mathrm{OLS}}=C_0y$. Any linear estimator $Cy$ is unbiased for
+every $\beta$ exactly when $CA=I$. Set $D=C-C_0$. Then $DA=0$, and therefore
+$C_0D^T=(A^TA)^{-1}A^TD^T=0$. Consequently
+\[
+\operatorname{Var}(Cy\mid A)
+=\sigma^2(C_0+D)(C_0+D)^T
+=\sigma^2C_0C_0^T+\sigma^2DD^T.
+\]
+The final term is positive semidefinite. This proves the comparison. Notice
+what the proof does not say: it does not compare nonlinear or biased
+estimators, and it does not establish that the model assumptions hold.
+\end{proof}
 
 \begin{misconceptionbox}
 \textbf{Misconception:} a small coefficient $p$-value proves that changing the
@@ -305,19 +384,78 @@ stable, but the report avoids interpreting their magnitudes as causal effects.
 \end{workedexample}
 
 \section{Exercises}
-\begin{enumerate}
-  \item Derive the least-squares gradient with an intercept and verify its
-  dimensions.
-  \item Construct a rank-deficient design matrix with unique fitted values but
-  nonunique coefficients. Explain how ridge changes the solution.
-  \item Show why fitting a scaler before cross-validation leaks information.
-  \item Design tests for a regression artifact when columns are reordered,
-  missing, duplicated, or expressed in incompatible units.
-  \item Prove the Pythagorean identity for least-squares projection.
-  \item Compare the assumptions needed for a point prediction, a coefficient
-  confidence interval, and a causal intervention claim.
-  \item Use the singular-value decomposition to explain which directions ridge
-  shrinks most and why.
+
+The prefix \textbf{LR} distinguishes these problems from the supervised-
+contract problems that precede them. Preserve the complete identifier in issue
+titles, branch names, and pull-request descriptions when proposing an extension.
+
+\subsection*{Intuition and explanation}
+
+\begin{enumerate}[label=\textbf{LR-I\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Explain why linear regression is affine in the raw inputs but linear in
+  an augmented feature vector. What changes in the geometry when the intercept
+  column is omitted?
+  \item Two nearly collinear features have large opposite coefficients but
+  stable fitted values. Explain the distinction between prediction stability,
+  coefficient identification, and causal interpretation.
+  \item A residual plot has mean zero and a strong curved pattern. Explain why
+  both statements can hold and what each says about the fitted model.
+  \item Compare the assumptions needed for a point prediction, a confidence
+  interval for a mean response, a prediction interval for a new outcome, and a
+  causal intervention claim.
+\end{enumerate}
+
+\subsection*{Mathematical reasoning}
+
+\begin{enumerate}[label=\textbf{LR-M\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Starting from $Q(b,w)$, derive the one-feature slope and intercept.
+  Prove the fitted line passes through $(\bar x,\bar y)$ and that both residual
+  orthogonality identities hold.
+  \item Prove Theorem~\ref{thm:least-squares-projection} a second way by
+  differentiating the quadratic objective. State exactly where full column rank
+  is and is not required.
+  \item Construct a rank-deficient matrix with nonunique coefficients but a
+  unique fitted vector. Compute every least-squares solution, the Moore-Penrose
+  solution, and the limit of ridge solutions as $\lambda\downarrow0$.
+  \item If $X=U\Sigma V^T$, derive the ridge solution in singular-vector
+  coordinates. Plot or tabulate the shrinkage factor as a function of singular
+  value and explain why weak directions shrink most.
+  \item In the proof of Theorem~\ref{thm:gauss-markov}, show why unbiasedness
+  implies $CA=I$ and why the cross terms vanish. Construct a biased estimator
+  with smaller mean squared error for at least one $\beta$.
+\end{enumerate}
+
+\subsection*{Data and engineering investigations}
+
+\begin{enumerate}[label=\textbf{LR-C\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Reproduce all three panels of Figure~\ref{fig:regression-geometry} from
+  SQLite. Verify the normal equations numerically and set tolerances from data
+  scale and condition number rather than copying a decimal threshold.
+  \item Compare normal equations, QR-based least squares, and an SVD
+  pseudoinverse on well-conditioned, nearly collinear, and rank-deficient
+  designs. Perturb the data and report coefficient and prediction sensitivity.
+  \item Build a training-only scaling and ridge pipeline. Select $\lambda$
+  without consulting the test set, compare with the training-mean baseline,
+  and report residual distributions rather than only their averages.
+  \item Specify a fair time and peak-memory experiment comparing a dense direct
+  solve with an iterative method on a sparse design. Include matrix shape,
+  density, precision, threads, warmup, repetitions, stopping tolerance, and
+  achieved objective.
+\end{enumerate}
+
+\subsection*{Contribution studio}
+
+\begin{enumerate}[label=\textbf{LR-PR\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Add a transparent linear-regression component that exposes fitted rank,
+  singular values, condition diagnostics, and termination information while
+  matching a trusted solver on documented cases.
+  \item Add a residual-diagnostics report with typed records and plots produced
+  by a separate presentation function. Test alignment, nonfinite values,
+  constant targets, and empty subgroups.
+  \item Propose a domain-specific basis transformer--for example periodic,
+  polynomial, interaction, or calibration features. Document units and output
+  names, fit it only on training data when applicable, and test train/inference
+  schema equivalence.
 \end{enumerate}
 
 \begin{chapterreview}

@@ -25,6 +25,12 @@ guide](supplementary-materials/computing-foundations/11-contributing-to-the-shar
 explains the public fork, branch, review, CI, conflict, and maintenance process
 without assuming prior open-source experience.
 
+Textbook contribution-studio problems have stable identifiers such as
+`MLF-PR1`, `SLC-PR2`, `LR-PR3`, and `GD-PR1`. Preserve the applicable identifier
+in the issue form, issue title, branch name, and pull-request template. Use
+`Independent proposal` only when the approved work is not derived from one of
+those problems.
+
 ## Local setup
 
 Clone the repository, open its root folder in VS Code, and run:

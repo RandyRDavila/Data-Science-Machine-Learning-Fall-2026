@@ -2,6 +2,8 @@
 
 <!-- What problem does this change solve, and for whom? -->
 
+Textbook problem: <!-- Stable ID such as GD-PR1, or "Not applicable." -->
+
 ## What changed
 
 <!-- Summarize the smallest coherent set of changes. -->

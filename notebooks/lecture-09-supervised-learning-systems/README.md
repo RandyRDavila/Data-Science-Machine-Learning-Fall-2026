@@ -1,14 +1,15 @@
 # Lecture 9: Machine Learning and Supervised Learning Systems
 
 This unit begins Part II by locating supervised learning within the broader
-machine-learning landscape and then constructing a complete first prediction
+machine-learning landscape and its history, formalizing the mathematical parts
+of a learning problem, and then constructing a complete first prediction
 system. Real clinical, chemical, and image datasets distinguish supervised and
 unsupervised tasks; a clearly labeled simulation isolates the interactive
-mechanism of reinforcement learning. Linear regression then develops from
-residual geometry, least-squares calculus, and the normal equations into a
-held-out diabetes progression study with an explicit target, prediction time,
-population, split, preprocessing, baseline, metrics, diagnostics, and artifact
-boundary.
+mechanism of reinforcement learning. Linear regression develops from its
+astronomical least-squares origins through residual geometry, conditional-risk
+calculus, projection, and the normal equations into a held-out diabetes
+progression study with an explicit target, prediction time, population, split,
+preprocessing, baseline, metrics, diagnostics, and artifact boundary.
 
 The real observations live in the versioned, read-only
 [`data/course_datasets.sqlite`](../../data/course_datasets.sqlite) database.
@@ -31,8 +32,8 @@ and named in the weekly announcement.
 
 | Notebook | Topic | Professional artifact |
 | --- | --- | --- |
-| 00 | ML branches and problem formulation | Problem-first learning-signal map |
-| 01 | OLS mathematics and a complete regression pipeline | Derived model, leakage-safe pipeline, and evaluation dossier |
+| 00 | ML history, mathematical anatomy, branches, and applications | Problem-first learning-signal map |
+| 01 | OLS history and mathematics plus a complete regression pipeline | Derived model, leakage-safe pipeline, and evaluation dossier |
 | 02 | Group- and time-aware vertical slice *(planned)* | Versioned baseline artifact and batch prediction |
 
 Students will distinguish prediction from causal explanation, identify target

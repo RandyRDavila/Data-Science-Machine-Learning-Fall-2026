@@ -16,7 +16,7 @@ announcement names it. Do not create empty substitutes for planned notebooks.
 
 1. Update an unchanged local `main` branch with `git pull --ff-only`.
 2. Run `uv run python scripts/setup_course.py` from the repository root.
-3. Read the matching textbook chapter and the unit `README.md`.
+3. Read the matching textbook chapter or chapters and the unit `README.md`.
 4. Open the assigned notebook in VS Code and select the **Rice DSM** kernel.
 5. Confirm that `data/course_datasets.sqlite` exists; inspect
    `dataset_catalog` before querying an observation table.

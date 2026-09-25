@@ -1,0 +1,300 @@
+\chapter{Machine learning: problems, evidence, and systems}
+\label{ch:machine-learning-foundations}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item explain machine learning as the estimation of behavior from data and
+  feedback rather than as a catalog of algorithms;
+  \item distinguish supervised, unsupervised, self-supervised, generative,
+  reinforcement, and causal questions by their information and claim;
+  \item identify the representation, hypothesis class, objective, learning
+  algorithm, and evaluation distribution in a mathematical learning problem;
+  \item explain why inductive bias and out-of-sample evidence are unavoidable;
+  and
+  \item connect an empirical model to the software and decision system that
+  produces, serves, and monitors it.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Part I built reliable paths from data sources to tested software and operated
+services. Part II asks what changes when one component is estimated from data.
+The answer is not that ordinary engineering disappears. A learned component
+adds a population, a sampling process, an objective, uncertainty, adaptive
+selection, and the possibility that future data differ from past data.
+\end{chapterconnection}
+
+\section{A short history of a broad idea}
+
+The mathematics now used in machine learning predates the name. Least squares
+grew from astronomy and geodesy in the early nineteenth century. Probability,
+statistical decision theory, optimization, information theory, control, and
+pattern recognition supplied other foundations. By 1950 Alan Turing was
+discussing the possibility of a learning machine rather than a machine whose
+every response was specified directly.\footnote{A. M. Turing, ``Computing
+Machinery and Intelligence,'' \emph{Mind}, 59(236), 1950,
+\url{https://doi.org/10.1093/mind/LIX.236.433}.} Arthur Samuel's 1959 checkers
+study described a program whose playing behavior improved from experience and
+helped establish the term machine learning in computing.\footnote{A. L.
+Samuel, ``Some Studies in Machine Learning Using the Game of Checkers,''
+\emph{IBM Journal of Research and Development}, 3(3), 1959,
+\url{https://doi.org/10.1147/rd.33.0210}.}
+
+This history matters because machine learning is not a single modern invention
+and is not synonymous with neural networks. A linear least-squares estimator,
+a nearest-neighbor rule, a decision tree, a transformer, and a learned control
+policy can all be machine-learning components. Their data, assumptions,
+objectives, computation, and evidence differ.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} machine learning begins when a sufficiently complicated
+model is used. \textbf{Correction:} learning begins when behavior is estimated
+from experience under an explicit task and criterion. Complexity alone does
+not define learning, and a large model does not remove the need to specify the
+problem.
+\end{misconceptionbox}
+
+\section{What exactly is learned?}
+
+Let $D$ denote observed experience and let $\mathcal{F}$ be a set of candidate
+functions or policies. A learning algorithm is itself a map
+\[
+\mathcal{A}:D\longmapsto \widehat f_D\in\mathcal{F}.
+\]
+The output $\widehat f_D$ may predict a number, assign a score, transform an
+input into a representation, estimate a distribution, generate an object, or
+select an action. The subscript $D$ is essential: another sample, ordering, or
+random seed may produce another fitted object.
+
+A complete learning problem contains at least five mathematical choices:
+
+\begin{enumerate}
+  \item a \term{representation} $\phi$ that converts available evidence into
+  model input $x=\phi(r)$;
+  \item a \term{hypothesis class} $\mathcal{F}$ describing candidate behavior;
+  \item an \term{objective} that scores candidate behavior on experience;
+  \item a \term{learning algorithm} that searches, estimates, or updates; and
+  \item an \term{evaluation setting} that defines where performance must
+  transfer.
+\end{enumerate}
+
+These choices are coupled. Euclidean distance on unscaled chemical
+measurements defines a different clustering problem from Euclidean distance
+after standardization. Squared loss and absolute loss target different
+population summaries. A random row split and a future-time split estimate
+performance for different uses. ``The model'' is therefore not just the class
+name printed by a library.
+
+\begin{definitionbox}{learning system}
+A learning system joins a data-generating process, representation, fitted
+component, objective, software interface, decision or scientific consumer,
+evaluation design, and feedback path. Its unit of analysis is the claim made by
+the complete path, not merely the estimator object.
+\end{definitionbox}
+
+\section{Branches are distinguished by information and feedback}
+
+The familiar branches are best treated as problem structures rather than
+product labels.
+
+\begin{tabularx}{\textwidth}{@{}p{0.19\textwidth}p{0.28\textwidth}X@{}}
+\toprule
+Problem structure & Learning information & Typical output and evidence \\
+\midrule
+Supervised & Inputs paired with observed targets & Numeric prediction, score,
+probability, or label; evaluated against held-out targets \\
+Unsupervised & Inputs without a supplied target & Clusters, lower-dimensional
+coordinates, density, or anomaly score; evaluated by stability, reconstruction,
+domain utility, or other task-specific evidence \\
+Self-supervised & Targets constructed from the observations & A representation
+or predictive model transferred to later tasks \\
+Generative & Samples from a distribution, sometimes with conditions & New
+samples or likelihood-like scores; evaluated by distributional, task, expert,
+and safety evidence \\
+Reinforcement & States, actions, and delayed rewards gathered through
+interaction & A policy or value function; evaluated by return under an
+admissible interaction or off-policy design \\
+\bottomrule
+\end{tabularx}
+
+These categories overlap. A language model may be pretrained by a
+self-supervised objective, adapted with supervised examples, and further
+optimized from preference or reward signals. A medical product may use an
+unsupervised representation inside a supervised risk model. ``Deep learning''
+describes a family of multilayer representations, not a separate source of
+feedback.
+
+Causal inference is a neighboring but different claim. Prediction asks about
+$Y$ given observed $X$. An intervention asks about an outcome under an action
+that may not have occurred. Associational fit alone cannot identify that
+counterfactual comparison.
+
+\conceptcheck{A laboratory hides protein labels, learns an embedding from
+amino-acid sequences, and then fits a small labeled classifier. Which learning
+signals appear in the two stages? Which held-out evidence would be needed to
+support the final classification claim?}
+
+\section{Inductive bias is not optional}
+
+Finite observations do not determine behavior everywhere. Infinitely many
+functions can interpolate a finite regression sample, and many partitions can
+describe an unlabeled cloud. A learner must prefer some continuations over
+others. That preference is its \term{inductive bias}.
+
+Bias enters through the representation, model class, loss, regularization,
+optimization, initialization, augmentation, stopping rule, and data collection.
+A linear model prefers affine relationships. A nearest-neighbor method prefers
+local smoothness under a chosen distance. A convolutional architecture encodes
+spatial sharing. None is neutral.
+
+Suppose two functions $f_1$ and $f_2$ agree at every observed $x_i$ but differ
+at a future $x_*$. No calculation using only the observed labels can determine
+which future value is correct. Generalization becomes possible only through
+assumptions connecting observed and future cases. Large datasets can reduce
+uncertainty under those assumptions; they do not abolish the assumptions.
+
+\begin{warningbox}
+Calling a pipeline ``data driven'' can hide strong human choices. Column
+selection, target definition, labeling policy, sampling, missing-value handling,
+objective, architecture, and evaluation boundary all shape what the data can
+appear to say.
+\end{warningbox}
+
+\section{From population risk to empirical evidence}
+
+For supervised prediction with loss $L$, define population risk
+\[
+R(f)=\mathbb{E}_{(X,Y)\sim P_{\mathrm{use}}}
+      [L(Y,f(X))].
+\]
+The expectation refers to the intended use population, not automatically to the
+database on hand. Training can only compute an empirical risk such as
+\[
+\widehat R_D(f)=\frac{1}{n}\sum_{i=1}^{n}L(y_i,f(x_i)).
+\]
+The difference $R(\widehat f_D)-\widehat R_D(\widehat f_D)$ is not directly
+observable from the training sample. Held-out evaluation, resampling, theory,
+and domain knowledge provide partial evidence about it.
+
+Three sources of failure must be kept separate:
+
+\begin{itemize}
+  \item \textbf{approximation:} the candidate class cannot represent useful
+  behavior;
+  \item \textbf{estimation:} finite or biased data select an unreliable member
+  of the class; and
+  \item \textbf{optimization:} the algorithm fails to find the intended fitted
+  solution.
+\end{itemize}
+
+A fourth systems failure occurs when the fitted object is correct but the
+deployed representation, schema, or decision path differs from evaluation.
+These failures require different repairs. More optimizer iterations cannot fix
+target leakage; a larger network cannot repair an invalid outcome definition.
+
+\section{Applications begin with decisions, not algorithms}
+
+The same mathematical interface appears across domains, but the meaning of an
+error changes.
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.18\textwidth}>{\raggedright\arraybackslash}p{0.25\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Domain & Possible learning task & Essential qualification \\
+\midrule
+Materials science & Predict later battery capacity from early-cycle summaries
+& Generalization across cells, batches, chemistries, and time must be separated \\
+Astronomy & Classify transient events from image and light-curve measurements
+& Selection effects and delayed spectroscopic labels shape the target sample \\
+Manufacturing & Detect anomalous sensor trajectories & A rare pattern is not
+automatically a defect; maintenance outcomes and changing equipment matter \\
+Ecology & Estimate species occurrence from surveys and remote sensing & Survey
+effort and imperfect detection can be confused with ecological absence \\
+Operations & Forecast demand and allocate inventory & Forecast loss and the
+downstream stocking cost are related but not identical objectives \\
+Chemistry & Propose molecules under property constraints & Validity, novelty,
+synthesizability, uncertainty, and laboratory confirmation are distinct claims \\
+\bottomrule
+\end{tabularx}
+
+An application is not made rigorous by replacing its nouns with mathematical
+symbols. The observational unit, measurement process, time boundary, action,
+and consequences determine which mathematics is relevant.
+
+\begin{workedexample}{one battery archive, four learning questions}
+Suppose an archive contains voltage, current, temperature, and capacity traces
+for cells from several manufacturing batches.
+
+A supervised task predicts capacity at cycle 300 from measurements available by
+cycle 100. An unsupervised task searches for recurring trajectory shapes without
+using later capacity. A self-supervised task masks pieces of early trajectories
+and learns to reconstruct them before transfer to a small labeled study. A
+reinforcement problem chooses a charging policy and observes delayed lifetime
+and safety outcomes.
+
+The rows may originate in the same archive, yet the four tasks do not share one
+automatic split or metric. The supervised task needs target-isolated future
+batches. The unsupervised task needs stability and scientific interpretation.
+The self-supervised task must prevent evaluation information from entering
+pretraining when that would violate the claim. The policy problem requires a
+safe simulator, experiment, or justified logged-policy analysis. Naming the
+branch is the beginning of the design, not its completion.
+\end{workedexample}
+
+\section{The learning lifecycle is an evidence lifecycle}
+
+A defensible project repeatedly crosses the following boundaries:
+
+\[
+\text{question}\rightarrow\text{data contract}\rightarrow\text{split}
+\rightarrow\text{baseline}\rightarrow\text{fit}\rightarrow\text{evaluation}
+\rightarrow\text{release}\rightarrow\text{operation}\rightarrow\text{feedback}.
+\]
+
+The arrows are not a one-way excuse to deploy. Evaluation may reveal that the
+target is unusable. Operation may reveal that outcomes arrive too late to
+monitor the claim. A change in representation may invalidate a prior artifact.
+The lifecycle is iterative, but its test boundary must not be repeatedly mined
+for favorable results.
+
+\begin{professionalbox}
+Before importing an estimator, write one paragraph naming the unit, population,
+available information, desired output, consumer, cost of error, evaluation
+boundary, and feedback delay. If those fields cannot be written, model choice is
+premature.
+\end{professionalbox}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item For one climate dataset, formulate a supervised forecast, an
+  unsupervised representation problem, and a causal question. State why their
+  evidence requirements differ.
+  \item Give two functions that interpolate the same three points but disagree
+  elsewhere. Identify the inductive bias that would prefer one.
+  \item For an image classifier, separate approximation, estimation,
+  optimization, and deployment-representation failures.
+  \item Choose an application from the table and write the complete learning
+  system: representation, hypothesis class, objective, algorithm, split,
+  metric, decision, and feedback.
+  \item Explain why a model that improves its training objective has not yet
+  demonstrated learning that matters to a user.
+\end{enumerate}
+
+\begin{chapterreview}
+Machine learning estimates behavior from experience under a chosen problem
+structure. The learning signal distinguishes major branches, while
+representation, hypothesis class, loss, optimization, and evaluation define a
+specific problem. Finite data require inductive bias. Training fit is not the
+generalization claim, and the fitted object is only one component of a system
+that must preserve its data and decision contract.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 9 notebook 00 turns this map into an executable gallery. It queries
+documented clinical, chemical, and image observations from the course database
+to contrast regression, classification, clustering, and dimensionality
+reduction, then uses a declared bandit simulation to isolate reinforcement
+feedback. Students audit provenance and unsupported claims before comparing
+library interfaces.
+\end{notebooklink}

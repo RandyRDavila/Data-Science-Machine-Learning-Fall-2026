@@ -1,0 +1,341 @@
+\chapter{Linear regression and regularization}
+\label{ch:linear-regression}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item derive least squares from an affine prediction rule and squared loss;
+  \item explain projection, identifiability, conditioning, and stable numerical
+  solution;
+  \item distinguish prediction, coefficient interpretation, and statistical
+  uncertainty;
+  \item distinguish ridge, lasso, and elastic-net regularization; and
+  \item evaluate a regression pipeline using residual and out-of-sample evidence.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Chapter~\ref{ch:supervised-contract} fixed the population, feature cutoff,
+target, split, and baseline. We can now study model classes without silently
+changing the question. The affine map introduced here will recur in logistic
+regression, support-vector machines, and neural networks.
+\end{chapterconnection}
+
+\section{From astronomical observations to a general model}
+
+Least squares arose from a scientific problem that still feels modern: more
+noisy measurements were available than unknown parameters, and no parameter
+choice satisfied every equation exactly. Adrien-Marie Legendre published the
+method in 1805 as part of work on comet orbits. Carl Friedrich Gauss published
+a probabilistic treatment in 1809 and stated that he had used the principle
+earlier.\footnote{A.-M. Legendre, \emph{Nouvelles m\'ethodes pour la
+d\'etermination des orbites des com\`etes}, 1805; C. F. Gauss, \emph{Theoria
+motus corporum coelestium}, 1809. Legendre's appendix is the first published
+account; Gauss reported use dating to 1795.}
+
+The word regression entered statistics later through nineteenth-century studies
+of heredity. Its historical biological interpretation should not be confused
+with the modern mathematical definition. Today linear regression is a family
+of projection, estimation, prediction, and uncertainty procedures. These uses
+share algebra but require different assumptions.
+
+The model remains important not because all relationships are straight lines,
+but because it is transparent enough to expose the entire chain: representation,
+loss, geometry, probability, numerical linear algebra, evaluation, and
+deployment. It is also the local building block of many nonlinear methods.
+
+\section{The affine predictor}
+
+For $x\in\mathbb{R}^p$, an affine predictor has the form
+\[
+f_{w,b}(x)=w^Tx+b.
+\]
+The intercept permits a nonzero prediction at the coordinate origin. Calling
+this model ``linear'' is conventional; mathematically it is affine unless the
+intercept is absorbed into an augmented feature vector.
+
+With design matrix $X\in\mathbb{R}^{n\times p}$ and target vector
+$y\in\mathbb{R}^n$, ordinary least squares minimizes
+\[
+J(w,b)=\frac{1}{n}\sum_{i=1}^n(y_i-w^Tx_i-b)^2.
+\]
+Squared loss penalizes large residuals strongly and targets the conditional mean
+under the population risk. That property is useful only when the mean and the
+cost implied by squared error match the task.
+
+\section{One feature exposes the algebra}
+
+For observations $(x_i,y_i)$ and $\widehat y_i=b+wx_i$, minimize
+\[
+Q(b,w)=\sum_{i=1}^n[y_i-(b+wx_i)]^2.
+\]
+The first-order equations are
+\[
+\sum_i(y_i-b-wx_i)=0,
+\qquad
+\sum_i x_i(y_i-b-wx_i)=0.
+\]
+The first implies that the fitted line passes through $(\bar x,\bar y)$. After
+centering, the solution is
+\[
+\widehat w=
+\frac{\sum_i(x_i-\bar x)(y_i-\bar y)}
+     {\sum_i(x_i-\bar x)^2},
+\qquad
+\widehat b=\bar y-\widehat w\bar x.
+\]
+Thus the slope is sample covariance divided by sample variance when the same
+normalizing convention is used. If every $x_i$ is equal, the denominator is
+zero: the sample contains no information about change in $y$ with $x$.
+
+Residuals satisfy
+\[
+\sum_i e_i=0,
+\qquad
+\sum_i x_ie_i=0
+\]
+when an intercept and slope are fitted. These are orthogonality statements, not
+evidence that residuals are independent, Gaussian, or scientifically harmless.
+
+\conceptcheck{If mass is converted from grams to kilograms, how do slope and
+intercept coordinates change? Why are fitted values unchanged when the
+conversion is performed consistently?}
+
+\section{Projection and identifiability}
+
+After including an intercept column, write the design matrix as $A$. The fitted
+vector $A\widehat\theta$ is the orthogonal projection of $y$ onto the column
+space of $A$. At an optimum the residual $r=y-A\widehat\theta$ satisfies
+$A^Tr=0$. This geometric statement remains meaningful when coefficients are
+not unique.
+
+For any candidate fitted vector $Av$ in the column space,
+\[
+\lVert y-Av\rVert_2^2
+=\lVert y-A\widehat\theta\rVert_2^2
++\lVert A\widehat\theta-Av\rVert_2^2.
+\]
+This Pythagorean identity proves that the orthogonal projection minimizes
+squared distance. It also separates unexplained residual length from the extra
+error caused by choosing another vector in the same model space.
+
+If $A$ has full column rank, the normal equations give
+\[
+\widehat\theta=(A^TA)^{-1}A^Ty.
+\]
+Software should not explicitly form the inverse. QR or singular-value methods
+are generally more stable, while iterative methods are useful at larger scale.
+When columns are linearly dependent, multiple coefficient vectors produce the
+same fitted values. Prediction may remain defined while individual coefficient
+interpretations do not.
+
+The Moore-Penrose pseudoinverse $A^+$ gives the minimum-Euclidean-norm solution
+$\widehat\theta=A^+y$ when the system is rank deficient. That convention makes
+a coefficient vector unique, but it does not make the individual coefficients
+scientifically identified. The choice comes from an algebraic preference among
+equally fitting solutions.
+
+\conceptcheck{Two columns record temperature in Celsius and Fahrenheit. What
+happens to rank, fitted values, and the uniqueness of their separate
+coefficients when an intercept is present?}
+
+\section{Stable solution is a numerical question}
+
+The symbolic expression
+\[
+\widehat\theta=(A^TA)^{-1}A^Ty
+\]
+is useful for derivation but is usually a poor algorithm. Forming $A^TA$ squares
+the condition number, and explicitly computing an inverse adds work and error.
+QR factorization solves the full-rank least-squares problem without that
+inverse. Singular-value decomposition exposes rank and supplies a stable
+pseudoinverse. Iterative methods become important when $A$ is too large or
+sparse for a direct factorization.
+
+Conditioning asks how much the solution can change under small perturbations to
+data or arithmetic. If two columns are nearly dependent, fitted predictions may
+be stable in the observed region while their separate coefficients change
+dramatically. More floating-point precision does not fix weak statistical
+identification.
+
+Standardization can improve numerical conditioning, but it is a fitted
+transformation. Means and scales belong to the training fold and serialized
+pipeline. Chapter~\ref{ch:gradient-descent} studies how this same conditioning
+controls iterative convergence.
+
+\begin{professionalbox}
+Use a least-squares routine that reports or permits inspection of rank and
+singular values. Record the feature schema and units. Treat a large condition
+number as evidence requiring investigation, not as a warning to suppress.
+\end{professionalbox}
+
+\section{Prediction assumptions differ from inferential assumptions}
+
+A common stochastic model is
+\[
+Y=X\beta+\varepsilon,
+\qquad \mathbb{E}[\varepsilon\mid X]=0.
+\]
+Under homoscedastic uncorrelated errors with variance $\sigma^2$, ordinary least
+squares is the best linear unbiased estimator in the Gauss-Markov sense. This
+is a comparison within linear unbiased estimators, not a claim that OLS is best
+among every possible predictor.
+
+If errors are conditionally Gaussian, least squares is also maximum likelihood.
+Gaussian errors are not required to compute coefficients or predictions. They
+support particular likelihood and finite-sample inference results. Independence,
+linearity of the conditional mean, constant variance, measurement quality, and
+sampling design remain separate assumptions.
+
+For full-rank fixed design,
+\[
+\operatorname{Var}(\widehat\beta\mid X)=\sigma^2(X^TX)^{-1}.
+\]
+Uncertainty grows in weakly supported directions. A confidence interval for a
+mean response, a prediction interval for a new outcome, and variability of the
+entire fitted procedure under new training samples are different objects. A new
+outcome interval includes irreducible outcome variation and is therefore wider
+than an interval for the conditional mean under the same model.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} a small coefficient $p$-value proves that changing the
+feature will change the outcome. \textbf{Correction:} the inferential statement
+is conditional on a statistical model and sampling design. An intervention
+claim additionally needs causal identification; practical predictive value
+needs out-of-sample evidence.
+\end{misconceptionbox}
+
+\section{Basis expansion changes the feature map}
+
+Polynomial regression remains linear in its fitted coefficients. A map
+$\phi(x)=(1,x,x^2,\ldots,x^d)$ creates a richer function
+$f(x)=w^T\phi(x)$. Interactions can represent joint effects. The flexibility
+comes from the basis, not from abandoning linear estimation.
+
+High-degree bases can be poorly conditioned and unstable outside the observed
+range. Every basis term must be generated identically during training and
+inference. Feature names, order, units, and transformation parameters therefore
+belong to the artifact contract.
+
+\section{Regularization chooses among fitting rules}
+
+Ridge regression minimizes
+\[
+\widehat R(w)+\lambda\lVert w\rVert_2^2,
+\]
+shrinking correlated or weakly identified coefficients and usually improving
+conditioning. Lasso uses $\lambda\lVert w\rVert_1$ and can set coefficients
+exactly to zero. Elastic net combines both penalties.
+
+Regularization trades empirical fit for a restriction on the solution. The
+penalty depends on feature scale, so scaling and whether the intercept is
+penalized are part of the definition. A lasso-selected variable set is not an
+automatic list of scientific causes; selection can be unstable among correlated
+features.
+
+For a centered design, the ridge solution is
+\[
+\widehat w_{\mathrm{ridge}}
+=(X^TX+\lambda I)^{-1}X^Ty.
+\]
+In the singular-vector directions of $X$, ridge shrinks most strongly where the
+data contain least information. It replaces division by a small squared
+singular value $s_j^2$ with division by $s_j^2+\lambda$. This connects
+statistical stabilization to numerical conditioning. Under a Gaussian prior on
+coefficients and Gaussian observation model, the same expression is a maximum
+a posteriori estimate, but that interpretation requires its probability model.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} regularization is needed only when a model visibly
+overfits. \textbf{Correction:} it can also stabilize an ill-conditioned
+problem, encode a preference among many solutions, and improve performance
+under finite samples. Its strength must still be chosen inside evaluation.
+\end{misconceptionbox}
+
+\section{Residuals are structured evidence}
+
+A residual $e_i=y_i-\widehat y_i$ retains sign, scale, and context. Plot it
+against predictions, major features, time, and groups. Curvature can reveal
+missing structure; a fan shape can reveal changing conditional variance;
+clusters can reveal omitted batches; isolated points can dominate squared loss.
+
+Aggregate error should include units and a distribution, not only a mean.
+Compare mean absolute error, root mean squared error, and relevant quantiles.
+Inspect error by scientifically meaningful subgroup. Prediction intervals,
+confidence intervals for parameters, and variability across resampled training
+sets answer different questions and should not be conflated.
+
+\section{Linear models across science and engineering}
+
+Linear regression can be the final model, a baseline, or a local approximation.
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.18\textwidth}>{\raggedright\arraybackslash}p{0.27\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Setting & Representation & Principal caution \\
+\midrule
+Sensor calibration & Reference quantity versus instrument response & Error in
+the predictor may require errors-in-variables methods, not ordinary least squares \\
+Spectroscopy & Concentration from many correlated wavelengths & Collinearity,
+baseline drift, and instrument transfer dominate coefficient stories \\
+Economics & Outcome on policy and contextual variables & Prediction and causal
+policy effects require different designs \\
+Energy systems & Load from weather, calendar, and lag features & Temporal
+dependence and extrapolation beyond observed weather matter \\
+Materials & Later capacity from early-cycle summaries & Batch and chemistry
+shift can overwhelm random-row performance \\
+\bottomrule
+\end{tabularx}
+
+The phrase ``linear model'' refers to linearity in coefficients. Basis
+functions can encode polynomials, splines, periodic structure, and interactions.
+Interpretation then belongs to the complete feature map, not to a raw
+coefficient in isolation.
+
+\begin{workedexample}{regularized capacity prediction}
+Suppose early-cycle summaries include mean voltage, resistance change, and two
+strongly correlated temperature summaries. A least-squares fit produces large
+opposite temperature coefficients while predictions change little. This is a
+signature of weak coefficient identification.
+
+Fit a pipeline that learns scaling and ridge regression using only each
+training fold. Choose $\lambda$ on validation batches, then compare once on the
+held-out later batches. Report the baseline and ridge errors in ampere-hours,
+residuals by batch, and the range of each input. The ridge coefficients are more
+stable, but the report avoids interpreting their magnitudes as causal effects.
+\end{workedexample}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Derive the least-squares gradient with an intercept and verify its
+  dimensions.
+  \item Construct a rank-deficient design matrix with unique fitted values but
+  nonunique coefficients. Explain how ridge changes the solution.
+  \item Show why fitting a scaler before cross-validation leaks information.
+  \item Design tests for a regression artifact when columns are reordered,
+  missing, duplicated, or expressed in incompatible units.
+  \item Prove the Pythagorean identity for least-squares projection.
+  \item Compare the assumptions needed for a point prediction, a coefficient
+  confidence interval, and a causal intervention claim.
+  \item Use the singular-value decomposition to explain which directions ridge
+  shrinks most and why.
+\end{enumerate}
+
+\begin{chapterreview}
+Linear regression combines an affine representation, a loss, an optimization
+method, and a data contract. Its history began with reconciling noisy scientific
+observations, and the same projection geometry now supports prediction across
+many domains. Rank and conditioning explain coefficient instability; stable
+factorizations separate algebra from numerical implementation; and
+regularization selects a more constrained solution. Inferential, predictive,
+and causal claims require different assumptions. Out-of-sample residual
+evidence, not training fit alone, supports the prediction claim.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 9 notebook 01 derives one-feature ordinary least squares from real
+diabetes observations, verifies the result with a stable least-squares solver,
+and visualizes projection through residuals and parameter-space loss. It then
+builds a leakage-safe multiple-regression pipeline with a baseline, training-
+only scaling, complementary metrics, residual diagnostics, and a one-time test
+evaluation. Lecture 10 then opens the iterative optimization mechanism.
+\end{notebooklink}

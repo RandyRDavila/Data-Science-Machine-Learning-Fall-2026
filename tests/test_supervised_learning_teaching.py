@@ -94,8 +94,15 @@ def test_opening_sequence_uses_real_documented_datasets() -> None:
         "World Bank Open Data",
     ):
         assert source in landscape
-    for notebook_source in (landscape, regression, gradient):
-        assert "course_datasets.sqlite" in notebook_source
+    for notebook_path, notebook_source in zip(
+        (LANDSCAPE, PIPELINE, GRADIENT),
+        (landscape, regression, gradient),
+        strict=True,
+    ):
+        notebook_code = notebook_text(notebook_path, cell_type="code")
+        assert "course_database_path" in notebook_source
+        assert 'Path("data/course_datasets.sqlite")' not in notebook_code
+        assert ".as_uri()" in notebook_source
         assert "sqlite3.connect" in notebook_source
         assert "mode=ro" in notebook_source
         assert "load_diabetes" not in notebook_source

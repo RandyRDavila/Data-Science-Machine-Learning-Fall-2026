@@ -85,6 +85,9 @@ the canonical setup, verification, weekly-workflow, and troubleshooting route.
 │       ├── __init__.py
 │       └── ...                # Reusable code developed during the course
 ├── tests/                     # Executable examples and repository safeguards
+├── data/
+│   ├── course_datasets.sqlite # Read-only real-data teaching database
+│   └── README.md              # Provenance and rebuild contract
 ├── notes/                     # Topic notes and supporting instructional content
 ├── supplementary-materials/   # Computing guides, readings, exercises, diagrams
 ├── projects/                  # Operated systems and longer engineering labs
@@ -280,10 +283,17 @@ an algorithm catalog. A recurring battery-cell case moves through three linked
 paths: training creates a versioned candidate, prediction applies an approved
 artifact, and feedback joins predictions to delayed outcomes. The units are:
 
+The opening instructional laboratories deliberately broaden the empirical
+view: documented diabetes, breast-cancer imaging, wine-chemistry, and
+handwritten-digit datasets teach the mathematics and task taxonomy. Simulation
+is used only when interaction itself is the concept under study and is labeled
+as such. The battery case remains the recurring end-to-end software-system
+thread rather than a fabricated source of empirical evidence.
+
 | Unit | Topic | Executable entry point |
 | ---: | --- | --- |
-| 9 | Prediction contracts, leakage-safe splits, and baselines | [`lecture-09-supervised-learning-systems`](notebooks/lecture-09-supervised-learning-systems/) |
-| 10 | Linear regression, optimization, and regularization | [`lecture-10-linear-regression-regularization`](notebooks/lecture-10-linear-regression-regularization/) |
+| 9 | ML branches and a complete supervised linear-regression pipeline | [`lecture-09-supervised-learning-systems`](notebooks/lecture-09-supervised-learning-systems/) |
+| 10 | Gradient descent, the linear neuron, and regularization | [`lecture-10-linear-regression-regularization`](notebooks/lecture-10-linear-regression-regularization/) |
 | 11 | Classification, calibration, and decision policies | [`lecture-11-classification-decisions`](notebooks/lecture-11-classification-decisions/) |
 | 12 | Nearest neighbors, margins, and kernels | [`lecture-12-geometric-learning`](notebooks/lecture-12-geometric-learning/) |
 | 13 | Decision trees, pruning, and stability | [`lecture-13-decision-trees`](notebooks/lecture-13-decision-trees/) |
@@ -292,10 +302,12 @@ artifact, and feedback joins predictions to delayed outcomes. The units are:
 | 16 | Neural networks, backpropagation, and autodiff | [`lecture-16-neural-networks-autodiff`](notebooks/lecture-16-neural-networks-autodiff/) |
 | 17 | Reliable release, monitoring, outcomes, and retraining | [`lecture-17-reliable-supervised-systems`](notebooks/lecture-17-reliable-supervised-systems/) |
 
-Each directory currently contains its unit contract, planned detailed notebook
-sequence, and a CI-executable entry notebook. These entry points will be expanded
-into full laboratories one unit at a time. The textbook already carries the
-connected Part II mathematical and systems narrative.
+Each directory contains its unit contract, planned sequence, and a CI-executable
+entry notebook. Units 9 and 10 now begin with full laboratories covering the ML
+landscape, an honest regression pipeline, and gradient descent from scalar
+functions to a linear neuron. Remaining entry points will be expanded one unit
+at a time. The textbook carries the connected Part II mathematical and systems
+narrative.
 
 The [`Part II student guide`](notebooks/PART_II_STUDENT_GUIDE.md) distinguishes
 released work from planned notebooks and defines preparation and completion
@@ -327,12 +339,17 @@ corresponding units are assigned.
 
 ### Planned course logistics and data
 
-A standalone syllabus, assignment handouts, and general data registry have not
-yet been published in this branch and therefore are not shown as current
-directories above. When added, the syllabus will define calendar, assessment,
-collaboration, accessibility, and institutional policies. Dataset entries will
-record provenance, license, schema, units, retrieval, and transformation rather
-than relying on an unexplained file copied into the repository.
+A standalone syllabus and assignment handouts have not yet been published in
+this branch. When added, the syllabus will define calendar, assessment,
+collaboration, accessibility, and institutional policies.
+
+The versioned [`data/course_datasets.sqlite`](data/course_datasets.sqlite)
+database supplies the opening machine-learning laboratories with real clinical,
+chemical, and image observations. Its catalog records provenance, source,
+license caveats, row meaning, targets, and schema; the idempotent
+[`scripts/build_course_database.py`](scripts/build_course_database.py) keeps
+dataset ingestion separate from analysis. Students query the database in the
+notebooks rather than receiving a dataframe from a one-line dataset loader.
 
 ## Status
 

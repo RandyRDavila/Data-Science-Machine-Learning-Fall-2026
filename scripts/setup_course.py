@@ -8,6 +8,7 @@ Run this script through the project environment after ``uv sync``:
 from __future__ import annotations
 
 import os
+import sqlite3
 import stat
 import subprocess
 import sys
@@ -19,6 +20,7 @@ KERNEL_DISPLAY_NAME = "Rice DSM"
 SITE_CUSTOMIZE_FILE = "sitecustomize.py"
 CUSTOMIZATION_BEGIN = "# BEGIN rice-dsm course source"
 CUSTOMIZATION_END = "# END rice-dsm course source"
+COURSE_DATABASE = "data/course_datasets.sqlite"
 
 
 def write_course_sitecustomize(
@@ -100,6 +102,29 @@ def verify_course_package() -> None:
     print("Verified rice_dsm:", completed.stdout.strip())
 
 
+def verify_course_database(project_root: Path | None = None) -> Path:
+    """Verify that the versioned teaching database is present and readable."""
+
+    if project_root is None:
+        project_root = Path(__file__).resolve().parents[1]
+    database_path = project_root / COURSE_DATABASE
+    if not database_path.is_file():
+        raise RuntimeError(
+            f"Missing course database: {database_path}. Restore it with Git or run "
+            "`uv run python scripts/build_course_database.py`."
+        )
+    with sqlite3.connect(f"file:{database_path}?mode=ro", uri=True) as connection:
+        dataset_count = connection.execute(
+            "SELECT COUNT(*) FROM dataset_catalog"
+        ).fetchone()[0]
+    if dataset_count != 4:
+        raise RuntimeError(
+            f"Expected 4 cataloged datasets in {database_path}; found {dataset_count}."
+        )
+    print(f"Verified course database: {database_path} ({dataset_count} datasets)")
+    return database_path
+
+
 def install_course_kernel() -> None:
     """Install a named kernelspec inside the current virtual environment."""
 
@@ -135,6 +160,7 @@ def main() -> None:
         print("Enabled Python startup path:", path_file)
 
     verify_course_package()
+    verify_course_database()
     install_course_kernel()
     print(
         "Course setup complete. Open a notebook in VS Code and select the "

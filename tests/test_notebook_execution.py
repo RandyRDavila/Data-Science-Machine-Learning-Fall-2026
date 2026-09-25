@@ -22,7 +22,10 @@ def test_notebook_executes_from_top_to_bottom(
     notebook = nbformat.read(notebook_path, as_version=4)
     client = NotebookClient(
         notebook,
-        timeout=120,
+        # Cold imports of compiled scientific packages can exceed two minutes on
+        # supported Windows/macOS/Linux runners. The CI job timeout remains the
+        # hard upper bound, while this limit still catches a genuinely stuck cell.
+        timeout=180,
         kernel_name="rice-dsm",
         resources={"metadata": {"path": str(PROJECT_ROOT)}},
     )

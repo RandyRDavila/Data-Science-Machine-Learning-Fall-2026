@@ -50,6 +50,7 @@ A successful run ends with a message containing:
 
 ```text
 Verified rice_dsm:
+Verified course database:
 Course setup complete. Open a notebook in VS Code and select the 'Rice DSM' kernel.
 ```
 
@@ -66,8 +67,8 @@ Run the fast structural checks:
 uv run pytest tests/test_course_setup.py tests/test_repository.py -q
 ```
 
-If they pass, the shell, project environment, package import, and repository
-structure agree. The complete suite takes longer because it executes the
+If they pass, the shell, project environment, package import, real-data teaching
+database, and repository structure agree. The complete suite takes longer because it executes the
 instructional notebooks:
 
 ```text
@@ -144,7 +145,10 @@ When something fails, do not reinstall everything immediately.
    point into this repository?
 5. **Notebook:** is the selected kernel **Rice DSM**, and has the notebook been
    restarted and run from top to bottom?
-6. **Containers, when required:** is Docker running, are the expected ports
+6. **Data:** does `data/course_datasets.sqlite` exist, and are you running from
+   the repository root? Restore it with Git or rebuild it with
+   `uv run python scripts/build_course_database.py`.
+7. **Containers, when required:** is Docker running, are the expected ports
    free, and what does `docker compose ... ps` report?
 
 The detailed recovery guides live in

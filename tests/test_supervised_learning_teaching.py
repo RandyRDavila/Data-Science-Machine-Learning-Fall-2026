@@ -12,6 +12,7 @@ LECTURE_10 = (
 LANDSCAPE = LECTURE_09 / "00-machine-learning-landscape.ipynb"
 PIPELINE = LECTURE_09 / "01-supervised-learning-linear-regression.ipynb"
 GRADIENT = LECTURE_10 / "00-gradient-descent-from-functions-to-neuron.ipynb"
+TEXTBOOK_CHAPTERS = PROJECT_ROOT / "textbook" / "chapters"
 
 
 def notebook_text(path: Path, *, cell_type: str | None = None) -> str:
@@ -51,6 +52,12 @@ def test_machine_learning_landscape_distinguishes_feedback_signals() -> None:
         "clustering",
         "dimensionality reduction",
         "causal",
+        "inductive bias",
+        "hypothesis class",
+        "empirical risk",
+        "turing",
+        "samuel",
+        "rosenblatt",
     ):
         assert concept in narrative
     for interface in (
@@ -121,6 +128,11 @@ def test_linear_regression_notebook_teaches_the_complete_pipeline() -> None:
         "residual",
         "causal",
         "release evidence",
+        "legendre",
+        "gauss",
+        "conditional mean",
+        "pythagorean identity",
+        "projection",
     ):
         assert concept in narrative
     for implementation in (
@@ -159,6 +171,10 @@ def test_gradient_notebook_builds_from_calculus_to_linear_neuron() -> None:
         "mini-batch gradient descent",
         "automatic differentiation",
         "linear regression",
+        "cauchy",
+        "robbins",
+        "eigenvector",
+        "condition number",
     ):
         assert concept in narrative
     for implementation in (
@@ -176,6 +192,50 @@ def test_gradient_notebook_builds_from_calculus_to_linear_neuron() -> None:
         "scaled_hessian",
     ):
         assert implementation in code
+
+
+def test_textbook_separates_the_four_opening_mathematical_arguments() -> None:
+    chapters = {
+        "foundations": TEXTBOOK_CHAPTERS / "09-machine-learning-foundations.tex",
+        "supervised": TEXTBOOK_CHAPTERS / "10-supervised-learning-systems.tex",
+        "regression": TEXTBOOK_CHAPTERS / "11-linear-regression.tex",
+        "gradient": TEXTBOOK_CHAPTERS / "12-gradient-descent.tex",
+    }
+    sources = {
+        name: path.read_text(encoding="utf-8").lower()
+        for name, path in chapters.items()
+    }
+
+    for required in (
+        "inductive bias",
+        "hypothesis class",
+        "samuel",
+        "application",
+    ):
+        assert required in sources["foundations"]
+    for required in (
+        "conditional mean",
+        "bias-variance",
+        "approximation",
+        "target-generation process",
+    ):
+        assert required in sources["supervised"]
+    for required in (
+        "legendre",
+        "gauss",
+        "pythagorean",
+        "gauss-markov",
+        "moore-penrose",
+    ):
+        assert required in sources["regression"]
+    for required in (
+        "cauchy",
+        "robbins",
+        "directional derivative",
+        "condition number",
+        "stochastic",
+    ):
+        assert required in sources["gradient"]
 
 
 def test_unit_guides_name_the_released_route() -> None:

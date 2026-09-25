@@ -1,0 +1,335 @@
+\chapter{Gradient methods: from calculus to learning}
+\label{ch:gradient-descent}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item derive gradient descent from a local linear approximation;
+  \item explain directional derivatives, steepest descent, curvature, and the
+  role of the learning rate;
+  \item derive batch, stochastic, and mini-batch updates for least squares;
+  \item connect a single identity-activation neuron to linear regression; and
+  \item diagnose divergence, slow convergence, scaling problems, and false
+  claims based only on optimizer convergence.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Chapter~\ref{ch:linear-regression} described least squares as estimation and
+projection. This chapter opens the numerical mechanism. The separation is
+deliberate: a statistical model defines what is estimated; an optimizer defines
+how parameters are searched. Gradient methods will return for logistic models,
+matrix factorization, neural networks, inverse problems, and differentiable
+scientific programs.
+\end{chapterconnection}
+
+\section{From steepest descent to stochastic approximation}
+
+Iterative descent has roots in numerical analysis rather than in modern neural
+network terminology. In 1847 Augustin-Louis Cauchy described a method of moving
+along steepest descent while solving systems arising from quadratic
+problems.\footnote{A.-L. Cauchy, ``M\'ethode g\'en\'erale pour la r\'esolution
+des syst\`emes d'\'equations simultan\'ees,'' \emph{Comptes rendus de
+l'Acad\'emie des Sciences}, 25, 1847.} In 1951 Herbert Robbins and Sutton Monro
+gave a stochastic approximation procedure for finding a solution when only
+noisy experimental responses were available.\footnote{H. Robbins and S.
+Monro, ``A Stochastic Approximation Method,'' \emph{The Annals of Mathematical
+Statistics}, 22(3), 1951,
+\url{https://doi.org/10.1214/aoms/1177729586}.}
+
+Modern gradient-based learning joins these two ideas: use local derivative
+information to improve an objective, and estimate that information from a
+manageable sample when the complete sum is expensive. Automatic
+differentiation changes how derivatives are computed, not what optimization
+question they answer.
+
+\section{One variable: the derivative proposes a local move}
+
+For differentiable $J:\mathbb{R}\rightarrow\mathbb{R}$, Taylor's formula gives
+\[
+J(w+\Delta w)=J(w)+J'(w)\Delta w+O((\Delta w)^2).
+\]
+When $J'(w)>0$, a small negative $\Delta w$ lowers the linear approximation;
+when $J'(w)<0$, a small positive move does. Choosing
+\[
+\Delta w=-\eta J'(w),\qquad \eta>0,
+\]
+produces the gradient-descent iteration
+\[
+w_{t+1}=w_t-\eta_tJ'(w_t).
+\]
+
+The derivative supplies local direction and sensitivity, not a complete route
+to a global minimizer. The learning rate $\eta_t$ converts sensitivity into a
+step. If the step is too large, the neglected curvature term can dominate and
+the objective may increase.
+
+For the quadratic $J(w)=\tfrac12 a(w-w^*)^2$ with $a>0$,
+\[
+w_{t+1}-w^*=(1-\eta a)(w_t-w^*).
+\]
+The iterates converge exactly when $|1-\eta a|<1$, or
+\[
+0<\eta<\frac{2}{a}.
+\]
+This one-line calculation explains oscillation, divergence, and slow progress.
+When $\eta$ is near $1/a$, progress is rapid; when it is tiny, each step retains
+almost all of the preceding error.
+
+\conceptcheck{For $J(w)=5(w-3)^2/2$, classify the behavior expected at
+$\eta=0.05$, $0.2$, $0.35$, and $0.45$. Which choice reaches the minimizer in
+one exact step?}
+
+\section{Several variables: the gradient represents all directions}
+
+For $J:\mathbb{R}^p\rightarrow\mathbb{R}$, the local approximation is
+\[
+J(\theta+d)\approx J(\theta)+\nabla J(\theta)^Td.
+\]
+For a unit direction $u$, the directional derivative is
+\[
+D_uJ(\theta)=\nabla J(\theta)^Tu.
+\]
+By Cauchy-Schwarz, this quantity is smallest over $\lVert u\rVert_2=1$ when
+$u=-\nabla J/\lVert\nabla J\rVert_2$. Thus the negative gradient is the
+direction of steepest local decrease under Euclidean distance.
+
+The phrase ``steepest'' depends on geometry. Rescaling parameters changes
+Euclidean distance and therefore changes the gradient path. A preconditioner,
+natural gradient, or adaptive method corresponds to a different geometry or
+coordinate-dependent scaling. This is why units and representation affect
+optimization even when they leave the set of fitted predictions unchanged.
+
+The Hessian
+\[
+H(\theta)=\nabla^2J(\theta)
+\]
+describes local curvature. Positive semidefinite $H$ throughout a convex domain
+implies a convex objective. At a differentiable convex minimum the gradient is
+zero, but a zero gradient in a nonconvex problem may also identify a saddle or
+maximum.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} the gradient points toward the nearest global minimum.
+\textbf{Correction:} it points in the direction of steepest infinitesimal
+decrease under a chosen norm. Curvature, constraints, step size, and nonconvex
+geometry determine what happens after a finite step.
+\end{misconceptionbox}
+
+\section{Quadratic objectives make curvature visible}
+
+Consider
+\[
+J(\theta)=\frac12\theta^TH\theta-c^T\theta+d,
+\qquad H=H^T\succ 0.
+\]
+Then $\nabla J=H\theta-c$ and the unique minimizer is
+$\theta^*=H^{-1}c$. Gradient descent satisfies
+\[
+\theta_{t+1}-\theta^*=(I-\eta H)(\theta_t-\theta^*).
+\]
+If $0<\lambda_{\min}\leq\lambda_j(H)\leq\lambda_{\max}$, a constant step
+converges when
+\[
+0<\eta<\frac{2}{\lambda_{\max}}.
+\]
+
+The condition number $\kappa=\lambda_{\max}/\lambda_{\min}$ measures the
+curvature disparity. A large $\kappa$ produces elongated contours. A safe step
+for the steep direction makes little progress along the flat direction, so the
+path zigzags slowly. Centering, scaling, reparameterization, and
+preconditioning attempt to improve this geometry.
+
+For an objective with $L$-Lipschitz gradient,
+\[
+J(v)\leq J(u)+\nabla J(u)^T(v-u)+\frac{L}{2}\lVert v-u\rVert_2^2.
+\]
+Setting $v=u-\eta\nabla J(u)$ shows that $0<\eta<2/L$ guarantees a decrease
+unless the gradient is zero. This \term{descent lemma} generalizes the scalar
+quadratic calculation.
+
+\section{Least squares supplies an exact laboratory}
+
+For design matrix $X\in\mathbb{R}^{n\times p}$ and target $y$, define
+\[
+J(w)=\frac{1}{2n}\lVert Xw-y\rVert_2^2.
+\]
+Differentiation gives
+\[
+\nabla J(w)=\frac1nX^T(Xw-y),
+\qquad
+\nabla^2J(w)=\frac1nX^TX.
+\]
+The Hessian is positive semidefinite, so every local minimum is global. If $X$
+has full column rank, the minimum is unique. If not, gradient descent still
+minimizes fitted loss but the coefficient selected depends on initialization
+and the geometry of the updates.
+
+The largest eigenvalue of $X^TX/n$ controls the stable constant step. Feature
+scaling changes that spectrum. This gives a precise reason to scale before
+gradient descent rather than the vague rule that models always require
+standardization.
+
+\begin{workedexample}{a linear neuron on real clinical measurements}
+Let $x_i$ be a standardized baseline BMI measurement and let $y_i$ be a
+one-year disease-progression score from the diabetes teaching table. A single
+unit with identity activation computes
+\[
+z_i=wx_i+b,\qquad \widehat y_i=a(z_i)=z_i.
+\]
+With
+\[
+J(w,b)=\frac{1}{2n}\sum_{i=1}^n( wx_i+b-y_i)^2,
+\]
+the chain rule gives
+\[
+\frac{\partial J}{\partial w}
+=\frac1n\sum_i(\widehat y_i-y_i)x_i,
+\qquad
+\frac{\partial J}{\partial b}
+=\frac1n\sum_i(\widehat y_i-y_i).
+\]
+These are exactly the least-squares gradients. ``Single neuron'' and ``linear
+regression'' describe two views of the same function and objective here. The
+neuron language becomes informative when activation, composition, or shared
+optimization later changes; it does not create a new estimator by itself.
+
+Plot three synchronized objects: contours of $J(w,b)$ in parameter space, the
+line $wx+b$ in data space, and loss against iteration. Parameter convergence,
+visual fit, and training history answer different questions and should not be
+collapsed into one plot.
+\end{workedexample}
+
+\section{Batch, stochastic, and mini-batch gradients}
+
+If
+\[
+J(\theta)=\frac1n\sum_{i=1}^n\ell_i(\theta),
+\]
+batch gradient descent evaluates every $\nabla\ell_i$ before one update. A
+stochastic update samples index $I_t$ and uses
+\[
+g_t=\nabla\ell_{I_t}(\theta_t).
+\]
+Under uniform sampling,
+$\mathbb{E}[g_t\mid\theta_t]=\nabla J(\theta_t)$: the stochastic gradient is
+unbiased, though noisy. A mini-batch averages several sampled gradients to
+trade variance for parallel efficiency.
+
+One pass through the training observations is an \term{epoch}. An epoch is not
+one update unless the batch is the entire dataset. Shuffling affects the
+sequence of stochastic gradients, so the seed and data order belong to the
+reproducibility record.
+
+Constant-step stochastic methods generally fluctuate near a solution because
+gradient noise remains. Decreasing schedules can support convergence under
+conditions; modern practice also uses warmup, momentum, adaptive scaling, and
+averaging. Their convenience does not remove the need to monitor the actual
+objective and update magnitude.
+
+\begin{tabularx}{\textwidth}{@{}p{0.18\textwidth}p{0.25\textwidth}X@{}}
+\toprule
+Update & Main advantage & Main cost or risk \\
+\midrule
+Full batch & Exact gradient of the finite-sample objective & Expensive update;
+limited streaming behavior \\
+Stochastic & Cheap updates and immediate online use & High variance and strong
+sensitivity to order and schedule \\
+Mini-batch & Efficient vectorization with reduced variance & Batch size changes
+optimization noise, memory use, and sometimes generalization behavior \\
+\bottomrule
+\end{tabularx}
+
+\section{Applications beyond fitting a line}
+
+Gradient methods appear whenever a useful objective is differentiable or has a
+tractable derivative surrogate:
+
+\begin{itemize}
+  \item logistic regression minimizes a convex likelihood-based loss;
+  \item matrix factorization estimates latent structure in recommendation and
+  imaging;
+  \item inverse problems adjust hidden physical parameters so a simulator
+  matches measurements;
+  \item optimal control and differentiable simulation optimize trajectories or
+  designs;
+  \item neural networks compose many parameterized maps and obtain derivatives
+  by reverse-mode automatic differentiation; and
+  \item variational scientific models optimize an energy or evidence bound.
+\end{itemize}
+
+Each application changes the meaning of the objective and the consequences of
+local minima, constraints, and stochasticity. The update formula alone does not
+validate the model.
+
+\section{Stopping and diagnosing responsibly}
+
+Useful diagnostics include training and validation objectives, gradient norm,
+step norm, parameter norm, nonfinite values, and elapsed resources. A stopping
+rule might require a small relative objective change and small gradient norm,
+with a maximum iteration budget. Validation-based early stopping is also model
+selection and must remain inside the development boundary.
+
+\begin{warningbox}
+Optimizer convergence establishes only that the implemented search reached a
+stationary or sufficiently stable point for its objective. It does not show
+that gradients are correct, the objective is scientifically appropriate, the
+data are representative, or predictions generalize.
+\end{warningbox}
+
+For a hand-built optimizer, verify derivatives three ways when practical:
+
+\begin{enumerate}
+  \item derive them symbolically with shapes shown;
+  \item compare against centered finite differences on a tiny problem; and
+  \item compare the final fitted result with a trusted solver on a convex case.
+\end{enumerate}
+
+Finite differences are diagnostic, not the preferred large-scale training
+method. Their truncation and floating-point errors depend on perturbation size.
+
+\begin{professionalbox}
+A reusable optimizer should report termination reason, iterations, final
+objective, gradient or update norm, and nonfinite failure. Record the objective,
+data version, preprocessing, initialization, seed, batch construction,
+learning-rate schedule, precision, and software version. Silently returning the
+last iterate after divergence is an interface failure.
+\end{professionalbox}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item Derive the exact scalar quadratic convergence interval and describe the
+  paths for positive and negative contraction factors.
+  \item Prove that $-\nabla J/\lVert\nabla J\rVert_2$ minimizes the directional
+  derivative over Euclidean unit vectors.
+  \item For a two-feature least-squares problem, compute $X^TX/n$, its
+  eigenvalues, condition number, and stable constant-step interval before and
+  after standardization.
+  \item Derive the weight and intercept gradients for a mini-batch linear
+  neuron, with every array shape annotated.
+  \item Construct a case where training loss converges while validation loss
+  worsens. Explain why changing the stopping rule is model selection.
+  \item Design tests that catch an incorrect sign, missing factor, silent
+  nonfinite update, and mutation of the input arrays.
+\end{enumerate}
+
+\begin{chapterreview}
+Gradient descent follows the negative gradient because it minimizes the local
+linear approximation under Euclidean geometry. Curvature determines whether a
+finite step decreases the objective and how rapidly different directions
+converge. Least squares exposes this behavior exactly through $X^TX/n$ and
+connects an identity-activation neuron to a familiar estimator. Stochastic and
+mini-batch methods estimate the full gradient more cheaply, but introduce
+variance and additional reproducibility choices. Optimization success remains
+distinct from statistical generalization and scientific validity.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 10 notebook 00 begins with tangent lines and hand-computed scalar
+updates, moves to contours and directional derivatives, then trains a single
+identity-activation neuron on real diabetes observations. Synchronized plots
+connect parameter space, data space, and iteration space; finite differences
+and a trusted least-squares solver verify the implementation. Scaling is then
+explained through Hessian eigenvalues and condition numbers.
+\end{notebooklink}

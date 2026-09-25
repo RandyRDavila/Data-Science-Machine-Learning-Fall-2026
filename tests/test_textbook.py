@@ -24,15 +24,17 @@ PART_I_CHAPTERS = [
 ]
 
 PART_II_CHAPTERS = [
-    CHAPTER_ROOT / "09-supervised-learning-systems.tex",
-    CHAPTER_ROOT / "10-linear-regression.tex",
-    CHAPTER_ROOT / "11-classification-decisions.tex",
-    CHAPTER_ROOT / "12-geometric-learning.tex",
-    CHAPTER_ROOT / "13-decision-trees.tex",
-    CHAPTER_ROOT / "14-ensemble-learning.tex",
-    CHAPTER_ROOT / "15-model-selection.tex",
-    CHAPTER_ROOT / "16-neural-networks.tex",
-    CHAPTER_ROOT / "17-reliable-supervised-systems.tex",
+    CHAPTER_ROOT / "09-machine-learning-foundations.tex",
+    CHAPTER_ROOT / "10-supervised-learning-systems.tex",
+    CHAPTER_ROOT / "11-linear-regression.tex",
+    CHAPTER_ROOT / "12-gradient-descent.tex",
+    CHAPTER_ROOT / "13-classification-decisions.tex",
+    CHAPTER_ROOT / "14-geometric-learning.tex",
+    CHAPTER_ROOT / "15-decision-trees.tex",
+    CHAPTER_ROOT / "16-ensemble-learning.tex",
+    CHAPTER_ROOT / "17-model-selection.tex",
+    CHAPTER_ROOT / "18-neural-networks.tex",
+    CHAPTER_ROOT / "19-reliable-supervised-systems.tex",
 ]
 
 CONTENT_CHAPTERS = PART_I_CHAPTERS + PART_II_CHAPTERS
@@ -69,15 +71,17 @@ def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
         "06-databases-data-systems.tex": ("Lecture 6 notebook 00",),
         "07-llm-tools-agents.tex": ("Lecture 7 notebook 00",),
         "08-end-to-end-data-products.tex": ("Lecture 8 notebook 00",),
-        "09-supervised-learning-systems.tex": ("Lecture 9 notebook 00",),
-        "10-linear-regression.tex": ("Lecture 10 notebook 00",),
-        "11-classification-decisions.tex": ("Lecture 11 notebook 00",),
-        "12-geometric-learning.tex": ("Lecture 12 notebook 00",),
-        "13-decision-trees.tex": ("Lecture 13 notebook 00",),
-        "14-ensemble-learning.tex": ("Lecture 14 notebook 00",),
-        "15-model-selection.tex": ("Lecture 15 notebook 00",),
-        "16-neural-networks.tex": ("Lecture 16 notebook 00",),
-        "17-reliable-supervised-systems.tex": ("Lecture 17 notebook 00",),
+        "09-machine-learning-foundations.tex": ("Lecture 9 notebook 00",),
+        "10-supervised-learning-systems.tex": ("Lecture 9 notebook 01",),
+        "11-linear-regression.tex": ("Lecture 9 notebook 01",),
+        "12-gradient-descent.tex": ("Lecture 10 notebook 00",),
+        "13-classification-decisions.tex": ("Lecture 11 notebook 00",),
+        "14-geometric-learning.tex": ("Lecture 12 notebook 00",),
+        "15-decision-trees.tex": ("Lecture 13 notebook 00",),
+        "16-ensemble-learning.tex": ("Lecture 14 notebook 00",),
+        "17-model-selection.tex": ("Lecture 15 notebook 00",),
+        "18-neural-networks.tex": ("Lecture 16 notebook 00",),
+        "19-reliable-supervised-systems.tex": ("Lecture 17 notebook 00",),
     }
 
     for filename, required_links in expected_links.items():
@@ -219,7 +223,7 @@ def test_cicd_concepts_point_to_the_worked_appendix() -> None:
 def test_reliable_systems_chapter_teaches_executable_production_observability() -> None:
     """Monitoring should be a diagnostic method, not a dashboard vocabulary list."""
 
-    source = (CHAPTER_ROOT / "17-reliable-supervised-systems.tex").read_text(
+    source = (CHAPTER_ROOT / "19-reliable-supervised-systems.tex").read_text(
         encoding="utf-8"
     )
 

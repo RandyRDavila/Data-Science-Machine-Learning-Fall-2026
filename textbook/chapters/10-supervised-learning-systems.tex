@@ -5,6 +5,10 @@
 After this chapter, you should be able to:
 \begin{itemize}
   \item formulate a supervised-learning task as a statistical and operational contract;
+  \item express learning through a hypothesis class, loss, population risk, and
+  empirical procedure;
+  \item derive the population targets selected by squared, absolute, and
+  classification losses;
   \item distinguish features, targets, predictions, decisions, and causal claims;
   \item design a split that represents the intended prediction setting; and
   \item construct a baseline and a minimal training-to-feedback path.
@@ -12,11 +16,46 @@ After this chapter, you should be able to:
 \end{learningobjectives}
 
 \begin{chapterconnection}
-Part I established how data and code cross representation, package, database,
-API, and operational boundaries. Part II inserts a learned component into that
-system. Learning does not remove those responsibilities. It adds estimation
-error, distributional assumptions, adaptive selection, and delayed evidence.
+Chapter~\ref{ch:machine-learning-foundations} separated learning problems by
+their information and feedback. We now specialize to labeled examples. Part I's
+representation, package, database, API, and operational boundaries remain.
+Supervised learning adds estimation error, a target-construction process,
+adaptive selection, and a claim about transfer from observed labels to future
+ones.
 \end{chapterconnection}
+
+\section{Supervised learning joins statistical inference and computation}
+
+Long before the phrase machine learning, scientists estimated relationships
+from paired measurements and tested rules on new observations. Twentieth-
+century regression, discriminant analysis, experimental design, pattern
+recognition, and statistical decision theory developed different parts of what
+is now called supervised learning. Computing made it practical to search much
+larger function classes, but it did not change the central question: what does a
+finite labeled sample justify about a named population?
+
+The modern abstraction is useful because it separates three objects. A
+\term{model class} $\mathcal{F}$ contains candidate predictors. A
+\term{learning rule} $\mathcal{A}$ maps labeled data $D$ to
+$\widehat f_D\in\mathcal{F}$. A \term{prediction rule} applies the fitted
+function to a new $x$. Confusing these objects leads to statements such as
+``linear regression generalizes'' without identifying the sample, fitting
+procedure, or future population.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} supervised means that a human watches or corrects every
+prediction. \textbf{Correction:} supervision refers to targets paired with
+training inputs. Those targets may be delayed, noisy, algorithmically generated,
+or institutionally defined; their presence does not make them ground truth.
+\end{misconceptionbox}
+
+\begin{warningbox}
+A target can be measured consistently and still encode the wrong construct.
+Historical approval, diagnosis, inspection, arrest, or hiring labels may reflect
+prior access and policy as well as the underlying phenomenon. Supervision
+transfers the target-generation process unless the design supplies evidence for
+a stronger interpretation.
+\end{warningbox}
 
 \section{Learning begins with a future information boundary}
 
@@ -70,6 +109,75 @@ behavior. A decision policy converts output into action. These objects can be
 different. Logistic loss may fit a probability model, calibration error may
 audit its probabilities, and an asymmetric cost rule may choose an intervention
 threshold.
+
+Regularized empirical risk minimization makes the preference explicit:
+\[
+\widehat f\in\arg\min_{f\in\mathcal{F}}
+\left\{\widehat R_D(f)+\lambda\Omega(f)\right\}.
+\]
+Here $\Omega$ may penalize coefficient size, roughness, tree complexity, or
+another property. The value $\lambda$ is selected using development data, not
+the final test set. Restricting $\mathcal{F}$ and penalizing within
+$\mathcal{F}$ are both forms of inductive bias.
+
+\section{The loss determines the population target}
+
+Suppose predictors may choose any real number $a$ at a fixed $X=x$. Under
+squared loss the conditional risk is
+\[
+q(a)=\mathbb{E}[(Y-a)^2\mid X=x].
+\]
+Differentiating gives $q'(a)=2(a-\mathbb{E}[Y\mid X=x])$, so the risk-minimizing
+prediction is the conditional mean when it exists. Under absolute loss,
+$\mathbb{E}[|Y-a|\mid X=x]$ is minimized by a conditional median. Under binary
+zero-one loss, the most probable class minimizes conditional error.
+
+These are mathematical targets, not interchangeable metrics. If a laboratory
+needs a high conditional quantile to plan safety stock, fitting a conditional
+mean answers the wrong question even if the optimizer is perfect.
+
+For binary action $d\in\{0,1\}$ with false-positive cost $C_{FP}$ and
+false-negative cost $C_{FN}$, the Bayes action compares conditional expected
+costs. With a calibrated probability $p(x)=P(Y=1\mid X=x)$ and no other
+constraints, act when
+\[
+C_{FP}[1-p(x)]<C_{FN}p(x).
+\]
+Thus the model output and the decision threshold solve related but distinct
+problems.
+
+\conceptcheck{At a fixed feature vector, the conditional distribution of $Y$
+is strongly right-skewed. Which population summaries are targeted by squared
+and absolute loss? Why might the two fitted predictions differ even with
+infinite representative data?}
+
+\section{Generalization error has several sources}
+
+Let $f^*$ minimize risk over all measurable predictors and let
+$f^*_{\mathcal{F}}$ minimize risk within $\mathcal{F}$. The excess risk can be
+organized conceptually as
+\[
+R(\widehat f_D)-R(f^*)
+=\underbrace{R(f^*_{\mathcal{F}})-R(f^*)}_{\text{approximation}}
++\underbrace{R(\widehat f_D)-R(f^*_{\mathcal{F}})}_{\text{estimation and optimization}}.
+\]
+The second term combines finite-sample variation with any failure to solve the
+fitting problem. Distribution shift adds another discrepancy because the
+evaluation population may no longer match training.
+
+For squared-error regression at a fixed $x$, averaging over possible training
+samples yields the familiar bias-variance decomposition
+\[
+\mathbb{E}_{D,Y\mid x}[(Y-\widehat f_D(x))^2]
+=\sigma^2(x)
++\left(\mathbb{E}_D[\widehat f_D(x)]-f(x)\right)^2
++\operatorname{Var}_D(\widehat f_D(x)),
+\]
+when $f(x)=\mathbb{E}[Y\mid X=x]$ and
+$\sigma^2(x)=\operatorname{Var}(Y\mid X=x)$. Irreducible outcome variation,
+systematic estimator bias, and sample-to-sample instability are different
+phenomena. A single fitted dataset cannot display the decomposition directly;
+resampling and scientific replication provide evidence about stability.
 
 \conceptcheck{A laboratory reports excellent mean squared error after randomly
 splitting rows, but each physical cell contributes many rows to both subsets.
@@ -137,6 +245,31 @@ candidate. Otherwise it is not a control. A complex model that fails to beat a
 correct baseline has supplied diagnostic evidence: the signal, representation,
 sample size, objective, or implementation may not support the claim.
 
+\section{One table can contain many supervised problems}
+
+Application design determines the unit, target, horizon, and split.
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Application & Supervised target & Evaluation boundary \\
+\midrule
+Materials & Capacity after 300 cycles from the first 100 cycles & Hold out
+cells and later manufacturing batches \\
+Public health & Next-week regional case count from reports available today &
+Train on past weeks and preserve reporting-delay behavior \\
+Remote sensing & Land-cover class from multispectral pixels & Hold out spatial
+regions or acquisition campaigns, not random neighboring pixels \\
+Predictive maintenance & Failure within 30 operating days from sensor history
+& Separate machines and respect the feature cutoff before failure \\
+Scientific literature & Relevance of a paper to a review protocol & Preserve
+reviewer disagreement and evaluate on later searches \\
+\bottomrule
+\end{tabularx}
+
+Random splitting would answer a different and often easier question in every
+row. The split is part of the estimand: it defines the population transfer the
+reported metric attempts to approximate.
+
 \begin{workedexample}{write the battery prediction contract}
 Suppose one row summarizes the first 100 cycles of one cell. The target is
 capacity at cycle 300, measured in ampere-hours. The intended use is prediction
@@ -179,23 +312,30 @@ reproducible result.
   batch imbalance. State what each baseline controls.
   \item Design an artifact manifest sufficient for another process to reject an
   incompatible feature vector before inference.
+  \item Derive the conditional mean as the squared-loss minimizer and explain
+  what changes under absolute loss.
+  \item For one application in the table, decompose plausible error into
+  approximation, estimation, optimization, and distribution-shift components.
+  \item Give an example of a reproducible label that is not a defensible proxy
+  for the construct a user actually cares about.
 \end{enumerate}
 
 \begin{chapterreview}
-Supervised learning estimates a rule from labeled observations, but the
-defensible object is larger than the fitted rule. The contract names population,
-time, target, information, loss, split, consumer, and feedback. Evaluation must
-simulate the intended use; baselines act as controls; and the first vertical
-slice should validate artifact and evidence flow before model complexity grows.
+Supervised learning estimates a rule from paired inputs and targets, but the
+defensible object is larger than the fitted rule. A loss defines a population
+target; a hypothesis class and regularizer encode inductive bias; a learning
+rule introduces estimation and optimization behavior. The contract names
+population, time, target, information, split, consumer, and feedback.
+Evaluation must simulate intended use, baselines act as controls, and the first
+vertical slice should validate artifact and evidence flow before model
+complexity grows.
 \end{chapterreview}
 
 \begin{notebooklink}
-Lecture 9 notebook 00 distinguishes machine-learning branches by their feedback
-signals and evidence claims using documented clinical, chemical, and image
-datasets. Notebook 01 derives ordinary least squares visually and algebraically,
-then constructs a leakage-safe diabetes-progression pipeline with held-out data,
-fitted preprocessing, baselines, metrics, and residual evidence. The chapter's
-battery contract remains the end-to-end systems thread rather than a fabricated
-empirical dataset. Both notebooks inspect provenance and query the versioned
-SQLite teaching database before constructing feature matrices.
+Lecture 9 notebook 01 begins by writing the supervised contract for a real
+diabetes-progression dataset. It separates training, validation, and test roles,
+derives the squared-loss target, fits baselines, and constructs preprocessing
+inside the training boundary. Its clinical example is a methods laboratory,
+not a deployment claim; missing site, time, and patient identifiers are treated
+as limitations rather than silently ignored.
 \end{notebooklink}

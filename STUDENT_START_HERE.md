@@ -97,7 +97,11 @@ scheduler, deployment controller, or durable workflow engine.
 
 ## When you contribute code or course material
 
-Read `CONTRIBUTING.md`, then use one branch for one coherent purpose:
+Read `CONTRIBUTING.md`. Shared package contributions follow the complete
+[contribution quickstart](supplementary-materials/computing-foundations/12-contribution-quickstart.md)
+and [fork-to-review guide](supplementary-materials/computing-foundations/11-contributing-to-the-shared-course-package.md):
+propose the work in an issue, fork the public repository, configure `origin`
+and `upstream`, and then use one branch for one coherent purpose:
 
 ```text
 git switch -c student/short-description
@@ -107,11 +111,25 @@ git commit -m "Describe the completed change"
 git push -u origin student/short-description
 ```
 
-Open a pull request against `main`, complete its template, and read the first
-causal failure from GitHub Actions if a check fails. Do not change a test merely
-to make the check green; decide whether the implementation or the expectation
-is wrong. Students without direct write access should work from a GitHub fork;
-the course Git appendix explains both models.
+Push the branch to your fork and open a pull request against the course
+repository's `main`. Complete its template. When course coordination is
+enabled, it requests two eligible classmates; before then, follow the review
+instructions announced in class. Read the first causal failure from GitHub
+Actions if a check fails. Do not change a test merely to make the check green;
+decide whether the implementation or the expectation is wrong. Students do not
+need direct write access to contribute.
+
+The first `rice_dsm.contrib` scaffold is an onboarding and incubation step.
+Stable algorithms integrate into the common `rice_dsm.ml` platform after design
+and verification review. Final products live in separate repositories and pin
+an exact tagged `rice-dsm` release; they do not copy course package source or
+depend on a moving `main` branch.
+
+When course coordination is announced as enabled, claim a generated ready task
+by commenting `/claim` on its issue and release it with `/release` if you cannot
+continue. Contribution pull requests receive two automated peer-review
+requests. These assignments coordinate work; they do not calculate grades or
+replace instructor judgment.
 
 Never commit API keys, passwords, tokens, private student information,
 restricted research data, `.venv`, or notebook output containing such data.
@@ -122,7 +140,7 @@ Use the private reporting route in `SECURITY.md` for sensitive problems.
 | Before this material | Prepare or read |
 | --- | --- |
 | Lecture 1 | Computing Foundations 01-05 |
-| Lecture 3 and first pull request | Computing Foundations 06 and the Git/GitHub textbook appendix |
+| First pull request | The contribution quickstart, Computing Foundations 06, the Git/GitHub appendix, and the full shared-package contribution guide |
 | Hosted APIs and agents | Computing Foundations 07 and the unit's `.env.example` |
 | CI/CD and end-to-end systems | Computing Foundations 08 |
 | Production monitoring laboratory | Computing Foundations 09-10 and Docker with Compose |

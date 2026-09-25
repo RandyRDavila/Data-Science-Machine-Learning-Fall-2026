@@ -52,6 +52,9 @@ jobs:
       - name: Prepare package and notebook kernel
         run: uv run python scripts/setup_course.py
 
+      - name: Validate course coordination inputs
+        run: uv run python scripts/course_coordination.py validate
+
       - name: Check Python style
         run: uv run ruff check src tests scripts
 

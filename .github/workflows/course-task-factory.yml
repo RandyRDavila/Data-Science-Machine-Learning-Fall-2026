@@ -1,0 +1,69 @@
+name: Course Task Factory
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_ids:
+        description: Comma-separated manifest task ids, or all
+        required: true
+        default: all
+        type: string
+      apply:
+        description: Create missing issues after preview and environment approval
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: course-task-factory
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    name: Preview task issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out reviewed task manifest
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Validate and preview selected tasks
+        env:
+          TASK_IDS: ${{ inputs.task_ids }}
+        run: python3 scripts/course_coordination.py create-tasks --task-ids "$TASK_IDS"
+
+  create:
+    name: Create approved task issues
+    if: inputs.apply == true && github.ref == 'refs/heads/main'
+    needs: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: course-coordination
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check out reviewed task manifest
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Create only missing manifest tasks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TASK_IDS: ${{ inputs.task_ids }}
+        run: >-
+          python3 scripts/course_coordination.py create-tasks
+          --task-ids "$TASK_IDS"
+          --apply

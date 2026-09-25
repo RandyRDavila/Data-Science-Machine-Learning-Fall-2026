@@ -1,0 +1,90 @@
+name: Student package contribution
+description: Propose a scoped subpackage contribution before implementation begins.
+title: "[Contribution]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form before proposing incubator work under `rice_dsm.contrib` or a new shared-platform component under `rice_dsm.ml`. Keep grades, student IDs, private student information, secrets, credentials, and restricted data out of this public issue. Contact the instructor privately when public participation would create a privacy or accessibility concern.
+
+  - type: input
+    id: slug
+    attributes:
+      label: Proposed package slug
+      description: Use a unique lowercase problem-oriented import name with underscores; do not use a person's name.
+      placeholder: graph_statistics
+    validations:
+      required: true
+
+  - type: dropdown
+    id: destination
+    attributes:
+      label: Proposed destination
+      description: Choose incubation for a first scaffold or negotiated experiment; choose the platform only for a common-interface task.
+      options:
+        - rice_dsm.contrib onboarding or incubation
+        - rice_dsm.ml shared platform
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and intended users
+      description: State the scientific, mathematical, or engineering problem and who needs the result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: contract
+    attributes:
+      label: Proposed public contract
+      description: Sketch the functions or classes, inputs, outputs, units, exceptions, and one example call.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Data, models, and evidence
+      description: Identify proposed sources, provenance, licenses, model boundaries, or explain why none are needed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: List normal cases, boundaries, expected failures, and mathematical or scientific properties to test.
+    validations:
+      required: true
+
+  - type: textarea
+    id: integration
+    attributes:
+      label: Integration and dependency impact
+      description: Identify shared files, new dependencies, APIs, data, services, or workflows this would need to change. Write "None" when isolated to the contribution namespace.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reviewers
+    attributes:
+      label: Proposed peer reviewers
+      description: Optionally mention classmates who agreed to review. GitHub handles are sufficient; do not include student IDs or grades.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Proposal checks
+      options:
+        - label: I searched existing issues and contribution package names for overlap.
+          required: true
+        - label: I will wait for scope and slug approval before implementing the full feature.
+          required: true
+        - label: I understand that issues, commits, reviews, and my GitHub identity are public.
+          required: true
+        - label: I did not include private student information, graded work, secrets, credentials, or restricted data.
+          required: true

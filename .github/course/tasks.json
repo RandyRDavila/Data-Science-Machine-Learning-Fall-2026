@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "platform-validation",
+      "title": "Define shared array and fitted-state validation",
+      "family": "platform",
+      "complexity": 2,
+      "max_team_size": 3,
+      "dependencies": [],
+      "summary": "Create reusable validation for observation matrices, targets, finite values, feature counts, and fitted-state checks without hiding estimator-specific assumptions.",
+      "acceptance": [
+        "Validation errors name the violated shape or state contract.",
+        "Tests cover empty, one-dimensional, mismatched, non-finite, and valid inputs.",
+        "The API remains usable by regression, classification, transformation, and clustering implementations."
+      ]
+    },
+    {
+      "id": "platform-experiment-runner",
+      "title": "Build the common experiment runner",
+      "family": "platform",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Run compatible estimators without leaking evaluation data and return structured, serializable experiment evidence.",
+      "acceptance": [
+        "Train, validation, and final test boundaries are explicit.",
+        "Preprocessing is fitted only on the training partition.",
+        "Results record estimator parameters, data identity, random state, metrics, and timing.",
+        "Tests detect a deliberately leaky preprocessing path."
+      ]
+    },
+    {
+      "id": "platform-model-selection",
+      "title": "Implement cross-validation and model-selection utilities",
+      "family": "platform",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement deterministic splitters and parameter search that preserve evaluation boundaries and expose all selection evidence.",
+      "acceptance": [
+        "K-fold and stratified behavior are defined and tested.",
+        "Randomness is reproducible without mutating NumPy global state.",
+        "Parameter search reports every evaluated candidate, not only the winner.",
+        "Differential tests compare compatible cases with scikit-learn."
+      ]
+    },
+    {
+      "id": "platform-evaluation",
+      "title": "Expand task-aware evaluation metrics",
+      "family": "platform",
+      "complexity": 3,
+      "max_team_size": 3,
+      "dependencies": [],
+      "summary": "Provide regression, classification, probabilistic, and clustering metrics with explicit edge-case conventions.",
+      "acceptance": [
+        "Each metric documents orientation, range, units, and undefined cases.",
+        "Tests use hand-computable examples, boundaries, and trusted-library comparisons.",
+        "Aggregation never silently mixes incompatible tasks or units."
+      ]
+    },
+    {
+      "id": "linear-regression",
+      "title": "Implement linear regression through stable numerical methods",
+      "family": "linear-models",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement intercept handling, least-squares fitting, prediction, and diagnostics without explicitly inverting the normal-equation matrix.",
+      "acceptance": [
+        "The derivation connects the objective, gradient, and least-squares solution.",
+        "Rank-deficient and poorly conditioned designs have explicit behavior.",
+        "Tests include exact lines, multiple features, rank deficiency, and scikit-learn comparison.",
+        "Residual and fitted attributes follow the common platform conventions."
+      ]
+    },
+    {
+      "id": "gradient-descent-optimizer",
+      "title": "Implement reusable gradient-based optimization",
+      "family": "optimization",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement batch and mini-batch gradient descent with reproducible sampling, stopping criteria, histories, and numerical checks.",
+      "acceptance": [
+        "Finite-difference tests validate supplied gradients on smooth objectives.",
+        "Learning-rate, iteration, tolerance, and divergence behavior are explicit.",
+        "Histories expose objective and gradient-norm evidence without unbounded memory growth.",
+        "A linear-regression example agrees with a least-squares reference."
+      ]
+    },
+    {
+      "id": "logistic-regression",
+      "title": "Implement binary logistic regression",
+      "family": "linear-models",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["gradient-descent-optimizer"],
+      "summary": "Implement numerically stable probabilities, regularized log loss, fitting, decision scores, and thresholded predictions.",
+      "acceptance": [
+        "Logistic loss and sigmoid calculations remain stable for extreme scores.",
+        "Regularization excludes or explicitly documents treatment of the intercept.",
+        "Tests cover label validation, probabilities, separable data, and trusted-library comparison.",
+        "Threshold choice is separate from probability estimation."
+      ]
+    },
+    {
+      "id": "knn",
+      "title": "Implement k-nearest-neighbor estimators",
+      "family": "neighbors",
+      "complexity": 3,
+      "max_team_size": 3,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement classification and regression with explicit distance, weighting, tie, and scaling contracts.",
+      "acceptance": [
+        "Invalid k, dimension mismatch, ties, and zero-distance neighbors have documented behavior.",
+        "Tests include hand-computable geometry and scikit-learn comparisons.",
+        "The documentation explains why preprocessing belongs outside the estimator."
+      ]
+    },
+    {
+      "id": "decision-tree",
+      "title": "Implement decision-tree learning",
+      "family": "trees",
+      "complexity": 5,
+      "max_team_size": 5,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement a bounded classification or regression tree with deterministic split selection and inspectable nodes.",
+      "acceptance": [
+        "Impurity, candidate splits, stopping rules, and tie-breaking are mathematically specified.",
+        "Constant features, repeated values, depth limits, and minimum samples are tested.",
+        "The fitted tree can be inspected without relying on private recursive state.",
+        "Small cases receive differential comparison with scikit-learn."
+      ]
+    },
+    {
+      "id": "random-forest",
+      "title": "Implement a random-forest ensemble",
+      "family": "ensembles",
+      "complexity": 5,
+      "max_team_size": 5,
+      "dependencies": ["decision-tree"],
+      "summary": "Build reproducible bootstrap aggregation and feature subsampling over the class-built tree implementation.",
+      "acceptance": [
+        "Every source of randomness derives from a documented local generator.",
+        "Bootstrap membership and out-of-bag evidence are inspectable.",
+        "Aggregation and classification ties are deterministic.",
+        "Tests demonstrate variance reduction on a fixed real dataset."
+      ]
+    },
+    {
+      "id": "boosting",
+      "title": "Implement a boosting ensemble",
+      "family": "ensembles",
+      "complexity": 5,
+      "max_team_size": 5,
+      "dependencies": ["decision-tree"],
+      "summary": "Implement one explicitly chosen boosting algorithm with inspectable stage weights and failure behavior.",
+      "acceptance": [
+        "The chosen loss and update equations are derived and documented.",
+        "Degenerate weak learners and numerical weight normalization are handled.",
+        "Stage-wise predictions and training histories are inspectable.",
+        "Tests compare small cases and trends with a trusted implementation."
+      ]
+    },
+    {
+      "id": "neural-network",
+      "title": "Implement a multilayer neural network",
+      "family": "neural-networks",
+      "complexity": 5,
+      "max_team_size": 5,
+      "dependencies": ["gradient-descent-optimizer"],
+      "summary": "Implement forward propagation, reverse-mode gradients, training, and prediction for a bounded dense network.",
+      "acceptance": [
+        "Tensor shapes and parameter initialization are explicit and validated.",
+        "Finite-difference checks validate layer and loss gradients.",
+        "Randomness, batching, stopping, and loss histories are reproducible.",
+        "A real-data example separates optimization evidence from final evaluation."
+      ]
+    },
+    {
+      "id": "pca",
+      "title": "Implement principal component analysis",
+      "family": "decomposition",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement centered PCA through a stable decomposition with transforms, inverse transforms, and explained-variance evidence.",
+      "acceptance": [
+        "Centering, component orientation ambiguity, and rank limits are documented.",
+        "Tests use known covariance structure, reconstruction properties, and scikit-learn comparison.",
+        "The implementation avoids an unnecessary covariance matrix when SVD is appropriate."
+      ]
+    },
+    {
+      "id": "kmeans",
+      "title": "Implement k-means clustering",
+      "family": "clustering",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement reproducible initialization, assignment, centroid updates, convergence evidence, and prediction.",
+      "acceptance": [
+        "Initialization and empty-cluster behavior are explicit.",
+        "Inertia is non-increasing across accepted update steps.",
+        "Multiple restarts are reproducible and select the documented optimum.",
+        "Tests account for permutation invariance of cluster labels."
+      ]
+    },
+    {
+      "id": "hierarchical-clustering",
+      "title": "Implement agglomerative hierarchical clustering",
+      "family": "clustering",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement selected linkage criteria with an inspectable merge history and explicit distance conventions.",
+      "acceptance": [
+        "Linkage definitions and tie-breaking are mathematically specified.",
+        "The merge history has valid monotone structure for supported linkages.",
+        "Hand-computable and trusted-library comparisons cover small datasets.",
+        "Complexity limitations are honest and measured."
+      ]
+    },
+    {
+      "id": "density-clustering",
+      "title": "Implement density-based clustering",
+      "family": "clustering",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-validation"],
+      "summary": "Implement a density-based method with explicit neighborhood, border, core, and noise semantics.",
+      "acceptance": [
+        "Boundary conventions for radius comparisons are explicit.",
+        "Cluster labels are tested modulo permutation and noise identity.",
+        "Tests cover all-noise, one-cluster, border-point, and trusted-library cases."
+      ]
+    },
+    {
+      "id": "platform-model-evidence",
+      "title": "Define model cards and experiment provenance",
+      "family": "operations",
+      "complexity": 3,
+      "max_team_size": 3,
+      "dependencies": ["platform-experiment-runner"],
+      "summary": "Create a serializable evidence record connecting data identity, code revision, package release, estimator parameters, metrics, and limitations.",
+      "acceptance": [
+        "Records are deterministic, schema-versioned, and free of secrets or private records.",
+        "Required provenance cannot be omitted silently.",
+        "A final-product template can render the record without importing notebook state."
+      ]
+    },
+    {
+      "id": "platform-monitoring",
+      "title": "Connect model behavior to production monitoring",
+      "family": "operations",
+      "complexity": 4,
+      "max_team_size": 4,
+      "dependencies": ["platform-model-evidence"],
+      "summary": "Define structured prediction events and delayed-quality evidence that final products can monitor without logging sensitive features.",
+      "acceptance": [
+        "The event schema separates operational, data-quality, and model-quality signals.",
+        "Sensitive raw observations are excluded by design.",
+        "Tests cover schema evolution, missing delayed labels, and aggregation boundaries.",
+        "The production monitoring laboratory demonstrates the contract."
+      ]
+    }
+  ]
+}

@@ -3,6 +3,10 @@
 Contributions should improve the mathematical accuracy, instructional clarity,
 reproducibility, or professional quality of the course repository. Small,
 reviewable changes are easier to validate and teach from than broad rewrites.
+All participation follows the repository's
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md): critique claims and code rather than
+people, protect privacy, give credit, and move confidential course matters out
+of public GitHub artifacts.
 
 ## Before starting
 
@@ -13,6 +17,13 @@ substantial change, agree on the problem and scope before writing a large patch.
 Never post grades, graded submissions, accommodations, personal circumstances,
 API keys, credentials, private student information, or restricted data in an
 issue, commit, notebook output, or pull request.
+
+Students proposing a shared package extension should use the **Student package
+contribution** issue form and wait for its scope and unique import name to be
+approved. The worked [course-package contribution
+guide](supplementary-materials/computing-foundations/11-contributing-to-the-shared-course-package.md)
+explains the public fork, branch, review, CI, conflict, and maintenance process
+without assuming prior open-source experience.
 
 ## Local setup
 
@@ -36,6 +47,29 @@ files or an approved secret manager, never in tracked source.
   boundaries, and train/evaluation splits.
 - Add the smallest useful dependency and update `uv.lock` through `uv`.
 - Do not commit generated caches, local environments, secrets, or private data.
+
+### Student subpackages
+
+Student-developed extensions live under `src/rice_dsm/contrib/PROJECT_SLUG/`
+with mirrored tests under `tests/contrib/PROJECT_SLUG/`. Create a minimal,
+passing layout with:
+
+```bash
+uv run python scripts/scaffold_student_package.py PROJECT_SLUG
+```
+
+Do not register each extension in the root `rice_dsm` interface. Contributions
+remain explicitly imported and independently testable until a separate design
+review promotes shared behavior into the core package. Propose new dependencies
+or changes to `pyproject.toml`, `uv.lock`, `.github/`, deployment, or shared core
+interfaces before implementing them.
+
+The contribution namespace is an onboarding and incubation boundary. Mature
+machine-learning components integrate into `src/rice_dsm/ml/` only after an
+approved platform issue establishes the common interface, mathematical
+contract, differential evidence, and migration plan. Final products belong in
+separate repositories and consume a tagged release rather than copying package
+source.
 
 ## Validate
 
@@ -66,6 +100,14 @@ explain why it does not apply.
 The stable `CI gate` must pass before merge. Other workflows provide dependency,
 labeling, and textbook evidence when their paths are relevant. Address review
 comments with code, evidence, or a reasoned technical response.
+
+Student contributions require reviews from two eligible classmates in addition
+to final maintainer review. If the roster cannot provide two conflict-free
+reviewers, the maintainer records the exception on the pull request and assigns
+the strongest available independent review. Peer review is an engineering
+exercise, even when the peer does not have merge permission: examine the
+contract, mathematical or scientific validity, tests, provenance, limitations,
+and failure behavior.
 
 ## Publishing
 

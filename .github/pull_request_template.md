@@ -27,6 +27,17 @@
 - [ ] No secrets, credentials, private student data, or restricted data are included.
 - [ ] Dependency, API, artifact, or compatibility changes are identified below.
 
+## Student contribution evidence
+
+<!-- Complete this section for rice_dsm.contrib or rice_dsm.ml work; otherwise write "Not applicable." -->
+
+- [ ] The approved generated task or contribution issue is linked with closing language.
+- [ ] Source and tests use the approved incubator or shared-platform location.
+- [ ] The README documents the public contract, assumptions, provenance, verification, limitations, and responsible use.
+- [ ] Two requested classmates reviewed the mathematical or scientific claims, interface, tests, and failure behavior, or an exception is explained.
+- [ ] Shared dependencies, core interfaces, automation, and deployment files were not changed without prior agreement.
+- [ ] Promotion from `rice_dsm.contrib` to `rice_dsm.ml` includes the integration and migration evidence agreed in the issue.
+
 ## Reviewer notes
 
 <!-- Where should review attention go? Include risks, limitations, screenshots, PDF pages, or follow-up work. -->

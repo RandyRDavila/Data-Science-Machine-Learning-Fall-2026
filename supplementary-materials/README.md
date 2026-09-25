@@ -27,13 +27,15 @@ It covers:
   continuous deployment, verification, and rollback using this repository;
 - an introduction to observability, structured logs, metrics, traces, model
   monitoring, alerting, runbooks, and incident response;
+- a complete public contribution workflow covering scoped issues, forks,
+  student subpackages, tests, peer review, CI, merge conflicts, privacy, and
+  maintenance responsibility;
 - guided practice and troubleshooting diagrams.
 
 ## Planned additions
 
 As the course develops, this directory may also include:
 
-- Git and GitHub fundamentals;
 - reading Python error messages and debugging;
 - testing, formatting, and code quality;
 - mathematical and statistical refreshers;

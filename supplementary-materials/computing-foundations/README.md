@@ -14,16 +14,20 @@ PowerShell, VS Code, or Jupyter experience is assumed.
    best read with Lecture 3
 7. [Git and GitHub workflow](git-and-github-workflow.md), before the first
    contribution or pull request
-8. [What is an API?](07-what-is-an-api.md), before the hosted-model and
+8. [Contribution quickstart](12-contribution-quickstart.md), at the keyboard
+   during the first contribution
+9. [Contributing to the shared course package](11-contributing-to-the-shared-course-package.md),
+   for the complete issue, fork, subpackage, review, CI, and conflict workflow
+10. [What is an API?](07-what-is-an-api.md), before the hosted-model and
    end-to-end lessons
-9. [From CI to delivery and deployment](08-continuous-delivery-and-deployment.md),
+11. [From CI to delivery and deployment](08-continuous-delivery-and-deployment.md),
    with Lecture 3 or the end-to-end systems unit
-10. [Observability and model monitoring](09-observability-and-model-monitoring.md),
+12. [Observability and model monitoring](09-observability-and-model-monitoring.md),
    before the production monitoring laboratory
-11. [Containers and local services](10-containers-and-local-services.md), before
+13. [Containers and local services](10-containers-and-local-services.md), before
     starting the production monitoring stack
-12. [Guided exercises](exercises.md)
-13. [Workflow diagrams](diagrams.md), whenever a mental picture would help
+14. [Guided exercises](exercises.md)
+15. [Workflow diagrams](diagrams.md), whenever a mental picture would help
 
 ## What success looks like
 
@@ -41,6 +45,8 @@ After completing this module, you should be able to:
 - distinguish logs, metrics, traces, alerts, and delayed model-quality evidence;
 - distinguish an image, container, service, port mapping, bind mount, and
   volume; and
+- carry a package contribution from scoped issue through fork, branch, tests,
+  peer review, CI, conflict resolution, and merge; and
 - recover from common problems by checking location and interpreter before
   reinstalling software.
 

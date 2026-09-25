@@ -1,0 +1,35 @@
+name: Course Coordination Digest
+
+on:
+  schedule:
+    - cron: "17 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: course-coordination-digest
+  cancel-in-progress: true
+
+jobs:
+  update:
+    name: Update the public operational queue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Check out reviewed coordination code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Create or update the non-grading status digest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/course_coordination.py update-digest

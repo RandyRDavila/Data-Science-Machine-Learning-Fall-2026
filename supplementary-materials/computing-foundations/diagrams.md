@@ -68,3 +68,46 @@ flowchart TD
     C --> H[tests]
     C --> I[supplementary-materials]
 ```
+
+## From a student fork to the shared package
+
+```mermaid
+flowchart LR
+    A[Course repository<br/>upstream] -->|fork once| B[Student GitHub fork<br/>origin]
+    B -->|clone once| C[Local repository]
+    A -->|fetch accepted changes| C
+    C -->|create feature branch| D[Student contribution]
+    D -->|focused and full tests| E[Local evidence]
+    E -->|commit and push| B
+    B -->|open pull request| F[Review boundary]
+    F --> G[Peer review]
+    F --> H[Read-only CI<br/>Linux, macOS, Windows]
+    G --> I[Maintainer review]
+    H --> I
+    I -->|merge accepted revision| A
+```
+
+The fork supplies a writable remote without granting write access to the course
+repository. A pull request does not bypass ownership: it presents an exact
+revision for discussion, automated checks, and maintainer integration.
+
+## Trust boundaries in course automation
+
+```mermaid
+flowchart TD
+    A[Untrusted fork pull request] --> B[pull_request workflows]
+    B --> C[Read-only token]
+    B --> D[No repository secrets]
+    B --> E[Build, lint, and tests]
+    E --> F{Review and CI pass?}
+    F -->|No| G[Revise the branch]
+    F -->|Yes| H[Maintainer merges]
+    H --> I[Reviewed main revision]
+    I --> J[Site deployment]
+    I --> K[Maintainer-created release tag]
+    K --> L[Protected release approval]
+```
+
+Testing contributor code and publishing trusted artifacts are different
+privilege levels. Secrets and write credentials never need to cross backward
+into the untrusted pull-request job.

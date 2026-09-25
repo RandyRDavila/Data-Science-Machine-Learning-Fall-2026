@@ -99,6 +99,12 @@ confirm:
 6. new dependencies or shared files, if any; and
 7. one or more possible peer reviewers.
 
+If the proposal comes from a textbook contribution studio, enter its stable
+identifier (for example, `MLF-PR1`, `SLC-PR2`, `LR-PR3`, or `GD-PR1`) in the
+issue form and begin the title with `[PROBLEM-ID]`. Preserve the same identifier
+in the branch and pull-request title so the prompt, design discussion, code,
+tests, and review remain traceable.
+
 Wait for scope and slug approval before building a large feature. Early design
 review is cheaper than discarding a polished solution to the wrong problem.
 
@@ -318,10 +324,10 @@ head repository: YOUR-GITHUB-NAME/Data-Science-Machine-Learning-Fall-2026
 compare branch: student/graph-statistics
 ```
 
-Complete the pull-request template. Link the approved issue with `Closes #NN`,
-describe the contract rather than listing files, and report exact validation
-commands and results. Open a draft pull request when design feedback is useful
-before the implementation is complete.
+Complete the pull-request template. Record the textbook problem ID, link the
+approved issue with `Closes #NN`, describe the contract rather than listing
+files, and report exact validation commands and results. Open a draft pull
+request when design feedback is useful before the implementation is complete.
 
 CI runs the proposed revision on Linux, macOS, and Windows with read-only
 repository permission. A first-time contributor may need a maintainer to

@@ -622,6 +622,301 @@ visible decision. Administrator ability is not evidence that bypassing the
 process is appropriate.
 \end{professionalbox}
 
+\section{Course contribution practicum: textbook problem to pull request}
+\label{sec:course-contribution-practicum}
+
+This section is the exact course procedure for turning a contribution-studio
+problem into a reviewed change. It specializes the general workflow above to a
+student fork. In this model, \code{origin} is the student's GitHub fork and
+\code{upstream} is the instructor-maintained course repository. Confusing those
+two names is a common source of failed pushes and stale branches.
+
+\subsection*{Step 0: preserve the problem identity}
+
+Contribution problems have stable identifiers such as \textbf{MLF-PR1},
+\textbf{SLC-PR2}, \textbf{LR-PR3}, and \textbf{GD-PR1}. The identifier connects
+the mathematical prompt to public design and review evidence. Use it in all of
+the following places:
+
+\begin{itemize}
+  \item issue title: \code{[GD-PR1] Add optimizer result records};
+  \item issue field: \code{Textbook problem ID = GD-PR1};
+  \item branch: \code{student/gd-pr1-optimizer-records};
+  \item pull-request title: \code{[GD-PR1] Add optimizer result records}; and
+  \item pull-request description: \code{Textbook problem: GD-PR1} and
+  \code{Closes \#123}.
+\end{itemize}
+
+The identifier does not imply that every student must produce the same design.
+The issue records the student's proposed scope, public interface, mathematical
+contract, evidence, and limitations. Search open and closed issues for both the
+problem ID and proposed package slug before opening a duplicate.
+
+Use the GitHub \textbf{Student package contribution} issue form. Do not put a
+grade, student ID, accommodation, private communication, credential, restricted
+data, or identifiable student record in any public field. Wait for the issue's
+scope and unique package slug to be approved before implementing the full
+change. If the instructor has enabled generated course tasks, use \code{/claim}
+only on a ready task and \code{/release} if you cannot continue.
+
+\subsection*{Step 1: open a terminal in the repository root}
+
+The Git and \code{uv} commands in this procedure are the same on Windows,
+macOS, and Linux. Only navigation and directory-listing syntax differs. The
+recommended route is \textbf{VS Code $\rightarrow$ Terminal $\rightarrow$ New
+Terminal} after opening the repository folder.
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.18\textwidth}>{\raggedright\arraybackslash}p{0.31\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Platform & Recommended shell & Root check \\
+\midrule
+Windows & PowerShell in VS Code & \code{Get-Location};
+\code{Get-ChildItem README.md, pyproject.toml} \\
+macOS & zsh in VS Code & \code{pwd}; \code{ls README.md pyproject.toml} \\
+Linux & bash in VS Code & \code{pwd}; \code{ls README.md pyproject.toml} \\
+\bottomrule
+\end{tabularx}
+
+On Windows PowerShell, navigate with:
+
+\begin{lstlisting}[language=bash,numbers=none]
+Set-Location "C:\path\to\Data-Science-Machine-Learning-Fall-2026"
+Get-Location
+Get-ChildItem README.md, pyproject.toml
+git --version
+uv --version
+\end{lstlisting}
+
+On macOS or Linux, navigate with:
+
+\begin{lstlisting}[language=bash,numbers=none]
+cd "/path/to/Data-Science-Machine-Learning-Fall-2026"
+pwd
+ls README.md pyproject.toml
+git --version
+uv --version
+\end{lstlisting}
+
+Stop if both \code{README.md} and \code{pyproject.toml} are not visible. Do not
+run setup, scaffold, or Git mutation commands from an arbitrary parent folder.
+
+\subsection*{Step 2: fork, clone, and configure remotes once}
+
+On GitHub, fork
+\code{RandyRDavila/Data-Science-Machine-Learning-Fall-2026} into your account.
+Then run the following in the parent directory where the course folder should
+live. Replace \code{YOUR-GITHUB-NAME}; do not type the placeholder literally.
+
+\begin{lstlisting}[language=bash,numbers=none]
+git clone https://github.com/YOUR-GITHUB-NAME/Data-Science-Machine-Learning-Fall-2026.git
+cd Data-Science-Machine-Learning-Fall-2026
+git remote add upstream https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026.git
+git remote -v
+\end{lstlisting}
+
+The output must show \code{origin} pointing to the student's fork and
+\code{upstream} pointing to the course repository, each with fetch and push
+URLs. Students fetch accepted class work from \code{upstream} and push their
+own branches to \code{origin}. If an existing clone has different remotes, do
+not delete the clone or uncommitted work. Stop and ask for help reassigning the
+remote names safely.
+
+Prepare and verify the environment:
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv run python scripts/setup_course.py
+uv run pytest tests/test_course_setup.py tests/test_repository.py -q
+\end{lstlisting}
+
+On the first run, \code{uv} may install the project Python and dependencies.
+Later runs reconcile the environment with the committed lockfile. Students
+should not edit \code{pyproject.toml} or \code{uv.lock} for a contribution
+unless the approved issue explicitly requires a shared dependency change.
+
+\subsection*{Step 3: synchronize \code{main} before every new branch}
+
+First inspect the working tree:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status --short
+\end{lstlisting}
+
+The command should print nothing. If it prints paths, preserve and understand
+that work before switching branches. A new task does not authorize discarding
+old work. With a clean tree, synchronize exactly:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch main
+git fetch upstream
+git merge --ff-only upstream/main
+git push origin main
+git status -sb
+git rev-parse main
+git rev-parse upstream/main
+\end{lstlisting}
+
+The two final commit identifiers must match. The status line should identify
+\code{main} and should not report modified files. A failed \code{--ff-only}
+merge means local \code{main} has diverged; stop rather than using force,
+reset, or an improvised merge.
+
+Create one branch from this verified base. Use lowercase in the branch name:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch -c student/gd-pr1-optimizer-records
+git branch --show-current
+git status -sb
+\end{lstlisting}
+
+Replace the example ID and description with the approved problem. Never reuse a
+merged branch for a new problem. One problem, one branch, one primary issue,
+and one pull request make scope and recovery visible.
+
+\subsection*{Step 4: scaffold the approved contribution}
+
+For an incubating package, use the approved lowercase slug:
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv run python scripts/scaffold_student_package.py optimizer_records
+git status --short
+uv run pytest tests/contrib/optimizer_records -q
+\end{lstlisting}
+
+The scaffold creates source, test, and README boundaries. It refuses to
+overwrite an existing package. A collision is a coordination problem, not a
+reason to delete someone else's directory. Put reusable behavior under
+\code{src/rice\_dsm/contrib/optimizer\_records/}, tests under the matching
+\code{tests/contrib/optimizer\_records/}, and experiments in notebooks only
+when interactive investigation is useful. The reusable implementation must not
+exist only in notebook state.
+
+Before substantial implementation, write failing or incomplete tests from the
+approved contract: an ordinary case, a mathematical property, a boundary, and
+an expected failure. Develop in small steps and repeatedly inspect
+\code{git diff}.
+
+\subsection*{Step 5: validate, stage explicit paths, and commit}
+
+Run narrow checks first and the broad gate second:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status --short
+git diff --check
+git diff
+uv run pytest tests/contrib/optimizer_records -q
+uv run ruff check src tests scripts
+uv run pytest -q
+\end{lstlisting}
+
+If a check fails, read the first causal error. Do not weaken a test, delete a
+platform case, or change an expected result merely to obtain green status.
+Decide whether the implementation, test, mathematical contract, documentation,
+or environment is wrong.
+
+Stage only the intended contribution and inspect the exact proposed snapshot:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git add src/rice_dsm/contrib/optimizer_records
+git add tests/contrib/optimizer_records
+git diff --staged --check
+git diff --staged
+git commit -m "Add GD-PR1 optimizer result records"
+git show --stat --oneline HEAD
+git status -sb
+\end{lstlisting}
+
+Add documentation or another approved path explicitly when needed. Do not use
+an uninspected \code{git add .}. Never stage \code{.venv}, caches, credentials,
+private data, restricted datasets, or sensitive notebook output.
+
+\subsection*{Step 6: incorporate accepted upstream work while the PR is open}
+
+If \code{main} changes before the contribution merges, preserve a clean feature
+branch, then merge current upstream into it:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git status --short
+git fetch upstream
+git merge upstream/main
+uv run pytest tests/contrib/optimizer_records -q
+uv run ruff check src tests scripts
+uv run pytest -q
+\end{lstlisting}
+
+If Git reports a conflict, read each marked region and resolve the intended
+combined behavior; do not automatically choose ``ours'' or ``theirs.'' Then
+stage the resolved paths, run the tests, and commit the merge. If the resolution
+becomes unclear, \code{git merge --abort} safely returns to the pre-merge state.
+Do not rebase a branch another student may have checked out unless the team has
+explicitly coordinated the history rewrite.
+
+\subsection*{Step 7: push and open the pull request}
+
+Publish the named branch to the student's fork:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git push -u origin student/gd-pr1-optimizer-records
+\end{lstlisting}
+
+On GitHub, verify all four endpoints before submitting:
+
+\begin{lstlisting}[language=bash,numbers=none]
+base repository: RandyRDavila/Data-Science-Machine-Learning-Fall-2026
+base branch:     main
+head repository: YOUR-GITHUB-NAME/Data-Science-Machine-Learning-Fall-2026
+compare branch: student/gd-pr1-optimizer-records
+\end{lstlisting}
+
+Complete the pull-request template. State the textbook problem ID, public
+contract, mathematical assumptions, limitations, affected paths, and exact
+validation commands with results. Use \code{Closes \#ISSUE-NUMBER}, not only a
+bare issue link, so an accepted merge closes the design issue. Open a draft PR
+when early interface review would prevent wasted implementation.
+
+CI may require maintainer approval for a first-time fork. Once it runs, inspect
+the first failing job and first causal error. The Linux, macOS, and Windows
+matrix is evidence of encoded contracts on those runners; it does not prove the
+scientific problem is meaningful or the public interface is well designed.
+
+\subsection*{Step 8: review, revise, and finish}
+
+When coordination is enabled, two eligible classmates are requested. Reviewers
+inspect mathematics, types and units, failure behavior, provenance, tests,
+documentation, and scope. Respond to every substantive comment with a change,
+evidence, or reasoned disagreement. Push follow-up commits to the same branch:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git add PATHS-CHANGED-AFTER-REVIEW
+git diff --staged
+git commit -m "Address optimizer record review"
+git push
+\end{lstlisting}
+
+The existing pull request updates automatically. Do not open a new PR for each
+review revision. After maintainer merge, synchronize and clean up:
+
+\begin{lstlisting}[language=bash,numbers=none]
+git switch main
+git fetch upstream
+git merge --ff-only upstream/main
+git push origin main
+git branch -d student/gd-pr1-optimizer-records
+git status -sb
+\end{lstlisting}
+
+The merged history retains authorship, review, CI, and issue linkage. A merged
+component also creates maintenance responsibility: help investigate later
+integration failures or clarify limitations when asked.
+
+\begin{warningbox}
+Stop and ask before proceeding when status shows unexplained work, remotes do
+not match the fork model, \code{main} cannot fast-forward, a package path already
+exists, a command would require \code{--force}, a merge resolution is unclear,
+or a secret may have entered history. If a secret was exposed, revoke or rotate
+it immediately and use the private route in \code{SECURITY.md}; deleting the
+visible line is not sufficient.
+\end{warningbox}
+
 \section{Review is a technical skill}
 
 A reviewer is not a final syntax checker. Review challenges the change at

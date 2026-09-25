@@ -137,6 +137,7 @@ def test_pull_request_template_prompts_for_evidence_and_boundaries() -> None:
         assert required_heading in template
 
     for required_evidence in (
+        "Textbook problem:",
         "uv run pytest -q",
         "Windows, macOS, and Linux",
         "Rice DSM kernel",
@@ -145,6 +146,23 @@ def test_pull_request_template_prompts_for_evidence_and_boundaries() -> None:
         "requested classmates reviewed",
     ):
         assert required_evidence in template
+
+
+def test_student_contribution_issue_tracks_textbook_problem_identity() -> None:
+    """A contribution should remain traceable to its textbook problem."""
+
+    form = load_yaml(ISSUE_TEMPLATE_ROOT / "student-contribution.yml")
+    assert isinstance(form, dict)
+    fields = {
+        element.get("id"): element
+        for element in form["body"]
+        if element["type"] != "markdown"
+    }
+
+    problem_field = fields["textbook_problem"]
+    assert problem_field["validations"]["required"] is True
+    assert "GD-PR1" in problem_field["attributes"]["placeholder"]
+    assert "Independent proposal" in problem_field["attributes"]["description"]
 
 
 def test_workflows_pin_actions_and_use_explicit_permissions() -> None:

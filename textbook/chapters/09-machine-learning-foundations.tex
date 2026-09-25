@@ -47,6 +47,15 @@ a nearest-neighbor rule, a decision tree, a transformer, and a learned control
 policy can all be machine-learning components. Their data, assumptions,
 objectives, computation, and evidence differ.
 
+Three historical currents should be kept distinct. Statistics developed rules
+for learning about populations from samples. Numerical analysis developed
+algorithms for solving the resulting optimization and linear-algebra problems.
+Computer science developed representations, programmable procedures, and
+systems able to repeat those calculations at scale. Contemporary machine
+learning joins all three. It inherits uncertainty from statistics, approximation
+and conditioning from numerical analysis, and state, interfaces, testing, and
+resource limits from software engineering.
+
 \begin{misconceptionbox}
 \textbf{Misconception:} machine learning begins when a sufficiently complicated
 model is used. \textbf{Correction:} learning begins when behavior is estimated
@@ -130,6 +139,24 @@ $Y$ given observed $X$. An intervention asks about an outcome under an action
 that may not have occurred. Associational fit alone cannot identify that
 counterfactual comparison.
 
+Figure~\ref{fig:learning-landscape} uses four real tables from the course
+database to make the distinction visible. The panels are not four competing
+algorithms applied to one task. They are four different questions, with
+different information and different meanings of success. In the clustering
+panel the colors are produced by the algorithm; in the representation panel
+the labels are shown only afterward as an audit. That distinction is part of
+the experimental design.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/generated/learning-landscape.pdf}
+  \caption{Four learning structures constructed from documented observations
+  in the local course database. The plotting program queries SQLite, fits the
+  displayed estimators, and writes this vector graphic. Regenerate it with
+  \code{uv run python textbook/figures/generate\_part\_ii\_figures.py}.}
+  \label{fig:learning-landscape}
+\end{figure}
+
 \conceptcheck{A laboratory hides protein labels, learns an embedding from
 amino-acid sequences, and then fits a small labeled classifier. Which learning
 signals appear in the two stages? Which held-out evidence would be needed to
@@ -147,6 +174,33 @@ optimization, initialization, augmentation, stopping rule, and data collection.
 A linear model prefers affine relationships. A nearest-neighbor method prefers
 local smoothness under a chosen distance. A convolutional architecture encodes
 spatial sharing. None is neutral.
+
+\begin{theorem}[Finite interpolation does not determine prediction]
+\label{thm:finite-interpolation}
+Let $x_1,\ldots,x_n$ be distinct real inputs and suppose a function $f$ fits
+the observations, so that $f(x_i)=y_i$ for every $i$. For every real constant
+$c$, the function
+\[
+g_c(x)=f(x)+c\prod_{i=1}^{n}(x-x_i)
+\]
+fits exactly the same observations. At any $x_*$ different from every $x_i$,
+the possible values $g_c(x_*)$ range over all real numbers as $c$ varies.
+\end{theorem}
+
+\begin{proof}
+At an observed input $x_j$, the product contains the zero factor
+$x_j-x_j$, so $g_c(x_j)=f(x_j)=y_j$. At a new input $x_*$, the product
+$q=\prod_i(x_*-x_i)$ is nonzero. Hence $g_c(x_*)=f(x_*)+cq$. Because $q\ne0$,
+choosing $c=(a-f(x_*))/q$ produces any desired value $a$. The observations
+alone therefore cannot select one extrapolation.
+\end{proof}
+
+The theorem is elementary, but its force is general: a learner must restrict
+the candidate continuations or prefer some over others. Smoothness, sparsity,
+a kernel, an architecture, a prior, regularization, and an optimization
+trajectory are all possible sources of that preference. Calling the preference
+``bias'' does not make it an error; the relevant question is whether it is
+defensible for the intended population.
 
 Suppose two functions $f_1$ and $f_2$ agree at every observed $x_i$ but differ
 at a future $x_*$. No calculation using only the observed labels can determine
@@ -192,6 +246,50 @@ A fourth systems failure occurs when the fitted object is correct but the
 deployed representation, schema, or decision path differs from evaluation.
 These failures require different repairs. More optimizer iterations cannot fix
 target leakage; a larger network cannot repair an invalid outcome definition.
+
+\section{Performance is a vector, not one score}
+
+The word performance is overloaded. A model can have good predictive error and
+unacceptable latency; a fast service can make scientifically invalid
+predictions; an average score can hide failure for a rare but consequential
+group. A technical report should therefore name the claim associated with each
+measurement.
+
+\begin{tabularx}{\textwidth}{@{}p{0.19\textwidth}p{0.30\textwidth}X@{}}
+\toprule
+Dimension & Example measurement & Question answered \\
+\midrule
+Predictive & MAE, log loss, calibration, recall at a fixed threshold & How well
+does the fitted rule transfer under the evaluation design? \\
+Statistical & Interval width, resampling variation, subgroup sample size & How
+uncertain or unstable is that estimate? \\
+Computational & Fit time, peak memory, gradient evaluations, energy & What does
+learning cost under a specified machine and software stack? \\
+Serving & Median and tail latency, throughput, error rate & Can the operated
+interface satisfy its service objective? \\
+Scientific & External replication, constraint violations, domain review & Does
+the output support the scientific claim or decision? \\
+Operational & Drift, missingness, outcome delay, alert quality & Does the data
+and feedback path still match the released contract? \\
+\bottomrule
+\end{tabularx}
+
+Measurements require protocols. A latency comparison states hardware, software
+versions, input shape, warmup, number of repetitions, concurrency, and whether
+data loading is included. A predictive comparison uses the same held-out units
+and reports uncertainty rather than ranking models by a difference smaller than
+the evaluation noise. Peak memory is measured separately from serialized model
+size. End-to-end latency is measured separately from estimator latency. These
+separations prevent an impressive number from answering a different question
+than the one printed beside it.
+
+\begin{professionalbox}
+Begin every benchmark with a budget and a measurement contract. Record the
+dataset and split identifier, code revision, dependency lock, hardware,
+random seeds, repetitions, aggregation rule, and raw measurements. Compare a
+candidate with a baseline on identical units. Optimize only after profiling
+shows which stage consumes the resource.
+\end{professionalbox}
 
 \section{Applications begin with decisions, not algorithms}
 
@@ -266,19 +364,83 @@ premature.
 
 \section{Exercises}
 
-\begin{enumerate}
-  \item For one climate dataset, formulate a supervised forecast, an
-  unsupervised representation problem, and a causal question. State why their
-  evidence requirements differ.
-  \item Give two functions that interpolate the same three points but disagree
-  elsewhere. Identify the inductive bias that would prefer one.
-  \item For an image classifier, separate approximation, estimation,
-  optimization, and deployment-representation failures.
-  \item Choose an application from the table and write the complete learning
-  system: representation, hypothesis class, objective, algorithm, split,
-  metric, decision, and feedback.
-  \item Explain why a model that improves its training objective has not yet
-  demonstrated learning that matters to a user.
+Problem identifiers are stable references for discussion and contribution.
+When work becomes a repository proposal, cite the bold identifier exactly in
+the issue and pull request; Appendix~\ref{app:git-github} gives the complete
+workflow.
+
+\subsection*{Intuition and explanation}
+
+\begin{enumerate}[label=\textbf{MLF-I\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item A research group says, ``We have labels, so this is supervised
+  learning.'' Give two reasons that statement is insufficient to define the
+  task. Name the missing objects in the learning system.
+  \item One archive of satellite images supports land-cover classification,
+  anomaly detection, self-supervised pretraining, and change-policy evaluation.
+  For each question, identify the learning signal, output, and evidence that
+  would count as success. Explain why one random split cannot validate all four.
+  \item A model's training objective falls by 40 percent, validation error is
+  unchanged, prediction latency doubles, and a rare-region error worsens.
+  Write four claims the evidence supports and four it does not support.
+  \item Explain inductive bias to a scientist without using the words
+  ``overfitting'' or ``complexity.'' Give one helpful and one harmful bias for a
+  physical measurement problem.
+\end{enumerate}
+
+\subsection*{Mathematical reasoning}
+
+\begin{enumerate}[label=\textbf{MLF-M\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Let observations be $(0,1)$, $(1,2)$, and $(2,5)$. Find the unique
+  quadratic interpolant $f$. Then use Theorem~\ref{thm:finite-interpolation} to
+  construct infinitely many functions with the same training error but
+  arbitrary value at $x=3$. Which additional assumption could prefer $f$?
+  \item Suppose $f_1$ and $f_2$ have population risks $0.20$ and $0.18$, while
+  their test estimates on the same 100 units are $0.19$ and $0.18$. Explain why
+  the displayed difference alone does not identify the better future system.
+  Derive the per-unit paired loss difference that should be analyzed.
+  \item Construct one example each of approximation, estimation, optimization,
+  and representation-deployment error for the same regression task. Make the
+  four fitted outputs observationally distinguishable.
+  \item Prove that multiplying one coordinate by a positive constant can change
+  a Euclidean nearest-neighbor rule. State the condition under which every
+  nearest-neighbor identity would remain unchanged.
+\end{enumerate}
+
+\subsection*{Data and engineering investigations}
+
+\begin{enumerate}[label=\textbf{MLF-C\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Query \code{dataset\_catalog} and \code{dataset\_columns} before loading
+  an observation table. Choose two datasets, write three defensible learning
+  questions for each, and identify at least one claim the bundled schema cannot
+  support. Preserve the SQL and row counts in your report.
+  \item Reproduce one panel of Figure~\ref{fig:learning-landscape} from the
+  generator. Change exactly one representation choice, predict the effect, and
+  compare the result. Do not compare numeric scores across unrelated tasks.
+  \item Design a performance scorecard for one model with predictive,
+  statistical, computational, serving, scientific, and operational evidence.
+  State the unit, population, measurement protocol, baseline, and uncertainty
+  for every entry.
+\end{enumerate}
+
+\subsection*{Contribution studio}
+
+Choose one bounded problem below only after searching existing issues. The
+deliverable is an approved issue, a documented \code{rice\_dsm.contrib}
+subpackage, focused tests, and a reviewed pull request--not merely a notebook.
+
+\begin{enumerate}[label=\textbf{MLF-PR\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Add a reusable dataset-audit component that reports observational unit,
+  feature roles, target status, missingness, and unsupported claim warnings for
+  a documented table. Require typed output, deterministic ordering, and tests
+  for an unknown dataset and malformed metadata.
+  \item Add a learning-problem contract object that records representation,
+  hypothesis class, objective, evaluation boundary, consumer, and feedback.
+  It must validate missing or contradictory fields and serialize to a stable,
+  documented record without containing private data.
+  \item Propose a custom scientific dataset adapter of your choice. The issue
+  must establish public provenance, license, units, schema, observational unit,
+  and a small redistributable or generated fixture before implementation.
+  Tests must not depend on live network access.
 \end{enumerate}
 
 \begin{chapterreview}
@@ -287,7 +449,8 @@ structure. The learning signal distinguishes major branches, while
 representation, hypothesis class, loss, optimization, and evaluation define a
 specific problem. Finite data require inductive bias. Training fit is not the
 generalization claim, and the fitted object is only one component of a system
-that must preserve its data and decision contract.
+that must preserve its data and decision contract. Performance is a vector of
+claim-specific measurements rather than one leaderboard score.
 \end{chapterreview}
 
 \begin{notebooklink}

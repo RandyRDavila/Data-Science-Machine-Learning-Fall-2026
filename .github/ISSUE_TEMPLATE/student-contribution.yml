@@ -10,6 +10,15 @@ body:
         Use this form before proposing incubator work under `rice_dsm.contrib` or a new shared-platform component under `rice_dsm.ml`. Keep grades, student IDs, private student information, secrets, credentials, and restricted data out of this public issue. Contact the instructor privately when public participation would create a privacy or accessibility concern.
 
   - type: input
+    id: textbook_problem
+    attributes:
+      label: Textbook problem ID
+      description: Enter the stable contribution-studio identifier, such as MLF-PR1, SLC-PR2, LR-PR3, or GD-PR1. Write "Independent proposal" only when the work is not derived from a textbook problem.
+      placeholder: GD-PR1
+    validations:
+      required: true
+
+  - type: input
     id: slug
     attributes:
       label: Proposed package slug

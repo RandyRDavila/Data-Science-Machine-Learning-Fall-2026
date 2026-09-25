@@ -8,9 +8,14 @@ After this chapter, you should be able to:
   \item explain directional derivatives, steepest descent, curvature, and the
   role of the learning rate;
   \item derive batch, stochastic, and mini-batch updates for least squares;
-  \item connect a single identity-activation neuron to linear regression; and
+  \item connect a single identity-activation neuron to linear regression;
+  \item compare plain descent, Polyak momentum, and Nesterov-style acceleration
+  as first-order methods;
+  \item distinguish back-propagation from the optimizer that consumes its
+  gradients; and
   \item diagnose divergence, slow convergence, scaling problems, and false
-  claims based only on optimizer convergence.
+  claims based only on optimizer convergence using quality and resource
+  measurements.
 \end{itemize}
 \end{learningobjectives}
 
@@ -36,6 +41,36 @@ noisy experimental responses were available.\footnote{H. Robbins and S.
 Monro, ``A Stochastic Approximation Method,'' \emph{The Annals of Mathematical
 Statistics}, 22(3), 1951,
 \url{https://doi.org/10.1214/aoms/1177729586}.}
+
+Acceleration also predates the current deep-learning vocabulary. Boris Polyak
+analyzed the heavy-ball method in 1964, adding a fraction of the preceding
+displacement to the next step.
+\footnote{B. T. Polyak, ``Some methods of speeding up the convergence of
+iteration methods,'' \emph{USSR Computational Mathematics and Mathematical
+Physics}, 4(5), 1964,
+\url{https://doi.org/10.1016/0041-5553(64)90137-5}.}
+Yurii Nesterov's 1983 method obtained an accelerated worst-case rate for smooth
+convex optimization through a carefully constructed look-ahead sequence.
+\footnote{Y. E. Nesterov, ``A method for solving the convex programming
+problem with convergence rate $O(1/k^2)$,'' \emph{Doklady Akademii Nauk SSSR},
+269(3), 1983, \url{https://www.mathnet.ru/eng/dan46009}.}
+These methods are still first order: they use objective values and gradients,
+not the Hessian matrix required by a second-order method such as Newton's
+method.
+
+The neuron language has a separate history. McCulloch and Pitts formalized
+networks of thresholded logical units in 1943, and Rosenblatt developed the
+trainable perceptron in the 1950s.
+\footnote{W. S. McCulloch and W. Pitts, ``A logical calculus of the ideas
+immanent in nervous activity,'' \emph{Bulletin of Mathematical Biophysics}, 5,
+1943, \url{https://doi.org/10.1007/BF02478259}; F. Rosenblatt, ``The perceptron:
+a probabilistic model for information storage and organization in the brain,''
+\emph{Psychological Review}, 65(6), 1958,
+\url{https://doi.org/10.1037/h0042519}.}
+Those units used threshold behavior. The identity-activation unit studied here
+is deliberately different: it supplies the smallest computational graph that
+is exactly affine regression and makes the later transition to differentiable
+networks mathematically transparent.
 
 Modern gradient-based learning joins these two ideas: use local derivative
 information to improve an objective, and estimate that information from a
@@ -64,17 +99,30 @@ to a global minimizer. The learning rate $\eta_t$ converts sensitivity into a
 step. If the step is too large, the neglected curvature term can dominate and
 the objective may increase.
 
-For the quadratic $J(w)=\tfrac12 a(w-w^*)^2$ with $a>0$,
+\begin{theorem}[Exact convergence on a scalar quadratic]
+\label{thm:scalar-gd}
+Let $J(w)=\tfrac12a(w-w^*)^2$ with $a>0$, and apply gradient descent with a
+constant learning rate $\eta$. Then
 \[
-w_{t+1}-w^*=(1-\eta a)(w_t-w^*).
+w_t-w^*=(1-\eta a)^t(w_0-w^*).
 \]
-The iterates converge exactly when $|1-\eta a|<1$, or
-\[
-0<\eta<\frac{2}{a}.
-\]
-This one-line calculation explains oscillation, divergence, and slow progress.
-When $\eta$ is near $1/a$, progress is rapid; when it is tiny, each step retains
-almost all of the preceding error.
+For every starting point, the iterates converge to $w^*$ if and only if
+$0<\eta<2/a$. The choice $\eta=1/a$ reaches $w^*$ in one update.
+\end{theorem}
+
+\begin{proof}
+Because $J'(w)=a(w-w^*)$, subtracting $w^*$ from the update gives
+$w_{t+1}-w^*=(1-\eta a)(w_t-w^*)$. Repeated substitution proves the formula.
+The geometric sequence converges to zero exactly when
+$|1-\eta a|<1$, which is equivalent to $0<\eta<2/a$. At $\eta=1/a$ the
+contraction factor is zero.
+\end{proof}
+
+The sign and magnitude of $1-\eta a$ explain the whole trajectory. A positive
+factor approaches from one side, a negative factor oscillates, magnitude above
+one diverges, and a factor close to one makes slow progress. This exact example
+is the first model for diagnosing a learning curve rather than merely watching
+it.
 
 \conceptcheck{For $J(w)=5(w-3)^2/2$, classify the behavior expected at
 $\eta=0.05$, $0.2$, $0.35$, and $0.45$. Which choice reaches the minimizer in
@@ -90,9 +138,25 @@ For a unit direction $u$, the directional derivative is
 \[
 D_uJ(\theta)=\nabla J(\theta)^Tu.
 \]
-By Cauchy-Schwarz, this quantity is smallest over $\lVert u\rVert_2=1$ when
-$u=-\nabla J/\lVert\nabla J\rVert_2$. Thus the negative gradient is the
-direction of steepest local decrease under Euclidean distance.
+\begin{theorem}[The negative gradient is Euclidean steepest descent]
+\label{thm:steepest-descent}
+If $\nabla J(\theta)\ne0$, then among all unit Euclidean directions,
+\[
+\min_{\lVert u\rVert_2=1}D_uJ(\theta)
+=-\lVert\nabla J(\theta)\rVert_2,
+\]
+and the unique minimizing direction is
+$u=-\nabla J(\theta)/\lVert\nabla J(\theta)\rVert_2$.
+\end{theorem}
+
+\begin{proof}
+Cauchy-Schwarz gives
+$\nabla J(\theta)^Tu\ge
+-\lVert\nabla J(\theta)\rVert_2\lVert u\rVert_2
+=-\lVert\nabla J(\theta)\rVert_2$.
+Equality occurs when $u$ is a negative scalar multiple of the gradient; the
+unit-length constraint fixes the stated direction.
+\end{proof}
 
 The phrase ``steepest'' depends on geometry. Rescaling parameters changes
 Euclidean distance and therefore changes the gradient path. A preconditioner,
@@ -140,13 +204,32 @@ for the steep direction makes little progress along the flat direction, so the
 path zigzags slowly. Centering, scaling, reparameterization, and
 preconditioning attempt to improve this geometry.
 
-For an objective with $L$-Lipschitz gradient,
+\begin{theorem}[Descent lemma and a safe fixed step]
+\label{thm:descent-lemma}
+Suppose $J$ has an $L$-Lipschitz gradient:
+$\lVert\nabla J(v)-\nabla J(u)\rVert_2\le L\lVert v-u\rVert_2$. Then
 \[
 J(v)\leq J(u)+\nabla J(u)^T(v-u)+\frac{L}{2}\lVert v-u\rVert_2^2.
 \]
-Setting $v=u-\eta\nabla J(u)$ shows that $0<\eta<2/L$ guarantees a decrease
-unless the gradient is zero. This \term{descent lemma} generalizes the scalar
-quadratic calculation.
+Consequently, with $v=u-\eta\nabla J(u)$,
+\[
+J(v)\le J(u)-\eta\left(1-\frac{L\eta}{2}\right)
+\lVert\nabla J(u)\rVert_2^2.
+\]
+Thus $0<\eta<2/L$ strictly decreases the objective whenever the gradient is
+nonzero.
+\end{theorem}
+
+\begin{proof}
+Let $d=v-u$ and $h(t)=J(u+td)$. The fundamental theorem of calculus gives
+\[
+J(v)-J(u)=\int_0^1\nabla J(u+td)^Td\,dt.
+\]
+Add and subtract $\nabla J(u)^Td$. Cauchy-Schwarz and Lipschitz continuity
+bound the remaining integrand by $Lt\lVert d\rVert_2^2$. Integration from zero
+to one gives the first inequality. Substituting
+$d=-\eta\nabla J(u)$ and collecting terms gives the second.
+\end{proof}
 
 \section{Least squares supplies an exact laboratory}
 
@@ -169,6 +252,35 @@ The largest eigenvalue of $X^TX/n$ controls the stable constant step. Feature
 scaling changes that spectrum. This gives a precise reason to scale before
 gradient descent rather than the vague rule that models always require
 standardization.
+
+\begin{theorem}[An identity neuron is affine linear regression]
+\label{thm:identity-neuron}
+Let a single computational unit have weights $w\in\mathbb{R}^p$, bias
+$b\in\mathbb{R}$, preactivation $z=w^Tx+b$, and identity activation
+$\phi(z)=z$. Its hypothesis class is exactly the class of affine linear
+regression functions. If it is trained by mean squared error, its objective and
+parameter gradients are exactly those of ordinary least squares with an
+intercept.
+\end{theorem}
+
+\begin{proof}
+The forward map is
+$\widehat y=\phi(w^Tx+b)=w^Tx+b$, which is the affine regression map. Conversely,
+every affine regression function is represented by the same $w$ and $b$ in the
+unit. For
+\[
+J(w,b)=\frac{1}{2n}\sum_{i=1}^n(w^Tx_i+b-y_i)^2,
+\]
+the chain rule through $z_i$ and $\phi'(z_i)=1$ gives
+\[
+\nabla_wJ=\frac1n\sum_i(\widehat y_i-y_i)x_i,
+\qquad
+\frac{\partial J}{\partial b}=\frac1n\sum_i(\widehat y_i-y_i),
+\]
+the ordinary least-squares gradients. Representation equivalence does not
+force training equivalence: a direct QR solve and gradient descent can produce
+the same fitted function by different numerical routes.
+\end{proof}
 
 \begin{workedexample}{a linear neuron on real clinical measurements}
 Let $x_i$ be a standardized baseline BMI measurement and let $y_i$ be a
@@ -216,6 +328,26 @@ $\mathbb{E}[g_t\mid\theta_t]=\nabla J(\theta_t)$: the stochastic gradient is
 unbiased, though noisy. A mini-batch averages several sampled gradients to
 trade variance for parallel efficiency.
 
+\begin{proposition}[Independent mini-batching reduces gradient variance]
+Fix $\theta$ and let $G_1,\ldots,G_B$ be independent gradient samples with
+mean $\nabla J(\theta)$ and covariance matrix $\Sigma(\theta)$. Their average
+$\bar G_B=B^{-1}\sum_{j=1}^BG_j$ is unbiased and has covariance
+$\Sigma(\theta)/B$.
+\end{proposition}
+
+\begin{proof}
+Linearity of expectation gives
+$\mathbb{E}[\bar G_B]=\nabla J(\theta)$. Independence removes cross-covariance
+terms, so
+\[
+\operatorname{Cov}(\bar G_B)
+=\frac{1}{B^2}\sum_{j=1}^B\operatorname{Cov}(G_j)
+=\frac{1}{B^2}B\Sigma(\theta)=\frac{\Sigma(\theta)}{B}.
+\]
+Sampling without replacement changes the expression by a finite-population
+correction, but the same variance-reduction principle remains.
+\end{proof}
+
 One pass through the training observations is an \term{epoch}. An epoch is not
 one update unless the batch is the entire dataset. Shuffling affects the
 sequence of stochastic gradients, so the seed and data order belong to the
@@ -239,6 +371,104 @@ Mini-batch & Efficient vectorization with reduced variance & Batch size changes
 optimization noise, memory use, and sometimes generalization behavior \\
 \bottomrule
 \end{tabularx}
+
+\section{Momentum and acceleration remain first-order methods}
+
+Plain gradient descent discards its preceding displacement. Polyak's
+\term{heavy-ball method} carries a velocity:
+\[
+v_{t+1}=\beta v_t-\eta\nabla J(\theta_t),
+\qquad
+\theta_{t+1}=\theta_t+v_{t+1},
+\]
+where $0\le\beta<1$. On a long narrow valley, gradients alternate across the
+steep direction while agreeing along the flat direction. The velocity tends to
+cancel the alternating component and accumulate the persistent one. This is a
+geometric explanation, not a guarantee for every nonconvex objective.
+
+For the scalar quadratic $J(w)=aw^2/2$, eliminating velocity gives the error
+recurrence
+\[
+e_{t+1}=(1+\beta-\eta a)e_t-\beta e_{t-1}.
+\]
+Its behavior is governed by the roots of
+$r^2-(1+\beta-\eta a)r+\beta=0$. Momentum therefore introduces a second state
+and a second stability question. A value of $\beta$ that helps one curvature
+can destabilize another; momentum is not free speed.
+
+A common look-ahead form evaluates the gradient where velocity is about to
+move the parameters:
+\[
+\widetilde\theta_t=\theta_t+\beta v_t,
+\qquad
+v_{t+1}=\beta v_t-\eta\nabla J(\widetilde\theta_t),
+\qquad
+\theta_{t+1}=\theta_t+v_{t+1}.
+\]
+This is useful for teaching the intuition behind Nesterov-style momentum, but
+the original accelerated convex method uses a particular sequence of
+coefficients and proof invariant. Similar-looking library updates should not be
+credited with a theorem until their exact recurrence and assumptions match it.
+
+For a convex function with $L$-Lipschitz gradient, fixed-step gradient descent
+has a worst-case objective gap of order $1/t$. Nesterov's accelerated method
+achieves order $1/t^2$ under the same smooth-convex setting. If the objective is
+also $\mu$-strongly convex, appropriately tuned methods converge geometrically,
+with the accelerated dependence governed by $\sqrt{L/\mu}$ rather than
+$L/\mu$. These are worst-case upper bounds under mathematical assumptions, not
+promises about elapsed time. Extra state, more complex kernels, stochastic
+noise, and hardware utilization can change the engineering result.
+
+Figure~\ref{fig:gradient-methods} compares the mechanisms on objectives whose
+behavior is known exactly. The horizontal axis in the lower-left panel counts
+gradient evaluations rather than epochs so that the unit of computational work
+is explicit.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/generated/gradient-methods.pdf}
+  \caption{First-order optimization diagnostics generated from executable
+  quadratic examples. Panel A isolates step-size stability; panels B and C
+  compare paths and objective progress; panel D shows the idealized variance
+  and update-frequency trade-off induced by batch size.}
+  \label{fig:gradient-methods}
+\end{figure}
+
+\section{Back-propagation differentiates; the optimizer updates}
+
+For a composition
+\[
+x=h_0\longmapsto h_1=f_1(h_0;\theta_1)
+\longmapsto\cdots\longmapsto
+h_L=f_L(h_{L-1};\theta_L)\longmapsto J,
+\]
+the forward pass computes and stores intermediate values. Reverse-mode
+automatic differentiation starts from the scalar derivative
+$\partial J/\partial J=1$ and repeatedly applies the chain rule. If
+$\bar h_k=\partial J/\partial h_k$, then
+\[
+\bar h_{k-1}
+=\left(\frac{\partial h_k}{\partial h_{k-1}}\right)^T\bar h_k,
+\qquad
+\nabla_{\theta_k}J
+=\left(\frac{\partial h_k}{\partial\theta_k}\right)^T\bar h_k.
+\]
+This backward sweep computes gradients for every parameter while reusing local
+derivatives. Back-propagation is therefore a differentiation procedure, not a
+particular optimizer. Gradient descent, mini-batch SGD, momentum, or Adam may
+consume the resulting gradient. Rumelhart, Hinton, and Williams' 1986 account
+made this reverse error-propagation view influential for learning internal
+representations in multilayer networks.
+\footnote{D. E. Rumelhart, G. E. Hinton, and R. J. Williams, ``Learning
+representations by back-propagating errors,'' \emph{Nature}, 323, 1986,
+\url{https://doi.org/10.1038/323533a0}.}
+
+The one-neuron derivation is the smallest complete example of this process:
+the loss sends an error derivative to the identity activation, then to the
+affine weights and bias. Hidden layers add compositions, not a new chain rule.
+This distinction is an engineering boundary too: gradient tests validate the
+differentiation component, while optimizer tests validate state updates,
+schedules, and termination behavior.
 
 \section{Applications beyond fitting a line}
 
@@ -296,22 +526,123 @@ learning-rate schedule, precision, and software version. Silently returning the
 last iterate after divergence is an interface failure.
 \end{professionalbox}
 
+\section{Measure optimizer performance without moving the goalposts}
+
+An optimizer benchmark needs both a quality axis and a work axis. Objective
+against iteration can be misleading because one full-batch iteration and one
+single-example update use very different work. Useful horizontal axes include
+examples processed, gradient evaluations, matrix-vector products, floating-
+point operations, and wall-clock time. Report at least one implementation-
+independent work measure alongside elapsed time.
+
+The primary engineering quantity is often \term{time to quality}: elapsed time
+until a declared objective, validation metric, or gradient-norm threshold is
+first met. Also measure examples per second, peak accelerator or host memory,
+data-loader wait, and the fraction of time spent in forward, backward, and
+update stages. A profiler should identify the bottleneck before batch size,
+precision, compilation, or distribution strategy is changed.
+
+Comparisons must hold the mathematical problem fixed. Use the same training
+rows, preprocessing, initialization policy, objective normalization, stopping
+target, and numerical precision unless the experiment explicitly studies one
+of those choices. Repeat stochastic runs and show their distribution. Count
+failed or nonfinite runs rather than deleting them. Separate training
+performance from generalization: reaching lower training loss faster is an
+optimization result, while improved held-out error is a statistical result.
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.28\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Question & Measurement & Frequent mistake \\
+\midrule
+Is the update correct? & Finite-difference error and trusted-solver agreement &
+Treating a decreasing loss as proof of a correct gradient \\
+Is it converging? & Objective, gradient norm, step norm, termination reason &
+Stopping only because an iteration budget expired \\
+Is it efficient? & Time to quality, examples per second, peak memory & Comparing
+epochs with different batch sizes as equal work \\
+Is it reproducible? & Seeded-run distribution, data order, software and hardware
+record & Reporting only the best run \\
+Does it generalize? & Sealed held-out metrics with uncertainty & Inferring test
+performance from the training curve \\
+\bottomrule
+\end{tabularx}
+
 \section{Exercises}
 
-\begin{enumerate}
-  \item Derive the exact scalar quadratic convergence interval and describe the
-  paths for positive and negative contraction factors.
-  \item Prove that $-\nabla J/\lVert\nabla J\rVert_2$ minimizes the directional
-  derivative over Euclidean unit vectors.
-  \item For a two-feature least-squares problem, compute $X^TX/n$, its
-  eigenvalues, condition number, and stable constant-step interval before and
-  after standardization.
-  \item Derive the weight and intercept gradients for a mini-batch linear
-  neuron, with every array shape annotated.
-  \item Construct a case where training loss converges while validation loss
-  worsens. Explain why changing the stopping rule is model selection.
-  \item Design tests that catch an incorrect sign, missing factor, silent
-  nonfinite update, and mutation of the input arrays.
+Use the \textbf{GD} identifier to connect a mathematical result or software
+extension to its review history. Contribution problems are deliberately open
+enough for original design but narrow enough for a first professional PR.
+
+\subsection*{Intuition and explanation}
+
+\begin{enumerate}[label=\textbf{GD-I\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Explain why the gradient is not an arrow to the global minimum. Use a
+  convex quadratic, a saddle, and a rescaled coordinate system in the answer.
+  \item Distinguish the model, objective, differentiation procedure, and
+  optimizer for the identity neuron. Which object changes when plain gradient
+  descent is replaced by momentum?
+  \item An optimizer reaches gradient norm $10^{-8}$ while held-out RMSE is
+  poor. Give four compatible explanations at different layers of the learning
+  system.
+  \item Compare an epoch, update, example processed, gradient evaluation, and
+  second of wall time. Explain why none is universally the fairest horizontal
+  axis for an optimizer plot.
+\end{enumerate}
+
+\subsection*{Mathematical reasoning}
+
+\begin{enumerate}[label=\textbf{GD-M\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item For $J(w)=a(w-w^*)^2/2$, derive Theorem~\ref{thm:scalar-gd} and classify
+  monotone convergence, oscillatory convergence, one-step convergence,
+  stagnation, and divergence in terms of $1-\eta a$.
+  \item Generalize Theorem~\ref{thm:scalar-gd} to a positive-definite quadratic
+  by diagonalizing its Hessian. Derive the stable interval and the optimal
+  constant step in terms of extreme eigenvalues.
+  \item Prove Theorem~\ref{thm:steepest-descent} for a weighted norm
+  $\lVert d\rVert_M=(d^TMd)^{1/2}$. Identify the corresponding preconditioned
+  direction and explain the role of units.
+  \item Derive the weight and bias gradients for a mini-batch identity neuron,
+  annotating every array shape. Then derive the reverse-mode chain rule if the
+  identity activation is replaced by a differentiable scalar $\phi$.
+  \item Derive the heavy-ball characteristic polynomial for a scalar quadratic.
+  Use its roots to identify one stable and one unstable pair $(\eta,\beta)$.
+  Explain why momentum adds state without using a Hessian.
+  \item Extend the mini-batch variance proposition to unequal covariance
+  matrices. Then state how sampling without replacement alters the independent
+  calculation.
+\end{enumerate}
+
+\subsection*{Data and engineering investigations}
+
+\begin{enumerate}[label=\textbf{GD-C\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Reproduce Figure~\ref{fig:gradient-methods}. Add one deliberately
+  unstable configuration and explain the failure from eigenvalues or recurrence
+  roots before running it.
+  \item Train the single identity neuron on the real diabetes table and compare
+  its predictions with a stable least-squares solver. Verify analytic gradients
+  by centered finite differences on a tiny subset and justify the tolerance.
+  \item Compare batch, stochastic, and mini-batch methods at equal examples
+  processed and equal wall time. Repeat stochastic runs, report failures, and
+  separate time to training quality from held-out performance.
+  \item Profile a training step into data loading, forward pass, backward pass,
+  and update. Change one of batch size, numerical precision, or data layout only
+  after identifying the bottleneck; report the before-and-after evidence.
+\end{enumerate}
+
+\subsection*{Contribution studio}
+
+\begin{enumerate}[label=\textbf{GD-PR\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Add a first-order optimizer component with a typed configuration and
+  result record containing termination reason, iterations, objective history,
+  gradient or update norm, elapsed time, and nonfinite failure. Test a convex
+  quadratic, an invalid shape, and divergence.
+  \item Add one optimizer extension--a schedule, Polyak momentum, gradient
+  clipping, averaging, or a justified alternative. The issue must state the
+  recurrence and source; differential tests must compare it with a transparent
+  reference implementation.
+  \item Add a benchmark recorder that compares optimizers without conflating
+  iterations, examples, gradient evaluations, and time. Its output must retain
+  configuration, seed, software version, failures, and raw repeated measurements.
 \end{enumerate}
 
 \begin{chapterreview}
@@ -321,8 +652,11 @@ finite step decreases the objective and how rapidly different directions
 converge. Least squares exposes this behavior exactly through $X^TX/n$ and
 connects an identity-activation neuron to a familiar estimator. Stochastic and
 mini-batch methods estimate the full gradient more cheaply, but introduce
-variance and additional reproducibility choices. Optimization success remains
-distinct from statistical generalization and scientific validity.
+variance and additional reproducibility choices. Momentum carries state and
+can accelerate favorable geometry without becoming a second-order method.
+Back-propagation computes derivatives; an optimizer decides how to use them.
+Optimization success and time to training quality remain distinct from
+statistical generalization and scientific validity.
 \end{chapterreview}
 
 \begin{notebooklink}
@@ -331,5 +665,7 @@ updates, moves to contours and directional derivatives, then trains a single
 identity-activation neuron on real diabetes observations. Synchronized plots
 connect parameter space, data space, and iteration space; finite differences
 and a trusted least-squares solver verify the implementation. Scaling is then
-explained through Hessian eigenvalues and condition numbers.
+explained through Hessian eigenvalues and condition numbers. The notebook then
+compares batch, stochastic, and mini-batch updates, Polyak heavy-ball momentum,
+and a clearly labeled Nesterov-style look-ahead method on shared objectives.
 \end{notebooklink}

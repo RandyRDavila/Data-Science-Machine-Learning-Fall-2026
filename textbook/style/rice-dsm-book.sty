@@ -3,6 +3,7 @@
 
 \RequirePackage[T1]{fontenc}
 \RequirePackage[utf8]{inputenc}
+\RequirePackage{amsthm}
 \RequirePackage{newtxtext}
 \RequirePackage{newtxmath}
 \RequirePackage[scaled=0.92]{inconsolata}
@@ -195,6 +196,24 @@
 \newcommand{\course}{CMOR 438 / INDE 577}
 \newcommand{\bookversion}{Developing edition -- Fall 2026}
 \newcommand{\conceptcheck}[1]{\par\smallskip\textbf{Concept check.} #1\par\smallskip}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\renewenvironment{proof}[1][Proof]{%
+  \par\pushQED{\qed}\normalfont
+  \topsep6\p@\@plus6\p@\relax
+  \trivlist
+  \item[\hskip\labelsep\color{RiceBlue}\bfseries #1\@addpunct{.}]\ignorespaces
+}{%
+  \popQED\endtrivlist\@endpefalse
+}
 
 \tikzset{
   flowbox/.style={draw=RiceBlue,rounded corners=2pt,fill=RiceLightBlue,align=center,minimum height=9mm,text width=25mm,font=\small},

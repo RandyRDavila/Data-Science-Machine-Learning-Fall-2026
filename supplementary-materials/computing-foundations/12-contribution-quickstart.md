@@ -14,6 +14,8 @@ package](11-contributing-to-the-shared-course-package.md).
   instructor privately if you need an equivalent private contribution route.
 - Do not begin implementation until your proposal is approved or the
   instructor assigns an open task.
+- If the contribution comes from a textbook problem, preserve its stable ID
+  (for example, `GD-PR1`) in the issue field, branch name, and pull request.
 - Do not use `/claim` until the instructor announces that course coordination
   is enabled.
 
@@ -60,7 +62,8 @@ by placing this exact text by itself in the issue:
 If coordination is not yet enabled, use the assignment procedure announced in
 class. In either case, confirm the issue defines the package slug, public
 interface, assumptions, expected failures, evidence, and allowed files before
-writing substantial code.
+writing substantial code. Use an issue title such as
+`[GD-PR1] Add optimizer result records` for a textbook contribution.
 
 If you cannot continue with an automatically claimed task, comment:
 
@@ -80,7 +83,7 @@ git switch main
 git fetch upstream
 git merge --ff-only upstream/main
 git push origin main
-git switch -c student/SHORT-DESCRIPTION
+git switch -c student/PROBLEM-ID-SHORT-DESCRIPTION
 ```
 
 Stop if `git status` shows work you do not recognize or the fast-forward merge
@@ -129,18 +132,19 @@ notebook output.
 ## 6. Push and open the pull request
 
 ```text
-git push -u origin student/SHORT-DESCRIPTION
+git push -u origin student/PROBLEM-ID-SHORT-DESCRIPTION
 ```
 
 On GitHub, open a pull request with these endpoints:
 
 ```text
 base: RandyRDavila/Data-Science-Machine-Learning-Fall-2026 main
-head: YOUR-GITHUB-NAME/Data-Science-Machine-Learning-Fall-2026 student/SHORT-DESCRIPTION
+head: YOUR-GITHUB-NAME/Data-Science-Machine-Learning-Fall-2026 student/PROBLEM-ID-SHORT-DESCRIPTION
 ```
 
-Complete every applicable part of the template. Include `Closes #ISSUE-NUMBER`,
-state the contract and limitations, and list the exact checks you ran. A
+Complete every applicable part of the template. Include the textbook problem
+ID, `Closes #ISSUE-NUMBER`, the contract and limitations, and the exact checks
+you ran. A
 first-time external contribution may wait for a maintainer to approve its CI
 run; this is expected.
 
@@ -164,7 +168,7 @@ git switch main
 git fetch upstream
 git merge --ff-only upstream/main
 git push origin main
-git branch -d student/SHORT-DESCRIPTION
+git branch -d student/PROBLEM-ID-SHORT-DESCRIPTION
 ```
 
 The merged pull request preserves your authorship and discussion. It also

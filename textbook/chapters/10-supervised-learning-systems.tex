@@ -122,15 +122,39 @@ $\mathcal{F}$ are both forms of inductive bias.
 
 \section{The loss determines the population target}
 
-Suppose predictors may choose any real number $a$ at a fixed $X=x$. Under
-squared loss the conditional risk is
+Suppose predictors may choose any real number $a$ at a fixed $X=x$. The loss
+does not merely grade a prediction after training; it defines which population
+functional an unrestricted learner attempts to estimate.
+
+\begin{theorem}[Squared loss elicits the conditional mean]
+\label{thm:squared-loss-mean}
+Assume $\mathbb{E}[Y^2\mid X=x]<\infty$ and write
+$\mu(x)=\mathbb{E}[Y\mid X=x]$. The conditional squared-error risk
 \[
-q(a)=\mathbb{E}[(Y-a)^2\mid X=x].
+q(a)=\mathbb{E}[(Y-a)^2\mid X=x]
 \]
-Differentiating gives $q'(a)=2(a-\mathbb{E}[Y\mid X=x])$, so the risk-minimizing
-prediction is the conditional mean when it exists. Under absolute loss,
-$\mathbb{E}[|Y-a|\mid X=x]$ is minimized by a conditional median. Under binary
-zero-one loss, the most probable class minimizes conditional error.
+is uniquely minimized at $a=\mu(x)$.
+\end{theorem}
+
+\begin{proof}
+Add and subtract $\mu=\mu(x)$, expand, and condition on $X=x$:
+\begin{align*}
+q(a)
+&=\mathbb{E}[(Y-\mu+\mu-a)^2\mid X=x]\\
+&=\mathbb{E}[(Y-\mu)^2\mid X=x]
+  +2(\mu-a)\mathbb{E}[Y-\mu\mid X=x]+(\mu-a)^2\\
+&=\operatorname{Var}(Y\mid X=x)+(\mu-a)^2.
+\end{align*}
+The first term does not depend on $a$ and the second is nonnegative, with
+equality only at $a=\mu$. This argument avoids assuming a density or
+differentiating through an expectation.
+\end{proof}
+
+Under absolute loss, $\mathbb{E}[|Y-a|\mid X=x]$ is minimized by a conditional
+median. Under binary zero-one loss, the most probable class minimizes
+conditional error. Quantile loss targets a conditional quantile. Thus two
+teams can use the same rows and model family yet estimate different population
+objects because their losses differ.
 
 These are mathematical targets, not interchangeable metrics. If a laboratory
 needs a high conditional quantile to plan safety stock, fitting a conditional
@@ -219,6 +243,32 @@ support a final estimate after those choices stop. Cross-validation rotates
 training and validation roles; it does not excuse repeatedly consulting the
 test set.
 
+\begin{theorem}[What an independent test average estimates]
+\label{thm:test-risk-unbiased}
+Condition on a completed training and selection process that produces a fixed
+predictor $\widehat f$. If test pairs $(X_j,Y_j)$ are independent draws from
+$P_{\mathrm{use}}$ and are independent of that process, then
+\[
+\widehat R_{\mathrm{test}}(\widehat f)
+=\frac1m\sum_{j=1}^{m}L(Y_j,\widehat f(X_j))
+\]
+is conditionally unbiased for $R(\widehat f)$.
+\end{theorem}
+
+\begin{proof}
+Conditional on $\widehat f$, linearity of expectation and identical sampling
+give
+\[
+\mathbb{E}[\widehat R_{\mathrm{test}}(\widehat f)\mid\widehat f]
+=\frac1m\sum_{j=1}^{m}
+\mathbb{E}_{P_{\mathrm{use}}}[L(Y,\widehat f(X))]
+=R(\widehat f).
+\]
+The conclusion fails when test observations influence feature construction,
+model choice, stopping, or repeated reporting. In that case $\widehat f$ is no
+longer fixed independently of the claimed test evidence.
+\end{proof}
+
 \term{Leakage} occurs when model construction uses information that would not
 be legitimately available at prediction time or crosses an evaluation
 boundary. Target-derived features are obvious leakage. More subtle cases
@@ -232,6 +282,22 @@ scales, feature selection, and representation learning must be fitted using the
 training portion of each evaluation fold and then applied to held-out data.
 \end{warningbox}
 
+Figure~\ref{fig:supervised-evidence} shows the three roles on the real diabetes
+table. Polynomial degree is varied only against validation data. The sealed
+test subset is then used once to compare the selected candidate with a baseline.
+The particular winning degree is not a scientific conclusion; it is a concrete
+demonstration of information flow.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/generated/supervised-evidence.pdf}
+  \caption{Training estimates parameters, validation supports adaptive choices,
+  and test data estimate the performance of the completed procedure. Re-running
+  model selection after viewing panel C would turn the test set into development
+  data.}
+  \label{fig:supervised-evidence}
+\end{figure}
+
 \section{A baseline is an experimental control}
 
 A baseline asks whether learning adds value beyond a simple policy. For
@@ -244,6 +310,47 @@ The baseline uses the same split, metric, and information boundary as the
 candidate. Otherwise it is not a control. A complex model that fails to beat a
 correct baseline has supplied diagnostic evidence: the signal, representation,
 sample size, objective, or implementation may not support the claim.
+
+\section{Measure predictive performance as an experiment}
+
+For regression residuals $e_i=y_i-\widehat y_i$, three common summaries are
+\[
+\operatorname{MAE}=\frac1m\sum_{i=1}^m|e_i|,
+\qquad
+\operatorname{RMSE}=\sqrt{\frac1m\sum_{i=1}^m e_i^2},
+\]
+and
+\[
+R^2=1-\frac{\sum_i e_i^2}{\sum_i(y_i-\bar y)^2}.
+\]
+MAE retains the target unit and weights errors linearly. RMSE has the target
+unit but emphasizes large residuals. $R^2$ compares squared error with the
+constant test-set mean benchmark; it is not a percentage of predictions that
+are correct, and it can be negative on held-out data. Always report the unit,
+sample count, and reference policy beside the number.
+
+A metric estimate also has sampling variation. If evaluation units are
+independent, a bootstrap that resamples those units can describe uncertainty.
+If measurements are grouped by patient, machine, site, or time block, resample
+the independent group instead of individual rows. The resampling unit must
+match the generalization claim. For paired model comparison, compute both
+models on the same units and resample their per-unit loss differences; this
+retains the information that an observation was easy or difficult for both.
+
+Predictive quality is only one budget. Record fit time separately from
+prediction time, and measure prediction latency at representative batch sizes.
+Report a tail quantile such as the 95th or 99th percentile when a service-level
+objective concerns slow requests. Measure peak memory for training and serving
+independently. A model with slightly lower RMSE may be dominated if it violates
+the latency, memory, interpretability, or outcome-feedback requirements stated
+in the supervised-learning contract.
+
+\begin{professionalbox}
+Store evaluation as a table with one row per evaluation unit: identifiers,
+observed target, prediction, model version, subgroup fields permitted for audit,
+and per-unit loss. Aggregate reports can then be reproduced, sliced, paired,
+and bootstrapped. A screenshot of one score is not durable evaluation evidence.
+\end{professionalbox}
 
 \section{One table can contain many supervised problems}
 
@@ -302,22 +409,80 @@ reproducible result.
 
 \section{Exercises}
 
-\begin{enumerate}
+Use the printed identifier when discussing, submitting, or contributing a
+problem. A repository contribution follows the issue-to-PR procedure in
+Appendix~\ref{app:git-github}; the mathematics remains part of its review
+contract.
+
+\subsection*{Intuition and explanation}
+
+\begin{enumerate}[label=\textbf{SLC-I\arabic*.},leftmargin=*,itemsep=0.65em]
   \item Write two prediction contracts for the same battery table: one for an
-  unseen cell from a known batch and one for a future batch. Explain why their
-  splits differ.
-  \item Construct three leakage examples: one temporal, one group-based, and
-  one caused by preprocessing. For each, identify the invalid information path.
-  \item Specify regression and classification baselines for a target with strong
-  batch imbalance. State what each baseline controls.
-  \item Design an artifact manifest sufficient for another process to reject an
-  incompatible feature vector before inference.
-  \item Derive the conditional mean as the squared-loss minimizer and explain
-  what changes under absolute loss.
-  \item For one application in the table, decompose plausible error into
-  approximation, estimation, optimization, and distribution-shift components.
-  \item Give an example of a reproducible label that is not a defensible proxy
-  for the construct a user actually cares about.
+  unseen cell from a known batch and one for a cell from a future batch. Explain
+  why their splits, plausible shifts, and release claims differ.
+  \item Give temporal, group, preprocessing, and target-construction leakage
+  examples. For each, draw the forbidden information path and explain why a
+  high held-out score may survive the mistake.
+  \item A label is measured reproducibly but reflects an earlier institution's
+  decision policy. Explain what a predictor of that label learns, what it does
+  not learn, and which additional evidence would justify the intended construct.
+  \item Distinguish loss, evaluation metric, calibrated score, and decision
+  policy using one high-stakes classification example.
+\end{enumerate}
+
+\subsection*{Mathematical reasoning}
+
+\begin{enumerate}[label=\textbf{SLC-M\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Re-prove Theorem~\ref{thm:squared-loss-mean} by differentiating the
+  conditional risk, and list the regularity assumptions your proof uses. Compare
+  them with the completion-of-squares proof in the chapter.
+  \item Prove that every conditional median minimizes conditional absolute
+  loss. Treat nonunique medians carefully by using one-sided derivatives or a
+  direct comparison of integrals.
+  \item Under the assumptions of Theorem~\ref{thm:test-risk-unbiased}, derive
+  $\operatorname{Var}(\widehat R_{\mathrm{test}}\mid\widehat f)$. Explain how
+  dependence among repeated measurements changes the result.
+  \item Derive the cost-sensitive binary threshold
+  $C_{FP}/(C_{FP}+C_{FN})$ from conditional expected cost. Give two operational
+  constraints that make this threshold incomplete.
+  \item For squared error, derive the fixed-$x$ bias-variance decomposition.
+  Identify which expectation is over future outcomes and which is over possible
+  training samples.
+\end{enumerate}
+
+\subsection*{Data and engineering investigations}
+
+\begin{enumerate}[label=\textbf{SLC-C\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Recreate Figure~\ref{fig:supervised-evidence} with five different split
+  seeds. Report how often each polynomial degree is selected and what this says
+  about treating one validation winner as a scientific discovery.
+  \item Build a leakage-safe baseline and candidate pipeline for one course
+  table. Preserve one row per evaluation unit with target, prediction, residual,
+  model version, and permitted audit fields. Report MAE, RMSE, $R^2$, a paired
+  comparison, and the limitations of the split.
+  \item Measure prediction latency at batch sizes 1, 16, and 256 after warmup.
+  Record hardware, dependency lock, repetitions, median, 95th percentile, and
+  whether preprocessing is included. Explain which result matters for an API
+  and which for an offline batch job.
+  \item Design and test an artifact manifest that rejects reordered, missing,
+  duplicated, or unit-incompatible inputs before inference.
+\end{enumerate}
+
+\subsection*{Contribution studio}
+
+Choose one scoped addition and preserve the problem identifier from issue
+through merge.
+
+\begin{enumerate}[label=\textbf{SLC-PR\arabic*.},leftmargin=*,itemsep=0.65em]
+  \item Add a typed prediction-contract component with validation for unit,
+  population, feature cutoff, horizon, target, split policy, metric, consumer,
+  and feedback delay. Include round-trip serialization and failure tests.
+  \item Add a reusable paired regression report that accepts observed values
+  and two prediction vectors, returns per-unit losses and aggregate differences,
+  and never silently drops nonfinite or misaligned values.
+  \item Add a custom split validator for a domain you choose--grouped,
+  temporal, spatial, or batch-based. Document the claim it protects, construct
+  an adversarial leakage fixture, and test that the invalid split is rejected.
 \end{enumerate}
 
 \begin{chapterreview}
@@ -328,7 +493,8 @@ rule introduces estimation and optimization behavior. The contract names
 population, time, target, information, split, consumer, and feedback.
 Evaluation must simulate intended use, baselines act as controls, and the first
 vertical slice should validate artifact and evidence flow before model
-complexity grows.
+complexity grows. Metrics require units, uncertainty, a reference policy, and a
+resource-aware measurement protocol.
 \end{chapterreview}
 
 \begin{notebooklink}

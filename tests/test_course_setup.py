@@ -109,6 +109,17 @@ def test_fresh_python_process_imports_course_package_outside_repository(
     assert imported_path.is_relative_to(SOURCE_DIRECTORY)
 
 
+def test_course_database_verification_accepts_repository_database() -> None:
+    database_path = setup_course.verify_course_database(PROJECT_ROOT)
+
+    assert database_path == PROJECT_ROOT / setup_course.COURSE_DATABASE
+
+
+def test_course_database_verification_reports_missing_database(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="Missing course database"):
+        setup_course.verify_course_database(tmp_path)
+
+
 def test_rice_dsm_kernel_uses_project_environment() -> None:
     kernel_file = (
         Path(sys.prefix) / "share" / "jupyter" / "kernels" / "rice-dsm" / "kernel.json"

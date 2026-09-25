@@ -30,6 +30,7 @@ dependencies = [
     "prometheus-client>=0.23.1",
     "psycopg[binary]>=3.3.4",
     "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.1",
     "seaborn>=0.13.2",
     "sqlalchemy>=2.0.52",
     "uvicorn>=0.52.4",

@@ -7,9 +7,10 @@ meeting may cover part of one unit or portions of several.
 ## Current availability
 
 Every Part II directory currently contains a released notebook 00 and a plan
-for later laboratories. A notebook listed in a unit README is not assigned until
-the corresponding `.ipynb` file exists and the weekly announcement names it.
-Do not create empty substitutes for planned notebooks 01 or 02.
+for later laboratories. Lecture 9 also contains released Notebook 01, the first
+complete supervised-learning pipeline. A notebook listed in a unit README is
+not assigned until the corresponding `.ipynb` file exists and the weekly
+announcement names it. Do not create empty substitutes for planned notebooks.
 
 ## Before each unit
 
@@ -17,7 +18,9 @@ Do not create empty substitutes for planned notebooks 01 or 02.
 2. Run `uv run python scripts/setup_course.py` from the repository root.
 3. Read the matching textbook chapter and the unit `README.md`.
 4. Open the assigned notebook in VS Code and select the **Rice DSM** kernel.
-5. Record the prediction population, information boundary, target or scientific
+5. Confirm that `data/course_datasets.sqlite` exists; inspect
+   `dataset_catalog` before querying an observation table.
+6. Record the prediction population, information boundary, target or scientific
    quantity, and evidence claim before fitting a model.
 
 ## Completion evidence
@@ -40,7 +43,7 @@ evaluation, decisions, resource assumptions, and release evidence reviewable.
 Part II follows three paths:
 
 ```text
-training:   versioned observations -> candidate -> evaluation -> approved artifact
+training:   versioned database query -> observations -> candidate -> evaluation -> approved artifact
 prediction: validated input -> approved artifact -> score -> decision record
 feedback:   delayed outcome -> prediction join -> quality evidence -> governed response
 ```

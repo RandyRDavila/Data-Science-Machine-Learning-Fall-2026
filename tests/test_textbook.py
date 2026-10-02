@@ -29,11 +29,13 @@ PART_II_CHAPTERS = [
     CHAPTER_ROOT / "11-linear-regression.tex",
     CHAPTER_ROOT / "12-gradient-descent.tex",
     CHAPTER_ROOT / "13-classification-decisions.tex",
+    CHAPTER_ROOT / "13a-linear-support-vector-machines.tex",
+    CHAPTER_ROOT / "13b-learning-api-design.tex",
+    CHAPTER_ROOT / "13c-neural-networks.tex",
     CHAPTER_ROOT / "14-geometric-learning.tex",
     CHAPTER_ROOT / "15-decision-trees.tex",
     CHAPTER_ROOT / "16-ensemble-learning.tex",
     CHAPTER_ROOT / "17-model-selection.tex",
-    CHAPTER_ROOT / "18-neural-networks.tex",
     CHAPTER_ROOT / "19-reliable-supervised-systems.tex",
 ]
 
@@ -76,11 +78,13 @@ def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
         "11-linear-regression.tex": ("Lecture 9 notebook 01",),
         "12-gradient-descent.tex": ("Lecture 10 notebook 00",),
         "13-classification-decisions.tex": ("Lecture 11 notebook 00",),
-        "14-geometric-learning.tex": ("Lecture 12 notebook 00",),
-        "15-decision-trees.tex": ("Lecture 13 notebook 00",),
-        "16-ensemble-learning.tex": ("Lecture 14 notebook 00",),
-        "17-model-selection.tex": ("Lecture 15 notebook 00",),
-        "18-neural-networks.tex": ("Lecture 16 notebook 00",),
+        "13a-linear-support-vector-machines.tex": ("Lecture 11 notebook 01",),
+        "13b-learning-api-design.tex": ("Lecture 12 notebook 00",),
+        "13c-neural-networks.tex": ("Lecture 12 notebook 00", "Lecture 12 notebook 01"),
+        "14-geometric-learning.tex": ("Lecture 13 notebook 00",),
+        "15-decision-trees.tex": ("Lecture 14 notebook 00",),
+        "16-ensemble-learning.tex": ("Lecture 15 notebook 00",),
+        "17-model-selection.tex": ("Lecture 16 notebook 00",),
         "19-reliable-supervised-systems.tex": ("Lecture 17 notebook 00",),
     }
 
@@ -608,6 +612,43 @@ def test_opening_part_ii_chapters_use_theorems_proofs_and_measured_evidence() ->
             "Measure optimizer performance without moving the goalposts",
             "gradient-methods.pdf",
         ),
+        "13-classification-decisions.tex": (
+            "Logistic regression as one neuron",
+            "logistic-single-neuron.pdf",
+            "basic sigmoid geometry",
+            "strict propriety of Bernoulli log loss",
+            "logistic-loss gradient and Hessian",
+            "Measuring classification performance professionally",
+            "A confusion matrix is four counts with four meanings",
+            "The evaluated data determine what a metric means",
+            "Attach uncertainty and scope to every performance claim",
+            "cost-sensitive threshold",
+            "logistic-sigmoid-data.pdf",
+            "logistic-loss-geometry.pdf",
+            "logistic-validation-evidence.pdf",
+            "classification-performance-context.pdf",
+        ),
+        "13a-linear-support-vector-machines.tex": (
+            "distance to a hyperplane",
+            "canonical margin width",
+            "slack--hinge equivalence",
+            "One affine neuron, a different objective",
+            "Scores are not probabilities",
+            "svm-hyperplane-geometry.pdf",
+            "linear-svm-margin.pdf",
+        ),
+        "13b-learning-api-design.tex": (
+            "An API is a scientific boundary",
+            "Shared affine structure, different output semantics",
+            "Gradient checking as a software test",
+        ),
+        "13c-neural-networks.tex": (
+            "Why use a neural network?",
+            "A finite composition of affine maps is affine",
+            "Hidden errors collect all downstream paths",
+            "neural-network-anatomy.pdf",
+            "neural-composition-expressivity.pdf",
+        ),
     }
 
     for filename, required_ideas in required_by_chapter.items():
@@ -639,6 +680,15 @@ def test_part_ii_figures_are_reproducible_from_the_course_database() -> None:
         "supervised-evidence",
         "regression-geometry",
         "gradient-methods",
+        "logistic-single-neuron",
+        "logistic-sigmoid-data",
+        "logistic-loss-geometry",
+        "logistic-validation-evidence",
+        "classification-performance-context",
+        "svm-hyperplane-geometry",
+        "linear-svm-margin",
+        "neural-network-anatomy",
+        "neural-composition-expressivity",
     ):
         for suffix in (".pdf", ".png"):
             figure = figure_root / "generated" / f"{stem}{suffix}"

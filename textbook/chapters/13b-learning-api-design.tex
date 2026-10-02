@@ -1,0 +1,320 @@
+\chapter{Designing a learning API}
+\label{ch:learning-api}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item identify the mathematical structure shared by linear regression,
+  logistic regression, and a linear support vector machine;
+  \item separate an estimator interface from a differentiable component
+  interface;
+  \item explain why activation and loss choices form a coupled contract;
+  \item specify shape, state, numerical, and randomness guarantees; and
+  \item test an analytical gradient independently with finite differences.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Chapters~\ref{ch:linear-regression}--\ref{ch:linear-svm} developed three
+single-neuron configurations: linear regression, logistic regression, and a
+linear support vector machine. Their formulas differ in meaning, but their
+implementations repeat an affine score, parameter updates, validation, and
+fitted-state handling. This chapter asks which repetitions express genuine
+structure and which encode different scientific claims. The resulting
+components prepare us to build a multilayer network without treating hidden
+neurons as independently fitted estimators.
+\end{chapterconnection}
+
+\section{An API is a scientific boundary}
+
+An application programming interface, or API, is the documented boundary
+through which one piece of software uses another. For a learned model, the
+boundary includes more than method names. It states what one row represents,
+which shapes are accepted, what fitting changes, what an output means, which
+invalid states are rejected, and which numerical behavior callers may rely on.
+
+Suppose $X\in\mathbb R^{n\times p}$ contains $n$ observations and $p$
+features. A single affine unit calculates
+\[
+  z=Xw+b\mathbf 1,
+  \qquad
+  a=\phi(z).
+\]
+Here $z$ is the \emph{preactivation}, $a$ the \emph{postactivation}, $w$ a
+length-$p$ weight vector, and $b$ a scalar bias. This computation alone does
+not determine a statistical model. The activation, target domain, loss,
+sampling assumptions, and prediction policy supply meaning.
+
+\begin{definitionbox}{Interface contract}
+An interface contract records the conditions a caller must satisfy, the state
+an operation may change, the result and semantics it guarantees, and the
+failures it reports when it cannot honor that guarantee.
+\end{definitionbox}
+
+For example, a binary probability estimator may require labels in
+$\{0,1\}$ and return values in $(0,1)$. A label decision requires an additional
+threshold and cost policy. Returning a number in $(0,1)$ is not by itself
+evidence of calibration.
+
+\conceptcheck{Two classes both expose methods named \texttt{fit} and
+\texttt{predict}. Does that establish that they are statistically
+interchangeable? List three additional contracts that must agree.}
+
+\section{Shared affine structure, different output semantics}
+
+For squared-error regression, choose the identity activation and per-example
+loss
+\[
+  a_i=z_i,
+  \qquad
+  \ell_i=\frac12(a_i-y_i)^2.
+\]
+The chain rule gives
+\[
+  \frac{\partial\ell_i}{\partial z_i}=a_i-y_i.
+\]
+
+For binary logistic regression, choose
+\[
+  a_i=\sigma(z_i)=\frac{1}{1+\exp(-z_i)}
+\]
+and binary cross-entropy
+\[
+  \ell_i=-y_i\log a_i-(1-y_i)\log(1-a_i).
+\]
+Since $\sigma'(z)=\sigma(z)(1-\sigma(z))$, the factors cancel:
+\[
+  \frac{\partial\ell_i}{\partial z_i}
+  =
+  \frac{\partial\ell_i}{\partial a_i}
+  \frac{\partial a_i}{\partial z_i}
+  =a_i-y_i.
+\]
+Thus both canonical models have
+\[
+  \nabla_w L=\frac1nX^\top(a-y),
+  \qquad
+  \frac{\partial L}{\partial b}
+  =\frac1n\mathbf 1^\top(a-y).
+\]
+
+For a linear SVM, retain the identity postactivation, encode
+$y_i\in\{-1,+1\}$, and use
+\[
+  J(w,b)=\frac{\lambda}{2}\lVert w\rVert_2^2
+  +\frac1n\sum_i\max\{0,1-y_i z_i\}.
+\]
+Its score derivative is $-y_i$ inside the unit margin and $0$ beyond it, with
+a subgradient choice at the kink. The equality of the regression and logistic
+expressions is therefore informative but not universal. It justifies sharing
+an optimization shell while keeping the objective configurable; it does not
+make numerical responses, probabilities, and margin scores interchangeable.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} gradient descent is identical for all single-neuron
+models. \textbf{Correction:} the update mechanism is shared, but the derivative
+supplied to it depends on the model and loss. The residual form above is a
+special property of two canonical pairings, while hinge loss supplies a
+piecewise subgradient and regularization adds $\lambda w$.
+\end{misconceptionbox}
+
+\section{Pair compatible activations and losses}
+
+An activation and a loss jointly determine both semantics and derivatives.
+One can expose them as separate low-level objects, but a safe public API should
+make incompatible pairings difficult to express. A bounded teaching design
+uses an output-objective contract with three operations:
+\[
+  \text{prediction}(z),\qquad
+  \text{mean loss}(z,y),\qquad
+  \text{score gradient}(z,y).
+\]
+The regression objective supplies identity, squared error, and $z-y$. The
+probabilistic classification objective supplies sigmoid, cross-entropy, and
+$\sigma(z)-y$. The margin objective supplies identity, regularized hinge loss,
+and a subgradient determined by the active margin set. This third case shows
+why a useful contract cannot assume every objective is smooth or every output
+is a probability.
+
+This coupling also supports stable computation. Binary cross-entropy can be
+written in terms of a logit $z$ as
+\[
+  \ell(z,y)=\log(1+\exp z)-yz.
+\]
+Direct evaluation may overflow. The equivalent implementation
+\[
+  \ell(z,y)=\operatorname{logaddexp}(0,z)-yz
+\]
+remains finite over a much wider floating-point range. Numerical stability is
+not an internal decoration: callers depend on it.
+
+\begin{warningbox}
+Do not apply a sigmoid and then pass its result to a loss documented to consume
+logits. Conversely, do not pass logits to an interface documented to consume
+probabilities. The arrays may have identical shapes while representing
+different mathematical objects.
+\end{warningbox}
+
+\section{Estimator and component interfaces}
+
+A standalone estimator owns a complete fitting procedure:
+\[
+\begin{array}{ll}
+\texttt{fit}(X,y) & \text{learn and store fitted parameters},\\
+\texttt{decision\_function}(X) & \text{return affine scores},\\
+\texttt{predict}(X) & \text{return model outputs}.
+\end{array}
+\]
+The trailing underscore convention distinguishes fitted state such as
+\texttt{weights\_} from construction parameters. Prediction before fitting
+should raise an actionable exception rather than return an accidental default.
+
+A differentiable network component has a different role:
+\[
+\begin{array}{ll}
+\texttt{forward}(u) & \text{compute and retain needed intermediates},\\
+\texttt{backward}(g) & \text{propagate an upstream derivative},\\
+\texttt{step}(\eta) & \text{update after gradients are assembled}.
+\end{array}
+\]
+A hidden neuron has no observed target of its own. Calling
+\texttt{fit}$(X,y)$ independently on every hidden unit would therefore train
+separate models, not a neural network. The network's terminal loss supplies a
+single derivative that is propagated jointly through all components.
+
+\begin{professionalbox}
+Reuse the smallest abstraction whose semantics remain valid. A network may
+reuse activation functions, affine calculations, validation, initializers,
+and optimizers from a single-neuron lesson. It should not reuse an estimator's
+independent \texttt{fit} loop as though hidden neurons were separate prediction
+problems.
+\end{professionalbox}
+
+\section{Shape, state, and failure contracts}
+
+For a fitted single-neuron estimator, useful invariants include:
+\begin{itemize}
+  \item $X$ has shape $(n,p)$ with $n,p>0$;
+  \item $y$ has shape $(n,)$ and aligns with row order;
+  \item inputs are finite under the stated missing-value policy;
+  \item targets belong to the domain required by the configured objective---for
+  example, $\{0,1\}$ for logistic regression and $\{-1,+1\}$ for a linear SVM;
+  \item fitted weights have shape $(p,)$;
+  \item prediction uses the same feature count and ordering as fitting; and
+  \item learning rate and iteration count belong to documented domains.
+\end{itemize}
+Type annotations make part of this structure available to editors and static
+checkers. NumPy-style docstrings explain shapes, units, ordering, probability
+semantics, mutation, and exceptions. Runtime checks enforce important
+boundaries because Python does not enforce annotations.
+
+Randomness is state too. Components should accept or construct a local random
+generator rather than mutate NumPy's global random state. A reproducibility
+record includes seed, initializer, split, preprocessing, dtype, and software
+version; a seed alone is not an experiment identity.
+
+\section{Gradient checking as a software test}
+
+Let $J:\mathbb R^q\to\mathbb R$ be differentiable. For coordinate $j$,
+\[
+  \frac{\partial J(\theta)}{\partial\theta_j}
+  =
+  \lim_{h\to0}
+  \frac{J(\theta+he_j)-J(\theta-he_j)}{2h}.
+\]
+For small, nonzero $h$, the right side is a central-difference approximation.
+It supplies an implementation independent enough to catch a missing factor,
+wrong sign, or transpose.
+
+\begin{proposition}
+If $J$ has three continuous derivatives near $\theta$, the central-difference
+approximation has truncation error $O(h^2)$.
+\end{proposition}
+
+\begin{proof}
+Taylor expansion in directions $e_j$ gives
+\[
+J(\theta\pm he_j)
+=J(\theta)\pm hJ_j(\theta)
++\frac{h^2}{2}J_{jj}(\theta)
+\pm\frac{h^3}{6}J_{jjj}(\xi_\pm).
+\]
+Subtracting cancels the constant and even-order terms. Dividing by $2h$
+leaves $J_j(\theta)$ plus a term proportional to $h^2$.
+\end{proof}
+
+In floating-point arithmetic, choosing $h$ too small introduces cancellation.
+Gradient tests therefore compare with both relative and absolute tolerances on
+tiny deterministic examples. They do not replace mathematical derivation,
+prove that the loss is scientifically meaningful, or provide an efficient
+training method.
+
+\begin{workedexample}{one shell, three models}
+A team implements a \texttt{SingleNeuron} estimator that accepts an output
+objective. For diabetes progression, it uses identity plus squared error. For
+breast-mass classification, it uses sigmoid plus binary cross-entropy.
+For a margin-based comparison, it uses identity plus regularized hinge loss
+with signed labels.
+
+The team fits scaling on each training partition only. Both models call the
+same validated affine and update machinery. Tests verify prediction before fit,
+feature-count mismatch, objective-specific invalid labels, extreme logits,
+smooth gradients, and hinge subgradients away from the kink. Experiment reports
+remain different: regression reports errors in target units, logistic
+regression reports probability and decision evidence, and the SVM reports
+margin scores and decisions without calling its scores probabilities. The
+abstraction removes duplicate mechanism without erasing statistical meaning.
+\end{workedexample}
+
+\section{API review checklist}
+
+Before releasing a learning component, ask:
+\begin{enumerate}
+  \item Are mathematical objects named and shaped explicitly?
+  \item Does the loss consume logits, probabilities, or unconstrained values?
+  \item Are invalid target domains rejected?
+  \item Which methods require fitted state?
+  \item Who owns preprocessing and threshold policy?
+  \item Are randomness and numerical extremes tested?
+  \item Can analytical gradients be checked on a hand-computable case?
+  \item If the loss is nonsmooth, is the subgradient convention documented?
+  \item Can the component be serialized without hidden notebook state?
+\end{enumerate}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Derive the bias gradient for the squared and logistic objectives.
+  Explain why the final formula agrees although the statistical models differ.
+  Then derive the hinge-loss bias subgradient and identify the active set.
+  \item Construct an activation--loss pairing for which
+  $\partial\ell/\partial z\ne a-y$. Identify every chain-rule factor.
+  \item Design a threshold adapter without changing the meaning of
+  \texttt{predict}. Specify boundary behavior and tests.
+  \item Add $L_2$ regularization. State whether the bias is penalized and write
+  a finite-difference test that would detect the wrong policy.
+  \item Explain why independently fitting hidden neurons cannot train a
+  multilayer network.
+  \item Explain why \texttt{predict\_proba} belongs to the logistic
+  configuration but not to the uncalibrated SVM configuration.
+  \item Design a pull request for one new output objective. Require a
+  derivation, NumPy-style documentation, extreme-input tests, and derivative or
+  subgradient evidence.
+\end{enumerate}
+
+\begin{chapterreview}
+Linear regression, logistic regression, and a linear SVM share an affine
+single-neuron computation. Their activations, losses, regularization, target
+domains, derivatives, and outputs differ. A responsible API shares mechanism
+while preserving those semantics. Standalone estimators own fitting and
+prediction; differentiable components participate in a joint forward and
+backward computation. Shape, fitted state, randomness, failure behavior, and
+numerical stability are public contracts. Numerical checks turn derivative
+formulas into independently testable claims.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 12 notebook 00 builds and tests the single-neuron API for linear
+regression, logistic regression, and a linear SVM. Its reusable implementation
+lives in the course package, while notebook 01 uses the component interface to
+construct a multilayer network.
+\end{notebooklink}

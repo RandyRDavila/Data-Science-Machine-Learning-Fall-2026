@@ -1,4 +1,4 @@
-# Lecture 12: Geometric Learning
+# Lecture 13: Geometric Learning
 
 This unit studies methods whose behavior follows from a geometry: nearest
 neighbors, margins, support vectors, and kernels. Scaling and representation are

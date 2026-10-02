@@ -1,4 +1,4 @@
-# Lecture 13: Decision Trees
+# Lecture 14: Decision Trees
 
 This unit develops recursive partitioning for regression and classification.
 It treats depth, leaf size, pruning, instability, and interpretation as parts of

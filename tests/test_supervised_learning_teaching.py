@@ -9,9 +9,11 @@ LECTURE_09 = PROJECT_ROOT / "notebooks" / "lecture-09-supervised-learning-system
 LECTURE_10 = (
     PROJECT_ROOT / "notebooks" / "lecture-10-linear-regression-regularization"
 )
+LECTURE_11 = PROJECT_ROOT / "notebooks" / "lecture-11-classification-decisions"
 LANDSCAPE = LECTURE_09 / "00-machine-learning-landscape.ipynb"
 PIPELINE = LECTURE_09 / "01-supervised-learning-linear-regression.ipynb"
 GRADIENT = LECTURE_10 / "00-gradient-descent-from-functions-to-neuron.ipynb"
+LOGISTIC = LECTURE_11 / "00-logistic-model-and-decision-policy.ipynb"
 TEXTBOOK_CHAPTERS = PROJECT_ROOT / "textbook" / "chapters"
 
 
@@ -30,6 +32,7 @@ def test_released_notebook_sequence_replaces_placeholder_files() -> None:
     assert LANDSCAPE.is_file()
     assert PIPELINE.is_file()
     assert GRADIENT.is_file()
+    assert LOGISTIC.is_file()
     assert not (LECTURE_09 / "00-supervised-learning-contract.ipynb").exists()
     assert not (LECTURE_10 / "00-affine-model-and-least-squares.ipynb").exists()
 
@@ -137,6 +140,7 @@ def test_opening_sequence_uses_real_documented_datasets() -> None:
     landscape = notebook_text(LANDSCAPE)
     regression = notebook_text(PIPELINE)
     gradient = notebook_text(GRADIENT)
+    logistic = notebook_text(LOGISTIC)
     builder = (PROJECT_ROOT / "scripts" / "build_course_database.py").read_text(
         encoding="utf-8"
     )
@@ -157,8 +161,8 @@ def test_opening_sequence_uses_real_documented_datasets() -> None:
     ):
         assert source in landscape
     for notebook_path, notebook_source in zip(
-        (LANDSCAPE, PIPELINE, GRADIENT),
-        (landscape, regression, gradient),
+        (LANDSCAPE, PIPELINE, GRADIENT, LOGISTIC),
+        (landscape, regression, gradient, logistic),
         strict=True,
     ):
         notebook_code = notebook_text(notebook_path, cell_type="code")
@@ -171,6 +175,7 @@ def test_opening_sequence_uses_real_documented_datasets() -> None:
         assert "INSERT INTO" not in notebook_source
     assert "SELECT * FROM dataset_catalog" in regression
     assert "FROM diabetes_observations" in gradient
+    assert "FROM breast_cancer_observations" in logistic
     assert "simulation" in landscape.lower()
 
 
@@ -432,6 +437,241 @@ def test_gradient_long_code_cells_explain_their_stages() -> None:
         assert len(explanatory_comments) >= 3, cell.id
 
 
+def test_logistic_notebook_derives_the_single_neuron_contract() -> None:
+    narrative = notebook_text(LOGISTIC, cell_type="markdown")
+    code = notebook_text(LOGISTIC, cell_type="code")
+    lower_narrative = narrative.lower()
+
+    for concept in (
+        "single neuron",
+        "affine score",
+        "logit",
+        "sigmoid",
+        "conditional bernoulli",
+        "binary cross-entropy",
+        "negative log-likelihood",
+        "log-odds",
+        "convex",
+        "perfectly linearly separable",
+        "finite optimum",
+        "linear regression",
+        "same affine computational skeleton",
+        "back-propagation",
+    ):
+        assert concept in lower_narrative
+    for mathematical_object in (
+        r"a_i=\sigma(z_i)=p_i",
+        r"\delta_i=\partial\ell_i/\partial z_i=p_i-y_i",
+        r"p_i=\sigma(z_i)",
+        r"\frac{\partial\ell_i}{\partial z_i}=p_i-y_i",
+        r"\widetilde X^T(\boldsymbol p-\boldsymbol y)/n",
+        r"\nabla^2J(\boldsymbol\theta)",
+        r"\widetilde X^TW\widetilde X",
+    ):
+        assert mathematical_object in narrative
+    for implementation in (
+        "sigmoid",
+        "binary_log_loss_from_logits",
+        "logistic_loss_and_gradient",
+        "finite_difference_gradient",
+        "LogisticFitResult",
+        "fit_logistic_neuron",
+        "parameter_history",
+        "gradient_norm_history",
+        "np.logaddexp",
+    ):
+        assert implementation in code
+
+    for alignment in (
+        "preactivation",
+        "postactivation",
+        "linear-svm comparison",
+        "only after studying both models will\nwe design a reusable learning api",
+    ):
+        assert alignment in lower_narrative
+    assert "the next notebook will treat thresholds" not in lower_narrative
+
+
+def test_logistic_display_equations_use_the_course_renderer_contract() -> None:
+    narrative = notebook_text(LOGISTIC, cell_type="markdown")
+    display_delimiters = sum(
+        line.strip() == "$$" for line in narrative.splitlines()
+    )
+
+    # VS Code's notebook renderer and the established course notebooks use
+    # paired dollar delimiters for display mathematics.
+    assert display_delimiters >= 20
+    assert display_delimiters % 2 == 0
+    assert r"\[" not in narrative
+    assert r"\]" not in narrative
+    assert (
+        r"\bigl(\widetilde X\boldsymbol v\bigr)^T"
+        r"W\bigl(\widetilde X\boldsymbol v\bigr)\ge 0"
+        in narrative.replace("\n", "")
+    )
+
+
+def test_logistic_notebook_preserves_evidence_and_probability_semantics() -> None:
+    narrative = notebook_text(LOGISTIC, cell_type="markdown").lower()
+    code = notebook_text(LOGISTIC, cell_type="code")
+
+    for explanation in (
+        "positive class",
+        "training rows only",
+        "test partition sealed",
+        "not a clinical device",
+        "sigmoid range does not guarantee calibration",
+        "probability quality",
+        "decision performance",
+        "prevalence baseline",
+        "regularization",
+        "scaling before splitting",
+    ):
+        assert explanation in narrative
+    for implementation in (
+        "course_database_path",
+        "mode=ro",
+        "dataset_catalog",
+        "dataset_columns",
+        "breast_cancer_observations",
+        "stratify=",
+        "StandardScaler",
+        "DummyClassifier",
+        "LogisticRegression",
+        "CalibrationDisplay",
+        "evaluate_binary_probabilities",
+        "test_evidence",
+    ):
+        assert implementation in code
+
+
+def test_logistic_notebook_builds_probability_and_distribution_intuition() -> None:
+    narrative = notebook_text(LOGISTIC, cell_type="markdown").lower()
+    code = notebook_text(LOGISTIC, cell_type="code")
+
+    for explanation in (
+        "conditional bernoulli distribution",
+        "observed binary outcome",
+        "conditional mean and variance",
+        "comparable future units",
+        "does not measure confidence that the model itself is correct",
+        "do not reverse the conditional probability",
+        "observed outcomes fixed",
+        "strictly proper scoring rule",
+        "wilson interval",
+        "discrimination, not calibration",
+        "midpoint",
+        "controls steepness",
+        "maps candidate sigmoid curves onto the observed binary data",
+    ):
+        assert explanation in narrative or explanation in code.lower()
+    for mathematical_object in (
+        r"\operatorname{Var}(Y_i\mid\boldsymbol X_i=\boldsymbol x_i)",
+        r"L(p;y_1,\ldots,y_n)",
+        r"R_q(p)=-q\log p-(1-q)\log(1-p)",
+        r"D_{\mathrm{KL}}",
+        r"x_{0.5}=-\frac bw",
+        r"\left.\frac{dp}{dx}\right|_{x=x_{0.5}}=\frac w4",
+    ):
+        assert mathematical_object in notebook_text(LOGISTIC, cell_type="markdown")
+    for implementation in (
+        "bernoulli_running_mean",
+        "bernoulli_likelihood",
+        "expected_log_loss",
+        "validation_probability_summary",
+        "wilson_half_width",
+        "candidate_curves",
+        "activation_derivative",
+    ):
+        assert implementation in code
+
+
+def test_logistic_notebook_verifies_transparent_and_library_models() -> None:
+    narrative = notebook_text(LOGISTIC, cell_type="markdown").lower()
+    code = notebook_text(LOGISTIC, cell_type="code")
+
+    for evidence in (
+        "finite difference",
+        "numerically stable",
+        "termination evidence",
+        "trusted library estimator",
+        "regularization contract",
+        "common failure modes",
+        "debugging logistic regression",
+        "professional practice",
+        "clf-pr1",
+        "clf-pr2",
+    ):
+        assert evidence in narrative
+    for check in (
+        "gradient_check_error < 1e-8",
+        "parameter_error < 1e-5",
+        "probability_error < 1e-6",
+        "stable_extreme_loss == 1000.0",
+        "one_feature_fit.converged",
+    ):
+        assert check in code
+
+
+def test_logistic_notebook_teaches_professional_performance_measurement() -> None:
+    narrative = notebook_text(LOGISTIC, cell_type="markdown").lower()
+    code = notebook_text(LOGISTIC, cell_type="code")
+
+    for explanation in (
+        "measuring model performance professionally",
+        "confusion matrix contains four counts",
+        "sensitivity conditions on actual event rows",
+        "confusing their denominators reverses",
+        "performance depends on which data are being considered",
+        "spectrum shift",
+        "threshold sweep",
+        "point estimates are not a professional performance report",
+        "name the evidence gap",
+        "sample sizes, and prevalence",
+    ):
+        assert explanation in narrative
+    for mathematical_object in (
+        r"\text{sensitivity}=\frac{TP}{TP+FN}",
+        r"\text{specificity}=\frac{TN}{TN+FP}",
+        r"\text{precision}=\frac{TP}{TP+FP}",
+        r"\text{NPV}=\frac{TN}{TN+FN}",
+        r"\text{accuracy}=\pi s+(1-\pi)c",
+    ):
+        assert mathematical_object in notebook_text(LOGISTIC, cell_type="markdown")
+    for implementation in (
+        "sensitivity_recall",
+        "specificity",
+        "precision_ppv",
+        "negative_predictive_value",
+        "balanced_accuracy",
+        "validation_confusion",
+        "precision_by_prevalence",
+        "threshold_table",
+        "selected_threshold",
+        "wilson_interval",
+    ):
+        assert implementation in code
+
+
+def test_logistic_long_code_cells_explain_their_stages() -> None:
+    notebook = nbformat.read(LOGISTIC, as_version=4)
+    long_code_cells = [
+        cell
+        for cell in notebook.cells
+        if cell.cell_type == "code"
+        and len([line for line in cell.source.splitlines() if line.strip()]) >= 20
+    ]
+
+    assert len(long_code_cells) >= 12
+    for cell in long_code_cells:
+        explanatory_comments = [
+            line
+            for line in cell.source.splitlines()
+            if line.lstrip().startswith("#")
+        ]
+        assert len(explanatory_comments) >= 3, cell.id
+
+
 def test_textbook_separates_the_four_opening_mathematical_arguments() -> None:
     chapters = {
         "foundations": TEXTBOOK_CHAPTERS / "09-machine-learning-foundations.tex",
@@ -479,11 +719,13 @@ def test_textbook_separates_the_four_opening_mathematical_arguments() -> None:
 def test_unit_guides_name_the_released_route() -> None:
     lecture_09 = (LECTURE_09 / "README.md").read_text(encoding="utf-8")
     lecture_10 = (LECTURE_10 / "README.md").read_text(encoding="utf-8")
+    lecture_11 = (LECTURE_11 / "README.md").read_text(encoding="utf-8")
     project = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
     assert LANDSCAPE.name in lecture_09
     assert PIPELINE.name in lecture_09
     assert GRADIENT.name in lecture_10
+    assert LOGISTIC.name in lecture_11
     assert '"scikit-learn>=1.9.1"' in project
 
 

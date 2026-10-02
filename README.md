@@ -77,11 +77,11 @@ the canonical setup, verification, weekly-workflow, and troubleshooting route.
 │   ├── lecture-09-supervised-learning-systems/
 │   ├── lecture-10-linear-regression-regularization/
 │   ├── lecture-11-classification-decisions/
-│   ├── lecture-12-geometric-learning/
-│   ├── lecture-13-decision-trees/
-│   ├── lecture-14-ensemble-learning/
-│   ├── lecture-15-model-selection-evaluation/
-│   ├── lecture-16-neural-networks-autodiff/
+│   ├── lecture-12-neural-networks-autodiff/
+│   ├── lecture-13-geometric-learning/
+│   ├── lecture-14-decision-trees/
+│   ├── lecture-15-ensemble-learning/
+│   ├── lecture-16-model-selection-evaluation/
 │   ├── lecture-17-reliable-supervised-systems/
 │   └── ...                    # One directory per instructional unit
 ├── src/
@@ -321,11 +321,11 @@ empirical evidence.
 | 9 | ML history and branches, the supervised contract, and a complete linear-regression pipeline | [`lecture-09-supervised-learning-systems`](notebooks/lecture-09-supervised-learning-systems/) |
 | 10 | Gradient methods from calculus and curvature to a linear neuron | [`lecture-10-linear-regression-regularization`](notebooks/lecture-10-linear-regression-regularization/) |
 | 11 | Classification, calibration, and decision policies | [`lecture-11-classification-decisions`](notebooks/lecture-11-classification-decisions/) |
-| 12 | Nearest neighbors, margins, and kernels | [`lecture-12-geometric-learning`](notebooks/lecture-12-geometric-learning/) |
-| 13 | Decision trees, pruning, and stability | [`lecture-13-decision-trees`](notebooks/lecture-13-decision-trees/) |
-| 14 | Bagging, forests, boosting, voting, and stacking | [`lecture-14-ensemble-learning`](notebooks/lecture-14-ensemble-learning/) |
-| 15 | Model selection, uncertainty, and promotion | [`lecture-15-model-selection-evaluation`](notebooks/lecture-15-model-selection-evaluation/) |
-| 16 | Neural networks, backpropagation, and autodiff | [`lecture-16-neural-networks-autodiff`](notebooks/lecture-16-neural-networks-autodiff/) |
+| 12 | Learning APIs, literal neurons, backpropagation, and autodiff | [`lecture-12-neural-networks-autodiff`](notebooks/lecture-12-neural-networks-autodiff/) |
+| 13 | Nearest neighbors, margins, and kernels | [`lecture-13-geometric-learning`](notebooks/lecture-13-geometric-learning/) |
+| 14 | Decision trees, pruning, and stability | [`lecture-14-decision-trees`](notebooks/lecture-14-decision-trees/) |
+| 15 | Bagging, forests, boosting, voting, and stacking | [`lecture-15-ensemble-learning`](notebooks/lecture-15-ensemble-learning/) |
+| 16 | Model selection, uncertainty, and promotion | [`lecture-16-model-selection-evaluation`](notebooks/lecture-16-model-selection-evaluation/) |
 | 17 | Reliable release, monitoring, outcomes, and retraining | [`lecture-17-reliable-supervised-systems`](notebooks/lecture-17-reliable-supervised-systems/) |
 
 Each directory contains its unit contract, planned sequence, and a CI-executable

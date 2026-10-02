@@ -7,7 +7,16 @@ FIGURE_SCRIPT := figures/generate_part_ii_figures.py
 FIGURES := figures/generated/learning-landscape.pdf \
 	figures/generated/supervised-evidence.pdf \
 	figures/generated/regression-geometry.pdf \
-	figures/generated/gradient-methods.pdf
+	figures/generated/gradient-methods.pdf \
+	figures/generated/logistic-single-neuron.pdf \
+	figures/generated/logistic-sigmoid-data.pdf \
+	figures/generated/logistic-loss-geometry.pdf \
+	figures/generated/logistic-validation-evidence.pdf \
+	figures/generated/classification-performance-context.pdf \
+	figures/generated/svm-hyperplane-geometry.pdf \
+	figures/generated/linear-svm-margin.pdf \
+	figures/generated/neural-network-anatomy.pdf \
+	figures/generated/neural-composition-expressivity.pdf
 
 .PHONY: all clean FORCE
 

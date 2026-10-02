@@ -1,4 +1,4 @@
-# Lecture 14: Ensemble Learning
+# Lecture 15: Ensemble Learning
 
 This unit gives ensemble methods the central treatment they deserve in modern
 tabular machine learning. It contrasts variance reduction, randomized forests,

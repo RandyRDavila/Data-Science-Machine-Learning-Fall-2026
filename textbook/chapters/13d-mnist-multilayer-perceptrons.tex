@@ -1,0 +1,616 @@
+\chapter{Multiclass networks from first principles}
+\label{ch:mnist-mlp}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item formulate handwritten-digit recognition as a controlled multiclass
+  experiment;
+  \item explain flattening, pixel scaling, and one-hot encoding as explicit
+  representation contracts;
+  \item derive a dense ReLU network with a logits--softmax--cross-entropy
+  output;
+  \item motivate Xavier and He initialization from fan-in and signal variance;
+  \item derive every term in the vectorized backward pass;
+  \item distinguish mini-batch optimization evidence from held-out decision
+  evidence; and
+  \item diagnose multiclass errors with classwise metrics and individual
+  observations.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Chapter~\ref{ch:neural-networks} derived backpropagation by tracing individual
+neurons and then vectorizing them. This chapter puts that mechanism to work on
+images. The scientific question is concrete: can a bounded dense network
+recognize held-out handwritten digits? The implementation is still small
+enough to inspect, but its hidden activations, initialization, multiclass loss,
+mini-batches, and evaluation follow modern practice. The next chapter will
+replace our manual machinery with a tensor framework without surrendering
+these mathematical and evidential contracts.
+\end{chapterconnection}
+
+\section{MNIST as experiment, not trophy}
+
+The MNIST database standardized images drawn from NIST handwriting
+collections into 60,000 conventional training examples and 10,000 test
+examples. Each observation is a $28\times28$ grayscale image with an integer
+label in $\{0,\ldots,9\}$. MNIST became historically important because it made
+different learning methods easy to compare on a common problem.
+
+Its familiarity is also dangerous. A high benchmark score does not establish
+performance on phone photographs, historical manuscripts, a different
+writing population, or an operational document pipeline. We use MNIST as a
+\emph{mechanism laboratory}: its inputs are rich enough to require learned
+representations, while its size and semantics make every stage visible.
+
+The executable laboratory uses a deterministic class-balanced subset of
+authentic MNIST containing 2,400 training and 600 held-out images. Versioning
+this bounded sample has two engineering advantages: the lesson runs offline,
+and continuous integration can execute the same experiment. It has a
+statistical cost: classwise estimates have larger sampling uncertainty than
+they would on the complete benchmark. Reproducibility and inferential strength
+are different properties.
+
+Each digit contributes 240 fitting images and 60 held-out images. Balance
+makes overall accuracy easy to read, but it is an experimental design choice,
+not a property of every handwriting population. Sixty held-out observations
+per class also means one additional class error changes estimated recall by
+$1/60\approx0.017$. Apparent differences of one or two percentage points
+therefore deserve caution.
+
+\begin{definitionbox}{Experimental unit and prediction target}
+The experimental unit is one handwritten digit image. The target is one of ten
+mutually exclusive class identities. A model emits a probability distribution
+over the fixed class order $0,1,\ldots,9$ and the decision rule selects a class,
+usually the largest-probability class.
+\end{definitionbox}
+
+Before transformation, inspect image shapes, numeric range, label alignment,
+class counts, and representative images. These checks can expose a transposed
+axis, corrupt intensities, a missing class, or labels shifted by one position.
+A falling loss cannot repair an invalid data contract.
+
+The fitting and held-out partitions have different authorities. Fitting rows
+may influence parameters. Validation rows, when present, may influence choices
+such as architecture or stopping. Test rows should influence neither; they
+estimate performance only after those choices are fixed. The short classroom
+experiment displays held-out accuracy during training to teach monitoring, so
+it must not be described as a pristine one-time test after the fact.
+
+\conceptcheck{Why is a class-balanced sample convenient for teaching but not a
+guarantee that accuracy is the correct metric in a deployed digit-recognition
+system?}
+
+\section{From image to feature vector}
+
+For observation $i$, write the image as
+\[
+  X_i\in\{0,1,\ldots,255\}^{28\times28}.
+\]
+A dense network consumes a vector, so we flatten the matrix:
+\[
+  x_i=\operatorname{vec}(X_i)\in\mathbb R^{784},
+  \qquad 784=28\cdot28.
+\]
+With zero-based row and column indices and row-major order, pixel $(r,c)$ maps
+to feature index
+\[
+  j=28r+c.
+\]
+This formula is part of the interface. A different ordering would be equally
+valid during fitting, but inference would have to reproduce it exactly.
+
+The transformation is reversible when its shape and ordering convention are
+known. No intensity is numerically discarded. What is discarded is an
+\emph{explicit spatial inductive bias}: a dense layer does not know that one
+feature corresponds to a pixel immediately above another. It must learn every
+useful spatial relationship through independent weights.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  pixel/.style={draw=RiceBlue!65, minimum size=0.25cm, inner sep=0pt},
+  feature/.style={circle, draw=RiceBlue, fill=RiceBlue!12, minimum size=0.29cm,
+    inner sep=0pt},
+  >=Latex
+]
+  \foreach \r in {0,...,4}{
+    \foreach \c in {0,...,4}{
+      \pgfmathsetmacro{\shade}{15+mod(17*\r+23*\c,75)}
+      \node[pixel, fill=RiceBlue!\shade] at (0.27*\c,-0.27*\r) {};
+    }
+  }
+  \node[above=0.25cm] at (0.54,0) {$28\times28$ image};
+  \draw[->, very thick] (1.6,-0.54) -- node[above]{flatten} (3.0,-0.54);
+  \foreach \j in {0,...,8}{
+    \node[feature] at (3.45+0.36*\j,-0.54) {};
+  }
+  \node at (6.85,-0.54) {$\cdots$};
+  \node[feature] at (7.35,-0.54) {};
+  \node[above=0.25cm] at (5.4,0) {$784$ ordered intensities};
+\end{tikzpicture}
+\caption{Flattening preserves the ordered pixel values but removes the image
+grid from the model interface. A convolutional architecture will later encode
+locality and weight sharing directly. The small grid is schematic.}
+\label{fig:mnist-flattening}
+\end{figure}
+
+We scale each intensity by 255:
+\[
+  \widetilde x_{i,j}=x_{i,j}/255\in[0,1].
+\]
+This prevents large input magnitudes from overwhelming an initialization
+designed under unit-scale assumptions. Unlike standardization by an estimated
+mean and variance, division by the known sensor maximum has no fitted state.
+It is still part of the inference contract: a deployed caller must apply
+exactly the same transformation.
+
+The order of numeric operations matters. Integer images are first converted to
+a floating-point dtype and then divided. The resulting feature matrix has
+shape $n\times784$ with one observation per row. An executable shape assertion
+at this boundary prevents a legal but incorrect reshape from silently changing
+which measurements belong to an observation.
+
+\begin{misconceptionbox}
+\textbf{Misconception:} flattening ``turns an image into meaningless data.''
+\textbf{Correction:} flattening preserves every pixel value and a fixed order.
+It removes an architectural statement about two-dimensional locality. A dense
+network may learn useful spatial combinations, but it receives no built-in
+notion of neighboring pixels.
+\end{misconceptionbox}
+
+\section{Class identities and one-hot targets}
+
+The integer label $7$ names a category. It does not imply that class 7 is one
+unit farther from class 6 than from class 0. We therefore encode label $k$ as
+the $k$th standard basis vector $e_k\in\mathbb R^{10}$:
+\[
+  7\longmapsto
+  (0,0,0,0,0,0,0,1,0,0).
+\]
+For a batch of $m$ observations, targets form a matrix
+$Y\in\{0,1\}^{m\times10}$ whose rows sum to one. Ten columns must be retained
+even if one mini-batch happens not to contain every class. Column position is
+part of the model's public meaning.
+
+One-hot encoding is useful for deriving the loss. An implementation may accept
+integer labels and gather the correct log-probability directly, but it must
+preserve the same class-order contract. One-hot targets do not turn one example
+into ten examples, nor do they assert ten independent binary tasks.
+
+This distinction determines the output activation. Ten independent sigmoids
+would permit probabilities whose sum differs from one and are appropriate for
+a multilabel problem in which several labels may be true simultaneously.
+Handwritten-digit identity is mutually exclusive, so one softmax couples the
+ten scores into one categorical distribution.
+
+\section{A modern bounded architecture}
+
+Let a mini-batch be $A^0=X\in\mathbb R^{m\times784}$. We choose a hidden width
+of 64 and compute
+\[
+  Z^1=A^0W^1+\mathbf1(b^1)^\top,
+  \qquad
+  A^1=\operatorname{ReLU}(Z^1),
+\]
+with
+\[
+  W^1\in\mathbb R^{784\times64},
+  \quad b^1\in\mathbb R^{64}.
+\]
+The output layer computes
+\[
+  Z^2=A^1W^2+\mathbf1(b^2)^\top,
+  \qquad
+  W^2\in\mathbb R^{64\times10},
+  \quad b^2\in\mathbb R^{10}.
+\]
+The rows of $Z^2$ are \emph{logits}: unconstrained real-valued class scores.
+There is no output ReLU and no independently applied sigmoid. A single softmax
+normalizes the mutually exclusive classes:
+\[
+  p_{i,k}=\frac{\exp z_{i,k}}{\sum_{r=0}^{9}\exp z_{i,r}}.
+\]
+
+For one observation, hidden neuron $j$ computes
+\[
+  z_j^1=\sum_{r=1}^{784}x_rw_{rj}^1+b_j^1,
+  \qquad a_j^1=\max(0,z_j^1).
+\]
+The $j$th column of the batch preactivation matrix collects this same neuron
+calculation across observations. Vectorization changes the execution strategy,
+not the model. A useful reading discipline is to verify that the scalar
+equation, single-observation vector equation, and batch equation describe the
+same computation.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=2.6cm,y=0.55cm,>=Latex,
+  unit/.style={circle, draw=RiceBlue, fill=RiceBlue!10, minimum size=0.38cm,
+    inner sep=0pt}, label/.style={align=center,font=\small\bfseries}]
+  \node[label] at (0,4.2) {$784$ scaled\\pixels $A^0$};
+  \node[label] at (1,4.2) {$64$ hidden\\features $A^1$};
+  \node[label] at (2,4.2) {$10$ logits\\$Z^2$};
+  \node[label] at (3,4.2) {$10$ class\\probabilities $P$};
+  \foreach \j in {0,...,5}{
+    \node[unit] (i\j) at (0,3-\j) {};
+    \node[unit] (h\j) at (1,3-\j) {};
+  }
+  \foreach \j in {0,...,5}{\node[unit] (o\j) at (2,3-\j) {};}
+  \foreach \j in {0,...,5}{\node[unit] (p\j) at (3,3-\j) {};}
+  \foreach \i in {0,...,5}{
+    \foreach \j in {0,...,5}{\draw[RiceBlue!18] (i\i)--(h\j);}
+  }
+  \foreach \i in {0,...,5}{
+    \foreach \j in {0,...,5}{\draw[RiceBlue!18] (h\i)--(o\j);}
+  }
+  \foreach \j in {0,...,5}{\draw[->,RiceGray,thick] (o\j)--(p\j);}
+  \node[below=0.25cm,align=center] at (0,-2) {flatten\\and scale};
+  \node[below=0.25cm,align=center] at (1,-2) {dense $+$\\ReLU};
+  \node[below=0.25cm,align=center] at (2,-2) {dense\\linear};
+  \node[below=0.25cm,align=center] at (3,-2) {softmax};
+\end{tikzpicture}
+\caption{The from-scratch MNIST classifier. Circles are schematic; ellipses
+stand for omitted neurons. The final affine layer emits logits, and softmax
+assigns a joint categorical distribution rather than ten unrelated scores.}
+\label{fig:mnist-mlp-architecture}
+\end{figure}
+
+The model contains
+\[
+  (784\cdot64+64)+(64\cdot10+10)=50{,}890
+\]
+trainable scalars. Counting parameters is a useful shape test and a first
+measure of capacity, but it does not quantify effective complexity by itself.
+The first layer contains more than 98 percent of these parameters because a
+dense hidden unit assigns an independent weight to every pixel. This
+observation anticipates why spatial weight sharing in a convolution can be
+both statistically and computationally useful.
+
+\section{Initialization from variance propagation}
+
+Consider one preactivation
+\[
+  z_j=\sum_{r=1}^{d}w_{rj}a_r.
+\]
+Under approximate independence and zero-mean assumptions,
+\[
+  \operatorname{Var}(z_j)
+  \approx d\,\operatorname{Var}(w_{rj})\operatorname{Var}(a_r).
+\]
+To keep $\operatorname{Var}(z_j)$ on the scale of
+$\operatorname{Var}(a_r)$, a linear or approximately symmetric layer suggests
+$\operatorname{Var}(w_{rj})\approx1/d$. ReLU maps negative inputs to zero; under
+the idealized symmetric-input argument, the second moment of its output is
+approximately halved. Compensating gives $2/d$ rather than $1/d$.
+
+With unscaled standard-normal weights, variance grows with fan-in $d$.
+Activations can explode, sigmoids can saturate, or numerical ranges can become
+unusable before learning begins.
+
+For approximately symmetric signals passed through ReLU, roughly half the
+mass is zeroed. He initialization compensates with
+\[
+  w_{rj}\sim N\!\left(0,\frac{2}{d}\right).
+\]
+Thus the first layer uses standard deviation $\sqrt{2/784}$. The final linear
+logit layer uses Xavier normal scaling,
+\[
+  w_{rj}\sim N\!\left(0,\frac{1}{d}\right),
+\]
+giving standard deviation $\sqrt{1/64}$ here. Biases start at zero. Independent
+weights already break neuron symmetry, so random biases are not needed.
+
+These calculations are approximations, not distribution-free theorems about
+trained networks. Correlations, depth, optimizer dynamics, normalization, and
+data geometry matter. Good practice checks initial preactivation scale, the
+fraction of active ReLU units, gradient norms, and nonfinite values.
+
+Initialization and reproducibility are related but not identical. A recorded
+seed chooses a deterministic pseudo-random stream for a particular
+implementation. It does not imply that every numerical library, hardware
+accelerator, or parallel reduction will produce bitwise-identical results.
+Record the initializer by name and formula in addition to recording the seed.
+
+\begin{warningbox}
+Random-normal initialization does not mean ``draw every weight from
+$N(0,1)$.'' The variance is part of the algorithm. At fan-in 784, an unscaled
+standard normal is about twenty times wider in standard deviation than He
+normal initialization.
+\end{warningbox}
+
+\section{Softmax cross-entropy as a fused contract}
+
+For one observation with one-hot target $y$, categorical cross-entropy is
+\[
+  \ell(z,y)=-\sum_{k=0}^{9}y_k\log p_k.
+\]
+Substituting softmax and using $\sum_k y_k=1$ yields
+\[
+  \ell(z,y)
+  =\log\left(\sum_r e^{z_r}\right)-\sum_k y_kz_k.
+\]
+This is the log-sum-exp form. Stable code subtracts
+$c=\max_r z_r$ before exponentiating:
+\[
+  \log\left(\sum_r e^{z_r}\right)
+  =c+\log\left(\sum_r e^{z_r-c}\right).
+\]
+Softmax is unchanged because the common factor $e^{-c}$ cancels between
+numerator and denominator.
+
+More generally, for any scalar $c$,
+\[
+  \operatorname{softmax}(z+c\mathbf1)=\operatorname{softmax}(z).
+\]
+The logits are therefore identifiable only up to a common additive shift.
+Probabilities and the largest-probability decision are unchanged. Subtracting
+the row maximum exploits this mathematical invariance to obtain numerical
+stability; it is not a heuristic alteration of the model.
+
+\begin{proposition}[Softmax--cross-entropy logit gradient]
+For $p=\operatorname{softmax}(z)$ and a target distribution $y$ whose entries
+sum to one,
+\[
+  \nabla_z\ell=p-y.
+\]
+\end{proposition}
+
+\begin{proof}
+Differentiate the log-sum-exp expression in coordinate $z_j$:
+\[
+\begin{aligned}
+\frac{\partial\ell}{\partial z_j}
+&=\frac{e^{z_j}}{\sum_r e^{z_r}}
+  -\frac{\partial}{\partial z_j}\sum_k y_kz_k\\
+&=p_j-y_j.
+\end{aligned}
+\]
+Collecting coordinates gives $\nabla_z\ell=p-y$.
+\end{proof}
+
+The simplicity of the derivative is not a reason to split softmax and loss in
+software. A fused operation states that its inputs are logits, avoids the
+logarithm of a rounded zero probability, and can reuse stable intermediates.
+
+\section{Backpropagation for a mini-batch}
+
+Let the objective be the mean of $m$ example losses. The output sensitivity is
+\[
+  \Delta^2=\frac{P-Y}{m}.
+\]
+The division by $m$ appears exactly once. If the loss is a mean but the
+derivative is treated as a sum, changing batch size silently changes the
+effective learning rate. Dividing once in the output sensitivity makes all
+subsequent matrix products derivatives of the stated mean loss.
+
+The output parameter derivatives are
+\[
+  \nabla_{W^2}L=(A^1)^\top\Delta^2,
+  \qquad
+  \nabla_{b^2}L=(\Delta^2)^\top\mathbf1.
+\]
+Propagate sensitivity through $W^2$ and apply the ReLU derivative:
+\[
+  \Delta^1
+  =\left(\Delta^2(W^2)^\top\right)
+   \odot \mathbf1[Z^1>0].
+\]
+Then
+\[
+  \nabla_{W^1}L=(A^0)^\top\Delta^1,
+  \qquad
+  \nabla_{b^1}L=(\Delta^1)^\top\mathbf1.
+\]
+Every shape can be audited:
+\[
+\begin{array}{c|c}
+\text{quantity}&\text{shape}\\ \hline
+A^0&m\times784\\
+Z^1,A^1,\Delta^1&m\times64\\
+W^1,\nabla_{W^1}L&784\times64\\
+Z^2,P,Y,\Delta^2&m\times10\\
+W^2,\nabla_{W^2}L&64\times10.
+\end{array}
+\]
+
+These shapes explain the transposes. $(A^1)^\top$ has shape $64\times m$ and
+$\Delta^2$ has shape $m\times10$, so their product matches $W^2$. Likewise,
+$\Delta^2(W^2)^\top$ maps ten output sensitivities back to 64 hidden
+sensitivities per observation. A transpose should be justified by this linear
+map, not inserted until NumPy accepts the multiplication.
+
+All gradients must be computed from one parameter state before any parameter
+is updated. Otherwise an early update changes quantities needed to calculate a
+later derivative. Finite-difference checks on a tiny deterministic example
+test the analytical implementation independently.
+
+\section{Mini-batch gradient descent}
+
+Full-batch descent uses every training observation for one update. Stochastic
+descent uses one. A mini-batch provides a noisy estimate of the full gradient
+while exposing matrix operations large enough for efficient numerical kernels.
+For batch $B_t$ and learning rate $\eta$,
+\[
+  \theta_{t+1}
+  =\theta_t-\eta\nabla_\theta
+   \left(\frac1{|B_t|}\sum_{i\in B_t}\ell_i(\theta_t)\right).
+\]
+
+An epoch visits every training observation once after a random permutation.
+The random seed, permutation generator, batch size, incomplete final-batch
+policy, learning rate, dtype, and initialization are parts of the experimental
+record. A seed does not make floating-point computation universally identical
+across all hardware, but it removes an important source of uncontrolled
+variation.
+
+With $n=2400$ and batch size 64, one epoch contains
+$\lceil2400/64\rceil=38$ updates; the final batch contains 32 observations.
+Discarding that batch would systematically omit data unless row order were
+reshuffled and coverage explicitly managed. Keeping it is simpler, and the
+mean-loss gradient makes its update scale comparable to the full batches.
+
+Training loss is \emph{optimization evidence}: it shows whether the procedure
+reduces its stated objective on fitting data. Validation or held-out accuracy
+is \emph{decision evidence}: it estimates a decision property on unseen data.
+Neither alone establishes probability calibration, population transport, or
+operational utility.
+
+An epoch-level history is deliberately an aggregate. Batch-level loss is
+noisier and can diagnose update instability, while epoch-level loss is easier
+to interpret. A production training run should log both only when the added
+volume has a stated diagnostic purpose; logging every tensor or observation
+can be expensive and can expose sensitive data.
+
+\begin{workedexample}{A bounded handwritten-digit experiment}
+The course implementation trains a $784$--$64$--$10$ ReLU network for eight
+epochs with batches of 64. Inputs are scaled once, parameters use He and Xavier
+initialization under a recorded seed, and a stable fused loss consumes logits.
+
+The experiment first asserts all tensor shapes and verifies that initial
+logits are finite. During training it records mean cross-entropy, training
+accuracy, and held-out accuracy. After parameters are frozen, it calculates a
+ten-by-ten confusion matrix, per-class precision and recall, and a gallery of
+high-confidence errors. This sequence answers more than ``what score did the
+model get?'' It asks which distinctions remain difficult and whether apparent
+confidence agrees with the images a person sees.
+
+The held-out partition is observed during the teaching run to illustrate a
+curve. In a genuine model-selection study, that role belongs to a validation
+partition; the test set is exposed only after architecture, learning rate, and
+stopping policy are frozen.
+\end{workedexample}
+
+\section{Confusion is part of the scientific result}
+
+Accuracy is
+\[
+  \frac{1}{n_{\mathrm{test}}}
+  \sum_i\mathbf1[\widehat y_i=y_i].
+\]
+For class $k$, define
+\[
+  \operatorname{precision}_k
+  =\frac{\mathrm{TP}_k}{\mathrm{TP}_k+\mathrm{FP}_k},
+  \qquad
+  \operatorname{recall}_k
+  =\frac{\mathrm{TP}_k}{\mathrm{TP}_k+\mathrm{FN}_k},
+\]
+and
+\[
+  F_{1,k}
+  =\frac{2\operatorname{precision}_k\operatorname{recall}_k}
+  {\operatorname{precision}_k+\operatorname{recall}_k}.
+\]
+Precision conditions on the model's class-$k$ decisions; recall conditions on
+the true class-$k$ observations. They answer different operational questions
+and neither is recovered from overall accuracy alone.
+
+A confusion matrix retains which true digit became which predicted digit.
+Rows normalized to sum to one estimate class-conditional recall patterns;
+integer counts quantify actual sample evidence. They answer different
+questions.
+
+Inspect individual errors after aggregate metrics. A high-confidence mistake
+can indicate ambiguous handwriting, an annotation problem, an unusual
+translation or stroke, or model overconfidence. Examining only convenient
+correct predictions hides failure structure. Examining only the ten worst
+examples without aggregate context can exaggerate rare cases. Professional
+analysis uses both.
+
+Prediction confidence $\max_k p_k$ is not proof of calibration. Calibration
+asks whether events assigned probability near $q$ occur approximately a
+fraction $q$ of the time under the relevant distribution. It needs a separate
+reliability analysis and enough observations.
+
+The highest-confidence mistakes are a diagnostic sample, not an unbiased
+summary of failure frequency. They are chosen precisely because the model was
+most certain. Use them to generate hypotheses, then test those hypotheses on a
+defined population rather than generalizing from an error gallery.
+
+\begin{professionalbox}
+The notebook is an experimental narrative; reusable computations belong in a
+tested package. Record data provenance, split identity, code revision,
+preprocessing, class order, architecture, initializer, learning rate, batch
+size, seed, metrics, and known limitations. A released artifact must reproduce
+the same flattening and scaling before applying the learned parameters.
+
+Serialization should package or reference all inference state: parameter
+arrays, architecture, dtype, feature ordering, scaling rule, and class order.
+A fresh-process test should load the artifact, transform a versioned fixture,
+and reproduce a stored probability vector within an explicit tolerance.
+\end{professionalbox}
+
+\section{Failure modes and diagnostic tests}
+
+When loss becomes nonfinite, inspect scaled feature range, logits, learning
+rate, log-sum-exp stability, parameter norms, and gradients. Accuracy near
+$0.1$ suggests a broken ten-class pipeline: verify label alignment, output
+width, class order, and whether updates change weights. Falling training loss
+with stagnant held-out performance suggests a generalization problem rather
+than a derivative failure.
+
+Useful automated tests include:
+\begin{itemize}
+  \item one-hot rows sum to one and recover their integer labels;
+  \item softmax remains finite for large logits and is invariant to a common
+  additive shift;
+  \item softmax probabilities sum to one;
+  \item analytical output and layer gradients match central differences;
+  \item initialization standard deviations approximate their fan-in targets;
+  \item all parameter and gradient shapes agree; and
+  \item a small deterministic multiclass problem can be learned.
+\end{itemize}
+
+These tests catch mathematical and interface regressions. They do not establish
+that labels measure the intended construct or that a deployment population
+matches MNIST.
+
+\section{Exercises}
+\begin{enumerate}
+  \item Prove that flattening followed by reshaping is invertible when the
+  ordering convention and original dimensions are retained. State what the
+  dense architecture still fails to encode.
+  \item For a $784$--$128$--$64$--$10$ network, write every parameter shape
+  and count the trainable scalars.
+  \item Derive the softmax Jacobian
+  $\partial p_k/\partial z_j=p_k(\mathbf1[k=j]-p_j)$, then recover the fused
+  cross-entropy gradient.
+  \item Suppose all first-layer weights are sampled from $N(0,1)$. Estimate
+  the initial preactivation variance under independent unit-variance inputs
+  and compare it with He initialization.
+  \item Add a second hidden ReLU layer to the course implementation. Supply
+  gradient checks, shape tests, and a controlled comparison that changes only
+  depth.
+  \item Replace accuracy with a cost matrix in which mistaking 1 for 7 is five
+  times as costly as most other errors. Derive the empirical decision cost and
+  explain whether retraining is required to change the decision rule.
+  \item Reproduce the full study on Fashion-MNIST. Use a validation partition
+  for architecture choices, preserve the test set, report per-class evidence,
+  and analyze visually plausible confusions such as shirts and pullovers.
+  \item Write a pull request adding serialization and a fresh-process inference
+  test. The saved contract must include feature shape, class order, scaling,
+  architecture, and parameter arrays.
+\end{enumerate}
+
+\begin{chapterreview}
+An image becomes a dense-network input by an explicit flatten-and-scale
+contract. One-hot vectors encode fixed categorical identity; logits are
+unconstrained scores; softmax assigns one joint distribution. Pairing logits
+with stable cross-entropy gives the output gradient $P-Y$, while vectorized
+backpropagation transports that sensitivity through ReLU layers. He and Xavier
+random-normal initialization account for fan-in rather than applying arbitrary
+noise. Mini-batches make updates practical, but training curves remain
+optimization evidence. Held-out confusion patterns and inspected errors turn a
+score into a scientific analysis. The manual implementation makes each of
+these decisions visible before a framework automates their execution.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 12 notebook 02 performs the complete authentic-MNIST experiment with a
+tested NumPy implementation. It visualizes flattening, audits initialization,
+derives and checks the fused loss, trains with mini-batches, studies confusion
+patterns, compares hidden widths, and leaves Fashion-MNIST as an independent
+applied investigation.
+\end{notebooklink}

@@ -1,0 +1,529 @@
+\chapter{Text, tokenization, and sentiment systems}
+\label{ch:text-sentiment}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item formulate sentiment analysis as a supervised prediction problem while
+  stating what the label does and does not mean;
+  \item distinguish text normalization, tokenization, vocabulary construction,
+  integerization, padding, masking, and out-of-vocabulary handling;
+  \item prevent preprocessing leakage by fitting a vocabulary on training data
+  alone;
+  \item explain embeddings, pooled text representations, binary logits, and
+  cross-entropy mathematically;
+  \item evaluate thresholded decisions with error-specific metrics and direct
+  inspection of held-out failures; and
+  \item specify the artifacts and monitoring signals required for a reliable
+  text-classification system.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+The preceding chapters built nonlinear predictors from affine maps,
+activations, objectives, and backpropagation. Text presents a new difficulty:
+an observation is a variable-length sequence of symbols rather than a fixed
+vector of measured real numbers. TensorFlow can differentiate and execute the
+resulting model, but first we must define how language becomes tensors without
+leaking held-out information or erasing important structure.
+\end{chapterconnection}
+
+\section{A scientific question before an architecture}
+
+Consider a movie review $x$ and a binary label $y$, where $y=1$ denotes a
+positive rating and $y=0$ denotes a negative rating. We seek a function whose
+output supports the conditional probability claim
+\[
+  p_\theta(y=1\mid x).
+\]
+This is a supervised binary-classification problem. It is not a measurement of
+an author's complete emotional state and it is not a universal definition of
+positive language. The label inherits the data creator's rating threshold,
+sampling decisions, time period, platform, and population.
+
+The Stanford Large Movie Review Dataset is an instructive case. It contains
+25,000 labeled reviews for training and 25,000 for testing, with balanced
+positive and negative classes. Reviews with intermediate ratings are excluded.
+That design makes a clean educational benchmark, but it also removes much of
+the ambiguity that a deployed sentiment system would encounter.
+
+\begin{definitionbox}{prediction contract for sentiment}
+A sentiment prediction contract names the unit of analysis, label-construction
+rule, represented population, information available at prediction time,
+output semantics, decision threshold, error costs, and conditions under which
+the model should abstain or defer to a person.
+\end{definitionbox}
+
+The first baseline need not be a neural network. A bag-of-words or TF--IDF
+representation followed by logistic regression is fast, auditable, and often
+competitive. A neural model should earn its added complexity through held-out
+evidence or through a requirement---such as reusable learned representations
+or sequence-sensitive prediction---that the baseline cannot satisfy.
+
+\section{Data acquisition is part of the experiment}
+
+The notebook obtains the archive from Stanford through Keras's cache-aware
+\code{get\_file} utility. On the first student run, the utility downloads and
+extracts the publisher's archive. Later runs reuse the local cache. An explicit
+environment variable may instead identify an existing extracted
+\code{aclImdb} directory. These are acquisition mechanisms, not alternative
+datasets: both must resolve to the publisher's directory structure.
+
+The path alone is insufficient provenance. An experiment record should retain
+the publisher URL, retrieval date, archive checksum when available, local
+manifest, class-selection rule, and sample limit. The lecture pipeline selects
+the first fixed number of lexicographically sorted files in each class. This
+makes membership deterministic across supported operating systems and balances
+the classes, but the limit changes sampling uncertainty and therefore belongs
+in every reported result.
+
+IMDB supplies distinct \code{train} and \code{test} directories. We preserve
+that boundary and create a validation split only from publisher-designated
+training reviews:
+\[
+  D_{\mathrm{publisher\ train}}
+  =D_{\mathrm{optimization}}\mathbin{\dot\cup}D_{\mathrm{validation}},
+  \qquad
+  D_{\mathrm{test}}\text{ remains untouched.}
+\]
+Stratification preserves class proportions, while a fixed split seed makes
+membership reproducible. The optimization subset fits parameters and
+preprocessing state. Validation data selects checkpoints, architectures, and
+decision policy. Test data estimates the frozen procedure once.
+
+\begin{professionalbox}
+The automated test suite sets an explicit CI flag and replaces the download
+with locally authored sentences. That fixture answers ``does the pipeline still
+execute and obey its shape contracts?'' It cannot answer ``does this model
+classify movie reviews?'' Outside CI, acquisition failure must raise an error
+rather than silently substitute the fixture and change the scientific question.
+\end{professionalbox}
+
+\section{How text models developed}
+
+Early automatic text classifiers commonly combined manually constructed
+lexicons with counts of words or short word sequences. Statistical language
+models and linear classifiers made these counts trainable and testable.
+Distributed representations later replaced one coordinate per vocabulary word
+with compact learned vectors. Convolutional networks detected local phrase
+patterns, while recurrent networks propagated state across a sequence.
+Attention mechanisms then allowed representations to combine information from
+distant positions more directly, and large pretrained transformers made it
+possible to adapt representations learned from vast corpora.
+
+This history is not a sequence in which every new method makes earlier methods
+obsolete. Count-based linear models remain valuable baselines. Small embedding
+models can be appropriate when latency, energy, privacy, or data volume rule
+out a large pretrained model. Every approach still depends on data provenance,
+split integrity, metric choice, error analysis, and operational monitoring.
+
+\section{The representation pipeline}
+
+A raw string must cross several conceptually different boundaries before it
+can enter a dense neural network:
+\[
+\text{raw review}
+\longrightarrow \text{normalized text}
+\longrightarrow \text{tokens}
+\longrightarrow \text{integer IDs}
+\longrightarrow \text{embeddings}
+\longrightarrow \text{review vector}.
+\]
+Collapsing these steps under the word ``tokenization'' hides important modeling
+decisions.
+
+In TensorFlow, \code{TextVectorization} is a stateful preprocessing layer. Its
+\code{adapt} method counts tokens and constructs a vocabulary; calling the
+layer applies the frozen mapping. The distinction is analogous to
+\code{fit} versus \code{transform} in a tabular pipeline. Only optimization
+text may enter \code{adapt}. Validation, test, and future text call the already
+adapted layer.
+
+Keeping this layer inside the Keras model makes the deployed input contract a
+batch of strings rather than a batch of unexplained integers. It also packages
+normalization rules and vocabulary order with the fitted network. A parity test
+should confirm that a saved and reloaded model returns the same logits for
+versioned review fixtures.
+
+\begin{misconceptionbox}{token IDs are not numerical measurements}
+Assigning the word \emph{excellent} ID 200 and \emph{awful} ID 100 does not make
+the first word twice the second. The IDs are addresses in a vocabulary. A
+trainable embedding converts those addresses into vectors whose geometry is
+learned from the training objective; treating raw IDs as scalar features would
+invent an ordering and distance that language does not possess.
+\end{misconceptionbox}
+
+\subsection{Normalization}
+
+Normalization may lowercase text, standardize Unicode, remove markup, or strip
+punctuation. Each transformation encodes an assumption. Exclamation marks,
+capitalization, emoji, spelling variants, and repeated characters can carry
+sentiment. A default that is sensible for movie reviews may be destructive for
+clinical notes, source code, or multilingual messages.
+
+A normalization function should be deterministic, versioned, and identical in
+training and inference. It should also be tested on empty strings, unusual
+Unicode, markup, and adversarially long inputs.
+
+\subsection{Tokens and vocabularies}
+
+A tokenizer divides normalized text into units. Word tokenization is intuitive
+but creates rare and unseen words. Character tokenization has a small
+vocabulary but produces long sequences. Subword methods construct reusable
+pieces, allowing an unfamiliar word to share structure with familiar ones.
+
+Let the training vocabulary be
+\[
+  \mathcal V=(v_0,v_1,\ldots,v_{V-1}).
+\]
+An integerizer maps a token to its index in $\mathcal V$. These integers are
+identifiers, not quantitative measurements: token 200 is not twice token 100.
+A typical contract reserves index zero for padding and index one for an
+out-of-vocabulary token, often displayed as \code{[UNK]}.
+
+If $n_{\mathrm{OOV}}$ observed training tokens map to ID one and
+$n_{\mathrm{observed}}$ excludes padding, then
+\[
+  r_{\mathrm{OOV}}=
+  \frac{n_{\mathrm{OOV}}}{n_{\mathrm{observed}}}
+\]
+is a useful representation diagnostic. It is not a performance metric. A high
+rate may indicate an undersized vocabulary, unexpected language, or domain
+shift. Enlarging the vocabulary increases memory and can admit rare noisy
+features, so the response should follow diagnosis rather than a fixed rule.
+
+\begin{proposition}
+If a vocabulary is selected using validation or test documents, then the
+evaluation pipeline is not independent of those held-out documents.
+\end{proposition}
+
+\begin{proof}
+Vocabulary selection is a learned transformation because the selected tokens
+and their indices depend on observed token frequencies. If held-out documents
+contribute to those frequencies, then the representation function supplied to
+the estimator is a function of the held-out inputs. Consequently the fitted
+pipeline has received information about the evaluation distribution before
+evaluation, even if it has not received the held-out labels. The evaluation no
+longer estimates a pipeline constructed from training data alone.
+\end{proof}
+
+This leakage may appear weak because labels are absent, but it breaks the
+experimental contract. Split observations first. Fit normalization state,
+vocabulary, and any other learned preprocessing using only the training
+partition. Apply the frozen transformation to validation, test, and production
+text.
+
+\subsection{Padding, truncation, and masking}
+
+Reviews have different lengths. A tensor batch is usually rectangular, so a
+pipeline selects a sequence length $L$. Short sequences receive padding;
+tokens beyond $L$ are truncated. These operations are not harmless bookkeeping.
+A small $L$ may remove a final conclusion that reverses earlier language. A
+large $L$ increases memory and computation.
+
+A mask is a Boolean tensor marking positions that contain actual tokens rather
+than padding. A compatible embedding or sequence layer uses the mask so that
+padding does not contribute to a pooled representation or recurrent state.
+Without masking, document length can become an unintended predictive feature.
+
+Before choosing $L$, examine the training length distribution and state the
+truncation rate. In deployment, monitor this rate because longer documents can
+signal distribution shift or an input-contract violation.
+
+For a batch of $B$ reviews, the representation shapes are
+\[
+\begin{array}{ccl}
+\text{raw strings} &:& (B),\\
+\text{token IDs} &:& (B,L),\\
+\text{embedding vectors} &:& (B,L,d),\\
+\text{padding mask} &:& (B,L),\\
+\text{pooled review vectors} &:& (B,d),\\
+\text{binary logits} &:& (B,1).
+\end{array}
+\]
+Shape assertions make these interfaces executable. They catch accidental
+scalar inputs, missing batch dimensions, wrong output width, and incompatible
+label tensors before a long training run.
+
+\section{Embeddings are trainable lookup tables}
+
+Let $V$ denote vocabulary size and $d$ embedding dimension. An embedding layer
+stores
+\[
+  E\in\mathbb R^{V\times d}.
+\]
+For token ID $i$, the layer returns row $E_{i,:}$. A length-$L$ sequence thus
+becomes a matrix in $\mathbb R^{L\times d}$. The rows of $E$ begin from an
+initializer and are updated by backpropagation because they participate in the
+classification loss.
+
+An embedding coordinate does not come with a fixed linguistic interpretation.
+If two tokens acquire nearby vectors, they were useful in similar predictive
+contexts under this corpus, objective, model, and training run. That geometry
+does not establish causal, psychological, or universal semantic equivalence.
+
+\subsection{Pooling a sequence}
+
+The simplest fixed-width representation is a masked average. Let
+$m_t=\mathbf 1[i_t\neq0]$ indicate a non-padding token. Define
+\[
+  h(x)=
+  \frac{\sum_{t=1}^{L}m_tE_{i_t,:}}{\sum_{t=1}^{L}m_t}.
+\]
+This formula assumes at least one observed token. The input contract must
+reject, abstain on, or deliberately represent an empty normalized input rather
+than letting a zero denominator produce an undefined result.
+For an admissible review it produces $h(x)\in\mathbb R^d$ regardless of review
+length. A hidden layer
+and output logit can then compute
+\[
+  r=\operatorname{ReLU}(W_hh(x)+b_h),
+  \qquad
+  z=w_o^\top r+b_o.
+\]
+
+Mean pooling is fast and makes tensor shapes transparent. It also largely
+discards order. The phrases ``not painfully slow'' and ``not moving, painfully
+slow'' can contain similar tokens but express different judgments. A
+one-dimensional convolution can detect local patterns; a recurrent network can
+propagate ordered state; and attention can form context-dependent combinations
+across positions. The added structure should be justified with a controlled
+comparison rather than assumed to help.
+
+In Keras, \code{Embedding(mask\_zero=True)} constructs the Boolean mask and a
+compatible \code{GlobalAveragePooling1D} consumes it. Padding ID zero is
+ignored; OOV ID one is not. The latter represents observed but unresolved
+language and should therefore contribute its learned OOV vector.
+
+\section{A binary logit and a stable objective}
+
+The model emits a logit $z\in\mathbb R$. The sigmoid converts this unrestricted
+score to a value in $(0,1)$:
+\[
+  p_\theta(y=1\mid x)=\sigma(z)=\frac{1}{1+\exp(-z)}.
+\]
+For $y\in\{0,1\}$, binary cross-entropy is
+\[
+  \ell(z,y)
+  =-y\log\sigma(z)-(1-y)\log(1-\sigma(z)).
+\]
+Mature frameworks should consume logits directly because a stable
+implementation avoids first forming probabilities that round to exactly zero
+or one.
+
+\begin{proposition}
+The derivative of binary cross-entropy with respect to its logit is
+\[
+  \frac{\partial\ell}{\partial z}=\sigma(z)-y.
+\]
+\end{proposition}
+
+\begin{proof}
+Let $p=\sigma(z)$. Since $dp/dz=p(1-p)$,
+\[
+\begin{aligned}
+\frac{\partial\ell}{\partial z}
+&=\left(-\frac{y}{p}+\frac{1-y}{1-p}\right)p(1-p)\\
+&=-y(1-p)+(1-y)p\\
+&=p-y.
+\end{aligned}
+\]
+\end{proof}
+
+The expression is the familiar prediction-minus-target error from logistic
+regression. The difference is that $z=f_\theta(x)$ now depends on vectorization,
+embedding lookup, pooling, and hidden layers. Automatic differentiation applies
+the chain rule from $p-y$ through this graph.
+
+The output and loss form one contract. A final dense layer with no activation
+emits logits and must pair with
+\code{BinaryCrossentropy(from\_logits=True)}. If the model instead emits
+$\sigma(z)$, the loss must be configured for probabilities. Applying sigmoid
+twice changes the objective and weakens gradients. Before fitting, evaluate one
+batch and assert that the logit shape is $(B,1)$ and the loss is finite.
+
+Keras's binary-accuracy threshold is expressed in the coordinate system of its
+input. When the metric receives logits, threshold zero corresponds to
+$\sigma(0)=0.5$. Confusing a logit threshold of zero with a probability
+threshold of zero can make an apparently reasonable metric configuration
+meaningless.
+
+\begin{workedexample}{a TensorFlow sentiment pipeline}
+A reproducible first model has the following explicit contract:
+\begin{enumerate}
+  \item preserve the publisher's train/test partition and reserve validation
+  observations from the training partition;
+  \item adapt a \code{TextVectorization} layer on training reviews only;
+  \item output a fixed-length integer sequence with documented padding, OOV,
+  vocabulary-size, and truncation policies;
+  \item map IDs through an \code{Embedding} layer with masking enabled;
+  \item use masked global-average pooling, a small ReLU hidden layer, and one
+  output logit;
+  \item optimize logits-based binary cross-entropy with Adam;
+  \item select checkpoints and any threshold using validation data; and
+  \item evaluate the frozen candidate once on test data.
+\end{enumerate}
+
+The baseline should record its seed, package versions, vocabulary, sequence
+length, parameter count, epoch times, loss curves, and evaluation metrics.
+The vectorizer belongs inside or beside the saved model artifact so that
+training and serving cannot silently disagree about integer IDs.
+\end{workedexample}
+
+\section{Thresholds turn modeled probabilities into decisions}
+
+The conventional classifier
+\[
+  \widehat y=\mathbf 1[\sigma(z)\geq0.5]
+\]
+is equivalently $\mathbf 1[z\geq0]$. Neither threshold is mandated by
+cross-entropy. A threshold encodes an operational tradeoff.
+
+For the positive class, precision and recall are
+\[
+  \operatorname{precision}=\frac{TP}{TP+FP},
+  \qquad
+  \operatorname{recall}=\frac{TP}{TP+FN}.
+\]
+If falsely promoting an unfavorable review is costly, precision may matter. If
+missing critical feedback is costly, recall may matter. A confusion matrix
+retains all four error counts; accuracy alone collapses them.
+
+Threshold selection belongs on validation data and should reflect a stated
+cost or capacity constraint. Repeatedly choosing a threshold after examining
+test results converts the test set into another validation set. Probability
+calibration should also be checked when consumers interpret scores as
+probabilities rather than ranks.
+
+A valid sequence is therefore:
+\begin{enumerate}
+  \item fit parameters on optimization data;
+  \item select the checkpoint from validation loss;
+  \item inspect validation precision--recall tradeoffs and freeze a threshold;
+  \item compute test logits once, transform them with sigmoid, and apply that
+  frozen threshold; and
+  \item report the confusion counts, metrics, sample size, and uncertainty.
+\end{enumerate}
+For the classroom example no real operating cost is supplied, so the notebook
+predeclares 0.5 instead of reverse-engineering a favorable threshold. A real
+application must elicit costs, capacity, or a target constraint from its
+decision context.
+
+\conceptcheck{Suppose a team chooses a threshold after repeatedly inspecting
+test-set recall. Which experimental boundary has been broken, and what data
+should the team use to choose the threshold instead?}
+
+\section{Error analysis is part of modeling}
+
+Inspect false positives, false negatives, and low-margin correct predictions.
+Useful error categories include:
+\begin{itemize}
+  \item negation and contrast, such as ``slow at first, but not disappointing'';
+  \item sarcasm or rhetorical language;
+  \item mixed evaluations of acting, direction, and plot;
+  \item names, genres, or years used as shortcuts;
+  \item influential tokens mapped to OOV;
+  \item decisive evidence removed by truncation; and
+  \item disagreement or ambiguity in the original rating rule.
+\end{itemize}
+
+An error category suggests an experiment. Negation may motivate order-sensitive
+features. Truncation errors may motivate a larger $L$ or hierarchical model.
+Genre shortcuts may require stratified evaluation. Ambiguous labels may place
+an upper limit on meaningful performance. A larger architecture is not the
+automatic response to every error.
+
+\begin{professionalbox}
+An error audit should retain the true label, frozen-model probability, decision,
+error type, retained-token count, OOV count, and a bounded review excerpt when
+the data policy permits inspection. Assign a hypothesized category before
+changing the model. Then propose a controlled experiment and a result that
+would falsify the hypothesis. Error browsing without a coding scheme easily
+becomes anecdotal model tuning.
+\end{professionalbox}
+
+\section{Responsible use and deployment}
+
+A movie-review classifier is a bounded educational task. Sentiment models are
+often redeployed to employee messages, student writing, clinical narratives,
+or customer support. That transfer changes the population, language, privacy
+risk, and consequences. Performance on IMDB does not justify such use.
+
+Potential failures include dialect-dependent error rates, changing slang,
+spurious correlations with identity terms, forced binary predictions on mixed
+sentiment, and exposure of personal text through logs. Evaluation should be
+sliced by relevant, ethically supportable groups and linguistic phenomena,
+with uncertainty reported for small samples. High-impact uses require human
+review, appeal paths, access controls, retention limits, and possibly a decision
+not to deploy.
+
+A released text system should version together:
+\begin{itemize}
+  \item a data manifest and split identifiers;
+  \item normalization and tokenization code;
+  \item vocabulary order, OOV policy, and sequence length;
+  \item architecture, parameters, optimizer state when resuming, and framework
+  versions;
+  \item class order, logit/probability contract, and decision threshold;
+  \item validation and test evidence; and
+  \item a model card describing intended use and known limitations.
+\end{itemize}
+
+Production monitoring should include request validity, empty-input frequency,
+token length, truncation rate, OOV rate, score and decision distributions,
+latency, failures, and delayed outcome metrics when legitimate labels arrive.
+Raw user text should not appear in general logs. Aggregate diagnostics or
+carefully controlled examples reduce privacy and security exposure.
+
+\section{Exercises}
+\begin{enumerate}
+  \item Give separate definitions of normalization, tokenization,
+  integerization, padding, masking, and embedding. For each, name one failure
+  mode.
+  \item Explain why adapting a vocabulary on unlabeled test text is still
+  leakage. Construct a small example in which the selected vocabulary changes.
+  \item For a vocabulary of size $8{,}000$, embedding dimension 48, sequence
+  length 200, and batch size 32, compute the embedding parameter count and
+  output-tensor shape.
+  \item Derive the binary-cross-entropy logit gradient. Explain why using a
+  sigmoid output with a loss configured for logits is incorrect.
+  \item Compare masked mean pooling with a one-dimensional convolution while
+  holding the split, vocabulary, sequence length, and evaluation protocol
+  fixed. Report parameter count, runtime, validation loss, and error categories.
+  \item Evaluate sequence lengths 100, 250, and 500. Plot truncation rate,
+  runtime, and negative-class recall. Recommend a length using evidence rather
+  than accuracy alone.
+  \item Choose an operational setting for which false positives and false
+  negatives have different costs. Define a threshold-selection rule without
+  touching the test set.
+  \item Conduct a ten-example error audit. Propose one data change and one model
+  change, and state what result would falsify each proposed improvement.
+  \item Write tests verifying reserved token IDs, output shape, finite logits,
+  deterministic inference, empty-string handling, artifact reload, and parity
+  between batch and single-review predictions.
+  \item Draft a monitoring plan that detects changing review length, OOV rate,
+  score distribution, and delayed accuracy without logging raw reviews.
+\end{enumerate}
+
+\begin{chapterreview}
+Text classification begins with a construct and data contract, not an
+architecture. Normalization, tokenization, vocabulary construction, padding,
+and masking determine what evidence a model can use. Learned preprocessing
+must fit the training partition alone. Embeddings replace arbitrary integer
+identifiers with trainable vectors, while pooling or sequence layers produce a
+fixed representation. A binary logit trained by cross-entropy retains the
+logistic-regression error $\sigma(z)-y$; backpropagation distributes that error
+through the text representation. Threshold metrics, direct error inspection,
+artifact versioning, privacy-conscious monitoring, and responsible scope are
+part of the model, not postscript engineering.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 12 notebook 04 executes this full pipeline. The normal student route
+downloads the genuine Stanford IMDB corpus from its publisher through Keras's
+cache-aware data API. Only the automated CI route selects a bounded locally
+authored fixture, and its results are explicitly excluded from substantive
+analysis. Students inspect length and
+label distributions, fit a training-only vocabulary, trace tensor shapes,
+train an embedding classifier, vary thresholds, and audit held-out errors.
+\end{notebooklink}

@@ -1,0 +1,623 @@
+\chapter{TensorFlow, convolution, and observable training}
+\label{ch:tensorflow-convolution}
+
+\begin{learningobjectives}
+After this chapter, you should be able to:
+\begin{itemize}
+  \item distinguish tensors, variables, automatic differentiation, Keras, and
+  TensorBoard as separate parts of a learning system;
+  \item translate a scientific modeling contract into the Keras model
+  lifecycle;
+  \item explain mathematically why convolution respects image structure;
+  \item calculate convolution output shapes and receptive fields;
+  \item distinguish the full-data MNIST experiment from its bounded,
+  offline CI smoke test and design a defensible cats-versus-dogs study; and
+  \item select optimization, generalization, data, and system telemetry that
+  makes training diagnosable.
+\end{itemize}
+\end{learningobjectives}
+
+\begin{chapterconnection}
+Chapter~\ref{ch:neural-networks} constructed a neural network from literal
+neurons and derived reverse-mode differentiation. The preceding MNIST lesson
+then implemented the same mechanism directly. We now cross the framework
+boundary. TensorFlow automates tensor execution and derivatives, while Keras
+provides a higher-level model lifecycle. Neither removes the need to specify
+data provenance, output semantics, held-out evidence, or operational
+diagnostics.
+\end{chapterconnection}
+
+\section{A framework is a stack of contracts}
+
+TensorFlow was released as open-source software in November 2015. Its original
+white paper described both an interface for expressing machine-learning
+algorithms and an implementation capable of executing computations across
+heterogeneous systems.\footnote{M. Abadi et al., \emph{TensorFlow: Large-Scale
+Machine Learning on Heterogeneous Distributed Systems}, 2015,
+\url{https://www.tensorflow.org/static/extras/tensorflow-whitepaper2015.pdf}.}
+TensorFlow~2 made eager execution the normal interactive experience and
+standardized on Keras as its high-level interface. Modern Keras is a
+multi-backend deep-learning API; this chapter uses its TensorFlow backend.
+
+The names are related but not interchangeable:
+
+\begin{description}
+  \item[Tensor.] A typed multidimensional value with a shape and an execution
+  device. A tensor is immutable.
+  \item[Variable.] Mutable state, ordinarily a model parameter, tracked for
+  differentiation and checkpointing.
+  \item[Operation.] A transformation such as matrix multiplication,
+  convolution, reduction, or activation.
+  \item[Automatic differentiation.] A system that records differentiable
+  operations and applies their local derivative rules in reverse.
+  \item[Keras layer.] A reusable parameterized transformation with explicit
+  input and output shapes.
+  \item[Keras model.] A connected collection of layers with training,
+  evaluation, inference, and serialization interfaces.
+  \item[Callback.] A hook invoked at defined lifecycle events, for example to
+  write telemetry, save a checkpoint, or stop training.
+  \item[TensorBoard.] A separate application that reads event files and
+  displays scalar series, histograms, images, graphs, and performance traces.
+\end{description}
+
+Figure~\ref{fig:tensorflow-stack} places these responsibilities in one system.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=4mm,
+  box/.style={draw=RiceBlue, rounded corners=2mm, minimum width=10.4cm,
+    minimum height=9mm, align=center, font=\small},
+  arrow/.style={-{Latex[length=2.2mm]}, thick, RiceBlue}
+]
+\node[box, fill=RiceBlue!10] (question) {Scientific question, target,
+  sampling process, split contract, decision cost};
+\node[box, fill=RiceGray!16, below=of question] (keras) {Keras API: layers,
+  models, losses, optimizers, metrics, callbacks};
+\node[box, fill=RiceBlue!7, below=of keras] (tf) {TensorFlow runtime:
+  tensors, variables, automatic differentiation, compiled device kernels};
+\node[box, fill=RiceGray!16, below=of tf] (hardware) {CPU, GPU, accelerator,
+  storage, and distributed execution};
+\node[box, fill=RiceGold!18, below=of hardware]
+  (observe) {Observability: Python logs, TensorBoard events, checkpoints, and
+  artifact identity};
+\draw[arrow] (question) -- (keras);
+\draw[arrow] (keras) -- (tf);
+\draw[arrow] (tf) -- (hardware);
+\draw[arrow] (hardware) -- (observe);
+\draw[arrow, dashed] (observe.east) to[bend left=38] (question.east);
+\end{tikzpicture}
+\caption{The framework occupies the computational middle of a larger
+scientific system. It can calculate derivatives and execute kernels; it cannot
+make the target valid or the evidence relevant. Observability connects the
+running computation to human diagnosis.}
+\label{fig:tensorflow-stack}
+\end{figure}
+
+\begin{misconceptionbox}
+``Keras trained the model'' is not a complete experimental description. A
+reproducible claim also needs the data version and sampling unit, split policy,
+preprocessing fit boundary, architecture, initializers, objective, optimizer,
+randomness policy, stopping rule, checkpoint-selection rule, metrics, software
+versions, and final artifact identity.
+\end{misconceptionbox}
+
+\section{Tensors and automatic differentiation}
+
+A batch of grayscale images commonly has shape
+\[
+  (n,h,w,1),
+\]
+where $n$ is batch size, $h$ and $w$ are spatial dimensions, and the last
+coordinate is the channel. A color image normally has three input channels.
+The channel dimension is semantic; silently transposing channel and spatial
+axes changes the represented computation.
+
+Let $L(\theta)$ be a scalar loss. Inside a \texttt{GradientTape}, TensorFlow
+records relevant primitive operations. A call to \texttt{gradient} traverses
+that recorded graph backward to compute $\nabla_\theta L$. This is the same
+chain rule derived in Chapter~\ref{ch:neural-networks}. The framework maintains
+the graph and supplies derivative implementations for supported operations.
+
+\begin{definitionbox}{automatic differentiation is not symbolic or numerical differentiation}
+Automatic differentiation evaluates exact chain-rule compositions of the
+program's primitive derivative rules, up to floating-point arithmetic. It
+does not manipulate a symbolic expression into a closed form, and it does not
+approximate every coordinate by finite differences. Finite differences remain
+valuable as an independent check on a small deterministic calculation.
+\end{definitionbox}
+
+The tape ordinarily watches trainable variables automatically. Constants must
+be watched explicitly when derivatives with respect to them are required.
+Integer-valued computations are not differentiable in this sense, stateful
+updates can stop a gradient path, and persistent tapes retain more intermediate
+state.\footnote{TensorFlow, ``Introduction to gradients and automatic
+differentiation,'' \url{https://www.tensorflow.org/guide/autodiff}.}
+
+\conceptcheck{A tape returns \texttt{None} for one parameter. Give three
+distinct hypotheses: one involving connectivity, one involving dtype, and one
+involving state. What evidence would distinguish them?}
+
+\section{The Keras lifecycle is an executable argument}
+
+A routine experiment passes through six stages:
+\[
+ \texttt{build}\longrightarrow\texttt{compile}\longrightarrow
+ \texttt{fit}\longrightarrow\texttt{evaluate}\longrightarrow
+ \texttt{predict}\longrightarrow\texttt{save}.
+\]
+Each verb answers a different question.
+
+\begin{enumerate}
+  \item \textbf{Build} establishes transformations, shapes, parameters, and
+  output semantics.
+  \item \textbf{Compile} binds an optimizer, loss, and reported metrics. These
+  are not interchangeable: the loss supplies gradients, whereas a metric may
+  be nondifferentiable.
+  \item \textbf{Fit} updates parameters using training batches. Validation
+  data may guide stopping or checkpoint selection but receives no gradient
+  update.
+  \item \textbf{Evaluate} computes declared metrics without parameter
+  updates. The final test partition is used once after choices are frozen.
+  \item \textbf{Predict} runs inference and must reproduce the training-time
+  feature and preprocessing contract.
+  \item \textbf{Save} preserves the chosen artifact. A fresh-process reload
+  test verifies that serialization is operational, not merely promised.
+\end{enumerate}
+
+Keras supports a simple \texttt{Sequential} stack, a Functional API for graphs
+with branches or shared layers, and model subclassing for custom behavior. Use
+the least flexible interface that expresses the intended graph clearly.
+Progressive disclosure is a virtue: a three-layer sequential model should not
+be hidden inside a custom training architecture without a reason.
+
+\section{MNIST: concise code, explicit semantics}
+
+MNIST observations are $28\times28$ grayscale images of handwritten digits.
+A dense baseline reshapes each image into
+\[
+  x\in\mathbb{R}^{784}.
+\]
+Flattening changes the view, not the values. It also erases the explicit
+two-dimensional neighborhood relation. Dividing integer intensities by $255$
+maps them to $[0,1]$ and makes the numerical range explicit.
+
+For ten mutually exclusive classes, the model emits logits
+$z\in\mathbb{R}^{10}$. With class index $y$, sparse categorical
+cross-entropy is
+\[
+  \ell(z,y)=-z_y+\log\left(\sum_{k=0}^{9}\exp z_k\right).
+\]
+With a one-hot vector $e_y$, the same quantity can be written
+\[
+  -\sum_{k=0}^{9}(e_y)_k\log p_k,
+  \qquad
+  p_k=\frac{\exp z_k}{\sum_r\exp z_r}.
+\]
+Sparse and one-hot targets encode the same class but require different loss
+interfaces. If a model emits raw logits, the loss must be told that its inputs
+are logits. Applying softmax in the model and then configuring a logits loss
+applies the wrong contract.
+
+\subsection{Acquire data without hiding provenance}
+
+The executable lesson has two routes with different evidential purposes.
+During normal student work,
+\texttt{tf.keras.datasets.mnist.load\_data()} obtains the full official
+training and test arrays. On the first call, Keras downloads its MNIST archive
+to the user's Keras cache; later calls ordinarily reuse the cached file. A
+cache improves performance and supports repeated local work, but it is not a
+complete provenance record. A professional experiment records the source,
+version or checksum, license, sampling unit, and meaning of the supplied split.
+
+Continuous integration cannot safely depend on network availability or repeat
+a full scientific experiment for every commit. It therefore sets a documented
+environment flag and loads a small, versioned repository fixture made from
+authentic MNIST observations. This route exercises loading, representation
+checks, model construction, fitting, evaluation, and telemetry. Its metrics
+are \emph{software evidence only}. They must not be presented as the empirical
+result of the full-data lesson.
+
+\begin{definitionbox}{experiment versus smoke test}
+An experiment estimates or compares scientifically relevant quantities under
+a declared design. A smoke test asks whether a bounded execution path still
+runs and satisfies basic contracts. Using real observations makes a smoke test
+representative of data shape and dtype; it does not give the sample the scope
+or statistical meaning of the full experiment.
+\end{definitionbox}
+
+\subsection{Validate first, then transform}
+
+The acquired image arrays have shape $(n,28,28)$ and unsigned eight-bit pixel
+values in $[0,255]$. Before training, the notebook checks image rank and shape,
+label alignment, class vocabulary, and dtype. It then converts pixels to
+\texttt{float32} and divides by $255$, producing values in $[0,1]$. This scale
+factor is a fixed representation convention; unlike a fitted mean or standard
+deviation, it does not estimate state from either partition.
+
+The flattening operation remains inside the model. Thus an input batch with
+shape $(n,28,28)$ becomes $(n,784)$ at a named model layer, and the serialized
+model retains that shape transformation. Data validation belongs at the
+boundary, while deterministic transformations may belong in the model artifact
+when they must accompany inference.
+
+\begin{workedexample}{a full-data MNIST baseline with a bounded CI analogue}
+On the normal route, reserve the official test partition before modeling. Fit a
+model containing \texttt{Flatten}, a 64-unit ReLU layer, and a ten-logit
+output. The parameter count is
+\[
+  (784\cdot64+64)+(64\cdot10+10)=50{,}890.
+\]
+Use a declared seed, Adam with learning rate $10^{-3}$, sparse categorical
+cross-entropy, and a maximum of two epochs for the live demonstration. Keras
+reserves the last ten percent of the supplied training array as validation
+data. This is transparent for the lesson; a research system should persist an
+explicit split, especially when observations contain repeated subjects,
+groups, or time order.
+
+After architecture and training choices are frozen, report one official-test
+loss and accuracy together with a row-true, column-predicted confusion matrix.
+During CI, run the same interfaces against the bounded authentic-MNIST fixture
+only to verify that the pipeline remains executable.
+
+The result is a baseline, not a deployment claim. The experiment must also
+record data source, counts, preprocessing range, parameter count, runtime, and
+artifact identity. A bounded epoch budget is preferable in lecture; a longer
+study belongs in an explicitly configured experiment, not in an import or
+notebook-open side effect. CI remains bounded in observations as well as
+epochs.
+\end{workedexample}
+
+\subsection{The API lifecycle marks changes of state}
+
+Building establishes the forward computation and shapes. Compiling binds the
+optimizer, differentiable objective, and reported metrics but changes no
+parameter. Fitting updates parameters using training batches and evaluates the
+declared validation partition after each epoch. The returned
+\texttt{History} is in-memory telemetry, not the trained artifact itself.
+
+Evaluation runs a frozen model without updates. Prediction returns ten logits
+per observation; an \texttt{argmax} produces the displayed class. If an
+application requires probabilities, it must apply the declared link function
+and test calibration rather than calling arbitrary scores probabilities. The
+confusion matrix then localizes which true digits become which predicted
+digits, exposing error structure hidden by aggregate accuracy.
+
+\section{Convolution preserves a spatial hypothesis}
+
+A fully connected unit has an independent weight for every incoming pixel. A
+convolution instead assumes that useful local patterns may recur at different
+locations. It uses the same small kernel across the grid. This combines two
+inductive biases:
+
+\begin{itemize}
+  \item \emph{local connectivity}: one activation initially sees a small
+  neighborhood; and
+  \item \emph{parameter sharing}: the same detector is applied at every
+  eligible location.
+\end{itemize}
+
+For one input channel and kernel $K\in\mathbb{R}^{k_h\times k_w}$, the
+operation called convolution in deep-learning libraries is ordinarily
+cross-correlation:
+\[
+  z_{i,j}=b+
+  \sum_{u=0}^{k_h-1}\sum_{v=0}^{k_w-1}
+  K_{u,v}x_{i+u,j+v}.
+\]
+The mathematical convolution would reverse the kernel. The naming convention
+does not impair learning because the kernel entries are learned, but the
+distinction matters when reproducing a hand calculation.
+
+For input size $n$, symmetric padding $p$, kernel size $k$, and stride $s$, an
+output side has length
+\[
+  n_{\mathrm{out}}
+  =\left\lfloor\frac{n+2p-k}{s}\right\rfloor+1.
+\]
+``Valid'' padding means $p=0$. ``Same'' padding is chosen to preserve spatial
+size for stride one. A stride larger than one skips positions and reduces
+resolution.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  pixel/.style={draw=RiceGray!65, minimum size=5.8mm, inner sep=0pt},
+  kernel/.style={draw=RiceBlue, very thick, fill=RiceBlue!10, opacity=.72},
+  arrow/.style={-{Latex[length=2mm]}, thick, RiceBlue}
+]
+\foreach \r in {0,...,4}{
+  \foreach \c in {0,...,4}{
+    \node[pixel] at (0.6*\c,-0.6*\r) {};
+  }
+}
+\draw[kernel] (-0.3,0.3) rectangle (1.5,-1.5);
+\node[above=4mm] at (1.2,0.3) {input patch $3\times3$};
+\node[draw=RiceBlue, fill=RiceGold!18, rounded corners, minimum width=2.1cm,
+  minimum height=1.1cm, align=center] (sum) at (4.5,-.6)
+  {multiply\\and sum};
+\draw[arrow] (1.65,-.6) -- (sum.west);
+\node[draw=RiceBlue, fill=RiceBlue!10, minimum size=6mm] (out) at (7,-.6)
+  {$z_{i,j}$};
+\draw[arrow] (sum.east) -- (out.west);
+\end{tikzpicture}
+\caption{One convolution location. Every output value is an inner product
+between a local patch and the same learned kernel, plus a bias.}
+\label{fig:convolution-mechanics}
+\end{figure}
+
+\subsection{Channels and filters}
+
+For $c_{\mathrm{in}}$ input channels, a filter has shape
+$k_h\times k_w\times c_{\mathrm{in}}$. It spans every input channel and
+produces one output channel. With $c_{\mathrm{out}}$ filters, the kernel tensor
+contains
+\[
+  k_hk_wc_{\mathrm{in}}c_{\mathrm{out}}
+\]
+weights, plus $c_{\mathrm{out}}$ biases. The output channels are learned feature
+maps, not copies of RGB.
+
+The notebook's inspectable CNN therefore follows
+\[
+ (28,28,1)\to(28,28,16)\to(14,14,16)
+ \to(14,14,32)\to(7,7,32)\to32\to10.
+\]
+The two max-pooling layers have no trainable parameters, and global average
+pooling replaces each $7\times7$ feature map by its mean. The parameter count is
+\[
+  16(3\cdot3\cdot1+1)
+  +32(3\cdot3\cdot16+1)
+  +10(32+1)
+  =5{,}130.
+\]
+Writing this calculation before calling \texttt{count\_params()} turns the API
+result into a checked prediction rather than an unexplained number.
+
+\subsection{Pooling and receptive fields}
+
+Max pooling reports the largest value in each local window; average pooling
+reports the mean. Pooling reduces spatial resolution and can produce limited
+local invariance, but it also discards information. Strided convolution is an
+alternative learned downsampling mechanism.
+
+The \emph{receptive field} of a unit is the region of the original input that
+can influence it. Two stride-one $3\times3$ convolutions yield a $5\times5$
+effective field; three yield $7\times7$. In general, if layer $\ell$ has
+kernel $k_\ell$ and stride $s_\ell$, define the jump between adjacent units in
+input coordinates by
+\[
+ j_0=1,
+ \qquad j_\ell=j_{\ell-1}s_\ell,
+\]
+and receptive-field width by
+\[
+ r_0=1,
+ \qquad r_\ell=r_{\ell-1}+(k_\ell-1)j_{\ell-1}.
+\]
+This recurrence exposes why pooling and stride make the field grow faster.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  stage/.style={draw=RiceBlue, rounded corners=1.5mm, minimum height=15mm,
+    minimum width=19mm, align=center, font=\small},
+  arrow/.style={-{Latex[length=2mm]}, thick, RiceBlue},
+  node distance=4mm
+]
+\node[stage, fill=RiceBlue!10] (input) {image\\$28\times28\times1$};
+\node[stage, fill=RiceGreen!15, right=of input] (conv1)
+  {$3\times3$ conv\\16 maps};
+\node[stage, fill=RiceGold!20, right=of conv1] (pool1)
+  {$2\times2$ pool\\downsample};
+\node[stage, fill=RiceGreen!15, right=of pool1] (conv2)
+  {$3\times3$ conv\\32 maps};
+\node[stage, fill=RiceGold!20, right=of conv2] (pool2)
+  {$2\times2$ pool\\downsample};
+\node[stage, fill=RiceBlue!10, right=of pool2] (head)
+  {dense head\\10 logits};
+\foreach \a/\b in {input/conv1,conv1/pool1,pool1/conv2,conv2/pool2,pool2/head}
+  \draw[arrow] (\a) -- (\b);
+\node[below=7mm of conv1, align=center, font=\scriptsize]
+  {local shared detectors};
+\node[below=7mm of conv2, align=center, font=\scriptsize]
+  {larger effective field};
+\node[below=7mm of head, align=center, font=\scriptsize]
+  {task decision};
+\end{tikzpicture}
+\caption{A small convolutional classifier gradually trades spatial resolution
+for more learned channels and a wider effective receptive field. Exact shapes
+must be computed rather than inferred from the drawing.}
+\label{fig:cnn-shape-story}
+\end{figure}
+
+\conceptcheck{A $28\times28$ input receives a $5\times5$ valid convolution
+with stride two. Compute the output side length. Then compute the parameter
+count for 16 filters when the input has one channel and when it has three.}
+
+\section{From MNIST to cats and dogs}
+
+MNIST is valuable because the data and computation are bounded. It is not a
+template for every image claim. A real cats-versus-dogs study introduces
+nuisance variables: backgrounds, photographers, compression, duplicate
+animals, breed distribution, pose, occlusion, and label ambiguity. A model may
+appear accurate after learning grass versus furniture.
+
+A defensible pathway is:
+
+\begin{enumerate}
+  \item record source, license, checksum, and stable sample identifier;
+  \item identify the independent sampling unit---preferably animal rather than
+  image---and split groups before augmentation;
+  \item validate decoding, shape, channel order, label vocabulary, and
+  duplicates;
+  \item establish a small CNN baseline under a bounded budget;
+  \item compare transfer learning under the same split and selection rule;
+  \item inspect confusion counts, per-class metrics, confidence, subgroup
+  slices, and representative errors; and
+  \item save and reload the selected artifact before reporting final test
+  evidence.
+\end{enumerate}
+
+The official TensorFlow transfer-learning tutorial provides a reproducible
+starting point for the mechanics.\footnote{TensorFlow, ``Transfer learning and
+fine-tuning,''
+\url{https://www.tensorflow.org/tutorials/images/transfer_learning}.} The
+course notebook uses a tiny programmatic image fixture only to explain kernels.
+It never presents the fixture as evidence about animal classification and does
+not make CI depend on a large network download.
+
+\begin{professionalbox}
+Augmentation belongs inside the training boundary. Apply only transformations
+that preserve the label in the intended operating domain. Never augment first
+and then split: near-duplicate transformed images can leak across partitions.
+Record the transform distribution because it is part of the model specification.
+\end{professionalbox}
+
+\section{Observable training}
+
+Training is a running software process. When it behaves unexpectedly, a final
+accuracy number cannot explain whether the failure came from data, numerical
+optimization, the device pipeline, or the evaluation contract. Observability
+provides structured evidence.
+
+Python logging and TensorBoard serve complementary purposes:
+
+\begin{description}
+  \item[Application logs] record discrete events and context: configuration
+  identity, data counts, warnings, exceptions, checkpoint paths, and final
+  artifact identity.
+  \item[TensorBoard summaries] record measurements indexed by step or time:
+  losses, task metrics, learning rate, distributions, images, and selected
+  performance traces.
+\end{description}
+
+Useful measurements have a diagnostic question attached:
+
+\begin{center}
+\begin{tabular}{p{.20\textwidth}p{.68\textwidth}}
+\toprule
+Boundary & Evidence to record \\
+\midrule
+Optimization & training loss, learning rate, gradient norm, nonfinite count \\
+Generalization & validation loss, task metrics, train--validation gap \\
+Data & class counts, corrupt records, observed ranges, augmentation rate \\
+System & batch latency, examples per second, device/memory use when profiled \\
+Release & frozen-test metrics, artifact hash, reload result, inference latency \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Metrics create overhead and risk. Histograms are larger than scalars;
+profiling can materially slow execution; images can reveal private data; and
+high-cardinality identifiers make logs expensive and difficult to aggregate.
+Collect the least evidence that answers a defined diagnostic question.
+
+\begin{workedexample}{diagnosing overfitting rather than naming it}
+Training accuracy rises from $0.91$ to $0.999$, while validation loss reaches a
+minimum in epoch four and then rises. TensorBoard makes the divergence visible,
+but it does not prescribe a remedy. The team first verifies that the split unit
+and preprocessing boundary are correct. It restores the epoch-four checkpoint,
+compares class-specific errors, and repeats the experiment across seeds. Only
+then does it evaluate regularization, augmentation, model capacity, or more
+representative data. The plot begins an investigation; it does not complete one.
+\end{workedexample}
+
+The Keras TensorBoard callback writes event data at selected lifecycle points.
+The normal full-MNIST route attaches this callback and records epoch-level loss
+and accuracy for training and validation. The CI route deliberately attaches
+no TensorBoard callback: it checks that the dependency and log-directory
+configuration exist, but avoids creating an event writer whose startup and
+filesystem costs could dominate a one-epoch smoke test. Different execution
+budgets are legitimate only when their purposes and evidence claims remain
+explicit.
+The local viewer is launched from the repository root with
+\begin{center}
+\texttt{uv run tensorboard --logdir output/tensorboard/lecture-12 --port 6006}.
+\end{center}
+The viewer should bind locally unless exposure is explicitly authorized. Stop
+it with \texttt{Ctrl+C}. A different port resolves a local collision. The
+official Keras guide documents the callback and managed training lifecycle.\footnote{
+TensorFlow, ``Training \& evaluation with the built-in methods,''
+\url{https://www.tensorflow.org/guide/keras/training_with_built_in_methods}.}
+
+\section{Debugging framework experiments}
+
+Several failures recur often enough to treat them as tests:
+
+\begin{enumerate}
+  \item \textbf{Wrong kernel.} Installation succeeded in one interpreter but
+  the notebook kernel points elsewhere. Inspect \texttt{sys.executable} and
+  select Rice DSM.
+  \item \textbf{Wrong rank or channel order.} Assert batch shapes at the data
+  boundary and after the first batch.
+  \item \textbf{Loss/output mismatch.} Test that a logits loss receives logits,
+  and that sparse versus one-hot target encoding matches the selected loss.
+  \item \textbf{Training/evaluation mode mismatch.} Dropout and batch
+  normalization behave differently by mode. Reload in a fresh process and
+  test inference explicitly.
+  \item \textbf{Leakage.} Test the group split and ensure normalization or
+  augmentation state is fitted only within the training boundary.
+  \item \textbf{Empty telemetry.} Verify that the callback log directory and
+  TensorBoard command resolve to the same absolute location.
+  \item \textbf{Nondeterministic evidence.} Record seeds and deterministic
+  options, then report variation across repeats rather than promising bitwise
+  identity across all hardware.
+\end{enumerate}
+
+\begin{misconceptionbox}
+A high validation accuracy is not an observability strategy. Validation
+accuracy summarizes one outcome on one partition. Logs and telemetry help
+explain the process that produced it; class-specific and operational evidence
+determine whether it is fit for a decision.
+\end{misconceptionbox}
+
+\section{Exercises}
+\begin{enumerate}
+  \item Draw the framework stack in Figure~\ref{fig:tensorflow-stack} from
+  memory and give one failure that belongs at each boundary.
+  \item Derive the gradient of softmax cross-entropy with respect to each
+  logit. Explain why a fused implementation is numerically preferable.
+  \item Calculate every intermediate shape and parameter count in
+  Figure~\ref{fig:cnn-shape-story} under valid and same padding.
+  \item Prove the receptive-field recurrence and apply it to two
+  convolution--pool blocks.
+  \item Construct a $3\times3$ vertical-edge kernel and perform one complete
+  patch calculation by hand. Explain why the operation is cross-correlation.
+  \item Design a test that catches sparse versus one-hot loss mismatch before
+  training begins.
+  \item Compare a dense MNIST baseline with a small CNN under the same budget.
+  Report parameter count, seed variation, error pairs, and runtime as well as
+  accuracy.
+  \item Design a group-aware cats-versus-dogs manifest. State which fields
+  protect against duplication and leakage.
+  \item Select no more than eight TensorBoard measurements for an MNIST run.
+  For each, state the failure hypothesis it helps test.
+  \item Extend the experiment to Fashion-MNIST. Frame a question about visual
+  ambiguity between garment classes, then write a model-card limitation based
+  on observed errors.
+\end{enumerate}
+
+\begin{chapterreview}
+TensorFlow supplies tensor execution, mutable variables, automatic
+differentiation, and optimized device kernels. Keras organizes these
+capabilities into layers, models, objectives, optimizers, metrics, callbacks,
+and a managed lifecycle. Concise framework code does not make the modeling
+argument concise: shapes, label semantics, split boundaries, checkpoints, and
+artifacts remain explicit contracts. Convolution fits image data by combining
+local connectivity with parameter sharing. Channels represent learned feature
+maps, stride and padding determine spatial shape, pooling downsamples, and
+composition expands receptive fields. Python logging and TensorBoard make a
+running experiment diagnosable when each measurement is tied to a concrete
+question. They supplement rather than replace held-out decision evidence.
+\end{chapterreview}
+
+\begin{notebooklink}
+Lecture 12 notebook 03 introduces the TensorFlow/Keras API, verifies automatic
+differentiation against a hand calculation, and downloads the full official
+MNIST dataset through Keras for the normal student analysis. CI explicitly
+selects the repository's bounded authentic-MNIST sample as a software smoke
+test. The notebook visualizes convolution mechanics, gives exact local
+TensorBoard commands, and develops a real-data cats-versus-dogs extension with
+provenance, licensing, and group-aware splitting requirements.
+\end{notebooklink}

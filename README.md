@@ -174,6 +174,21 @@ environment as the **Rice DSM** notebook kernel. Open a notebook in VS Code and
 select that kernel. The repository recommends Microsoft's Python and Jupyter
 extensions when the folder first opens.
 
+## One-command refresh after updates to main
+
+Once this version is installed, instructors and students can update a clean
+local `main`, synchronize the exact environment, verify the teaching data and
+package, and repair the VS Code kernel with the same command in macOS/Linux
+terminals and Windows PowerShell:
+
+```bash
+uv run --locked python scripts/refresh_course.py
+```
+
+The command fails safely rather than overwriting work: it must be run on
+`main` with no uncommitted changes. It uses `upstream/main` when an `upstream`
+remote exists (the usual fork workflow), otherwise `origin/main`.
+
 Run the automated package checks with:
 
 ```bash
@@ -321,15 +336,17 @@ empirical evidence.
 | 9 | ML history and branches, the supervised contract, and a complete linear-regression pipeline | [`lecture-09-supervised-learning-systems`](notebooks/lecture-09-supervised-learning-systems/) |
 | 10 | Gradient methods from calculus and curvature to a linear neuron | [`lecture-10-linear-regression-regularization`](notebooks/lecture-10-linear-regression-regularization/) |
 | 11 | Classification, calibration, and decision policies | [`lecture-11-classification-decisions`](notebooks/lecture-11-classification-decisions/) |
-| 12 | Learning APIs, literal neurons, backpropagation, and autodiff | [`lecture-12-neural-networks-autodiff`](notebooks/lecture-12-neural-networks-autodiff/) |
+| 12 | Neural-network foundations, from-scratch MNIST, TensorFlow/CNNs, TensorBoard, and sentiment analysis | [`lecture-12-neural-networks-autodiff`](notebooks/lecture-12-neural-networks-autodiff/) |
 | 13 | Nearest neighbors, margins, and kernels | [`lecture-13-geometric-learning`](notebooks/lecture-13-geometric-learning/) |
 | 14 | Decision trees, pruning, and stability | [`lecture-14-decision-trees`](notebooks/lecture-14-decision-trees/) |
 | 15 | Bagging, forests, boosting, voting, and stacking | [`lecture-15-ensemble-learning`](notebooks/lecture-15-ensemble-learning/) |
 | 16 | Model selection, uncertainty, and promotion | [`lecture-16-model-selection-evaluation`](notebooks/lecture-16-model-selection-evaluation/) |
 | 17 | Reliable release, monitoring, outcomes, and retraining | [`lecture-17-reliable-supervised-systems`](notebooks/lecture-17-reliable-supervised-systems/) |
 
-Each directory contains its unit contract, planned sequence, and a CI-executable
-entry notebook. Units 9 and 10 now begin with full laboratories covering the ML
+Each directory contains its unit contract, planned sequence, and CI-executable
+notebooks. An instructional unit may span more than one in-person meeting;
+Lecture 12 deliberately moves from inspectable mathematics to framework-scale
+vision and language workflows. Units 9 and 10 begin with full laboratories covering the ML
 landscape, an honest regression pipeline, and gradient descent from scalar
 functions to a linear neuron. Their history, derivations, scientific
 applications, and systems implications are developed together. Remaining entry

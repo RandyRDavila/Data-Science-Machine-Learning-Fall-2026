@@ -21,6 +21,21 @@ uv run python scripts/setup_course.py
 Open a notebook and select the \textbf{Rice DSM} kernel. The setup command does
 not launch JupyterLab.
 
+\section{One-command refresh after main changes}
+
+After the initial setup, use the same command in macOS or Linux shells and in
+Windows PowerShell:
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv run --locked python scripts/refresh_course.py
+\end{lstlisting}
+
+On a clean local \code{main}, this command fast-forwards from
+\code{upstream/main} when that remote exists and otherwise from
+\code{origin/main}. It then synchronizes the exact lockfile environment,
+verifies course resources, and repairs the Rice DSM kernel. It refuses to run
+on another branch or over uncommitted work.
+
 \section{Verify the active notebook process}
 
 \begin{lstlisting}

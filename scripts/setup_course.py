@@ -7,6 +7,7 @@ Run this script through the project environment after ``uv sync``:
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import stat
@@ -125,8 +126,17 @@ def verify_course_database(project_root: Path | None = None) -> Path:
     return database_path
 
 
-def install_course_kernel() -> None:
-    """Install a named kernelspec inside the current virtual environment."""
+def install_course_kernel(project_root: Path | None = None) -> Path:
+    """Install a named kernelspec with an explicit course-source contract.
+
+    The editable installation and ``sitecustomize`` remain the ordinary import
+    mechanisms. The kernelspec environment is a final, visible safeguard for
+    VS Code and Jupyter clients that retain a stale working directory or ignore
+    an editable-install path file.
+    """
+
+    if project_root is None:
+        project_root = Path(__file__).resolve().parents[1]
 
     command = [
         sys.executable,
@@ -141,6 +151,24 @@ def install_course_kernel() -> None:
         KERNEL_DISPLAY_NAME,
     ]
     subprocess.run(command, check=True)
+    kernel_file = (
+        Path(sys.prefix) / "share" / "jupyter" / "kernels" / KERNEL_NAME / "kernel.json"
+    )
+    if not kernel_file.is_file():
+        raise RuntimeError(f"Kernel installation did not create {kernel_file}")
+
+    kernel = json.loads(kernel_file.read_text())
+    # Preserve the .venv path rather than resolving its interpreter symlink.
+    # Executing the resolved uv-managed base interpreter can lose pyvenv.cfg
+    # discovery and therefore the environment's installed dependencies.
+    kernel["argv"][0] = sys.executable
+    kernel["env"] = {
+        **kernel.get("env", {}),
+        "PYTHONPATH": str((project_root / "src").resolve()),
+        "RICE_DSM_PROJECT_ROOT": str(project_root.resolve()),
+    }
+    kernel_file.write_text(f"{json.dumps(kernel, indent=2)}\n")
+    return kernel_file
 
 
 def main() -> None:
@@ -161,7 +189,9 @@ def main() -> None:
 
     verify_course_package()
     verify_course_database()
-    install_course_kernel()
+    kernel_file = install_course_kernel()
+    print("Registered notebook kernel:", kernel_file)
+    print("Kernel Python executable:", sys.executable)
     print(
         "Course setup complete. Open a notebook in VS Code and select the "
         f"{KERNEL_DISPLAY_NAME!r} kernel."

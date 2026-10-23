@@ -14,13 +14,14 @@ announcement names it. Do not create empty substitutes for planned notebooks.
 
 ## Before each unit
 
-1. Update an unchanged local `main` branch with `git pull --ff-only`.
-2. Run `uv run python scripts/setup_course.py` from the repository root.
-3. Read the matching textbook chapter or chapters and the unit `README.md`.
-4. Open the assigned notebook in VS Code and select the **Rice DSM** kernel.
-5. Confirm that `data/course_datasets.sqlite` exists; inspect
+1. On a clean local `main`, run `uv run --locked python scripts/refresh_course.py`.
+   This single cross-platform command fast-forwards main, synchronizes the
+   locked environment, verifies course data, and repairs the Rice DSM kernel.
+2. Read the matching textbook chapter or chapters and the unit `README.md`.
+3. Open the assigned notebook in VS Code and select the **Rice DSM** kernel.
+4. Confirm that `data/course_datasets.sqlite` exists; inspect
    `dataset_catalog` before querying an observation table.
-6. Record the prediction population, information boundary, target or scientific
+5. Record the prediction population, information boundary, target or scientific
    quantity, and evidence claim before fitting a model.
 
 ## Completion evidence

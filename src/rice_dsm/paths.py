@@ -7,6 +7,7 @@ from pathlib import Path
 
 PROJECT_NAME = "rice-dsm"
 COURSE_DATABASE = Path("data/course_datasets.sqlite")
+MNIST_TEACHING_SAMPLE = Path("data/mnist_teaching_sample.npz")
 
 
 def _is_project_root(candidate: Path) -> bool:
@@ -82,3 +83,20 @@ def course_database_path(start: Path | str | None = None) -> Path:
             "`uv run python scripts/build_course_database.py`."
         )
     return database_path
+
+
+def mnist_teaching_sample_path(start: Path | str | None = None) -> Path:
+    """Return the absolute path to the bounded, versioned MNIST sample.
+
+    Resolving this artifact through the repository root keeps Lecture 12
+    independent of the directory from which VS Code starts a notebook kernel.
+    """
+
+    sample_path = find_project_root(start) / MNIST_TEACHING_SAMPLE
+    if not sample_path.is_file():
+        raise FileNotFoundError(
+            f"Missing MNIST teaching sample: {sample_path}. Restore the tracked "
+            "file with Git or rebuild it from an upstream mnist.npz with "
+            "`uv run python scripts/build_mnist_teaching_sample.py /path/to/mnist.npz`."
+        )
+    return sample_path

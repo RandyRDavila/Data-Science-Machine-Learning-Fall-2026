@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [{ name = "Randy Davila" }]
 dependencies = [
+    "ai-edge-litert>=2.3,<2.4",
     "boto3>=1.43.83",
     "duckdb>=1.5.5",
     "fastapi>=0.141.1",
@@ -33,6 +34,8 @@ dependencies = [
     "scikit-learn>=1.9.1",
     "seaborn>=0.13.2",
     "sqlalchemy>=2.0.52",
+    "tensorboard>=2.21,<2.22",
+    "tensorflow>=2.21,<2.22",
     "uvicorn>=0.52.4",
 ]
 

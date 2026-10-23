@@ -131,6 +131,8 @@ def test_rice_dsm_kernel_uses_project_environment() -> None:
 
     assert kernel["display_name"] == "Rice DSM"
     assert kernel_executable.is_relative_to(Path(sys.prefix))
+    assert kernel["env"]["PYTHONPATH"] == str(SOURCE_DIRECTORY)
+    assert kernel["env"]["RICE_DSM_PROJECT_ROOT"] == str(PROJECT_ROOT)
     assert "-m" in kernel["argv"]
     module_flag = kernel["argv"].index("-m")
     assert kernel["argv"][module_flag + 1] == "ipykernel_launcher"

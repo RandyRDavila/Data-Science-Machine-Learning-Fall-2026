@@ -7,6 +7,11 @@ import pytest
 
 PROJECT_ROOT = Path(__file__).parents[1]
 NOTEBOOKS = sorted((PROJECT_ROOT / "notebooks").glob("lecture-*/*.ipynb"))
+LECTURE_12_NOTEBOOKS = sorted(
+    (PROJECT_ROOT / "notebooks" / "lecture-12-neural-networks-autodiff").glob(
+        "*.ipynb"
+    )
+)
 
 
 def standardized_notebooks() -> list[Path]:
@@ -24,6 +29,53 @@ STANDARDIZED_NOTEBOOKS = standardized_notebooks()
 
 def test_at_least_one_notebook_adopts_the_teaching_standard() -> None:
     assert STANDARDIZED_NOTEBOOKS
+
+
+@pytest.mark.parametrize(
+    "notebook_path", LECTURE_12_NOTEBOOKS, ids=lambda path: path.name
+)
+def test_lecture_12_notebooks_pin_and_diagnose_the_course_kernel(
+    notebook_path: Path,
+) -> None:
+    """Every neural-network lab should catch VS Code's stale-kernel failure."""
+
+    notebook = nbformat.read(notebook_path, as_version=4)
+    code = "\n".join(
+        cell.source for cell in notebook.cells if cell.cell_type == "code"
+    )
+
+    assert notebook.metadata.kernelspec.name == "rice-dsm"
+    assert notebook.metadata.kernelspec.display_name == "Rice DSM"
+    assert "sys.executable" in code
+    assert "sys.prefix" in code
+    assert "uv sync --locked" in code
+    assert "uv run python scripts/setup_course.py" in code
+
+
+def test_lecture_12_online_data_routes_are_real_and_ci_is_explicit() -> None:
+    """Scientific lessons must not silently substitute fixtures for real data."""
+
+    lecture_root = (
+        PROJECT_ROOT / "notebooks" / "lecture-12-neural-networks-autodiff"
+    )
+    vision = nbformat.read(
+        lecture_root / "03-tensorflow-cnn-tensorboard.ipynb", as_version=4
+    )
+    sentiment = nbformat.read(
+        lecture_root / "04-tensorflow-sentiment-analysis.ipynb", as_version=4
+    )
+    vision_code = "\n".join(
+        cell.source for cell in vision.cells if cell.cell_type == "code"
+    )
+    sentiment_code = "\n".join(
+        cell.source for cell in sentiment.cells if cell.cell_type == "code"
+    )
+
+    assert "tf.keras.datasets.mnist.load_data()" in vision_code
+    assert "RICE_DSM_RUNNING_NOTEBOOK_TESTS" in vision_code
+    assert "ai.stanford.edu/~amaas/data/sentiment" in sentiment_code
+    assert "keras.utils.get_file" in sentiment_code
+    assert "RICE_DSM_RUNNING_NOTEBOOK_TESTS" in sentiment_code
 
 
 @pytest.mark.parametrize(

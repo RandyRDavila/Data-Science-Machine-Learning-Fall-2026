@@ -27,6 +27,14 @@ their contracts.
 **Students:** begin with [`STUDENT_START_HERE.md`](STUDENT_START_HERE.md). It is
 the canonical setup, verification, weekly-workflow, and troubleshooting route.
 
+**Final project:** begin with the separate
+[`Data-Science-Machine-Learning-Project-Template`](https://github.com/RandyRDavila/Data-Science-Machine-Learning-Project-Template).
+Use GitHub's **Use this template** button to create one repository for your
+team; do not add final-project code directly to this course-materials
+repository. The template's README and `ASSIGNMENT.md` explain the expected
+scientific question, student-authored algorithms, applied notebooks, tests,
+service, monitoring, and pull-request workflow.
+
 ## Text and repository
 
 - `textbook/` develops definitions, arguments, examples, and exercises.
@@ -174,20 +182,30 @@ environment as the **Rice DSM** notebook kernel. Open a notebook in VS Code and
 select that kernel. The repository recommends Microsoft's Python and Jupyter
 extensions when the folder first opens.
 
-## One-command refresh after updates to main
+## Before each lecture: refresh a clean `main`
 
-Once this version is installed, instructors and students can update a clean
-local `main`, synchronize the exact environment, verify the teaching data and
-package, and repair the VS Code kernel with the same command in macOS/Linux
-terminals and Windows PowerShell:
+Open this repository's root folder in VS Code, then open its integrated
+terminal. Make sure you are on `main` and that VS Code's Source Control view
+shows no uncommitted files. Save unfinished work on its own branch before
+continuing; never delete work merely to make `main` clean.
+
+From that clean `main`, run this one command before lecture:
 
 ```bash
 uv run --locked python scripts/refresh_course.py
 ```
 
-The command fails safely rather than overwriting work: it must be run on
-`main` with no uncommitted changes. It uses `upstream/main` when an `upstream`
-remote exists (the usual fork workflow), otherwise `origin/main`.
+This is the same command in macOS and Linux terminals and in Windows
+PowerShell. It downloads the latest course revision, synchronizes the exact
+locked Python environment, verifies the teaching data and installed package,
+and repairs the **Rice DSM** VS Code notebook kernel. It does not launch
+JupyterLab.
+
+The command fails safely rather than overwriting work. If it reports that the
+current branch is not `main` or that files are uncommitted, stop and preserve
+that work on its branch before trying again. The refresher uses
+`upstream/main` when an `upstream` remote exists (the usual fork workflow),
+otherwise `origin/main`.
 
 Run the automated package checks with:
 

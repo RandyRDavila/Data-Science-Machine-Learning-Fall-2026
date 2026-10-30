@@ -42,13 +42,13 @@ Three paths must remain visible:
 | Unit | Core question | System contribution |
 | --- | --- | --- |
 | 9. Supervised learning systems | What exactly is being predicted, from what information, for whom, and when? | Prediction contract, leakage-safe split, baseline, and first vertical slice |
-| 10. Linear regression and regularization | What does an affine predictor estimate, and how do optimization and regularization change it? | Tested regression pipeline and diagnostics |
-| 11. Classification and decisions | How do scores, probabilities, thresholds, and costs become decisions? | Calibrated classifier with explicit decision policy |
-| 12. Geometric learning | When should similarity, distance, margin, or a kernel determine a prediction? | Geometry-aware preprocessing and latency contract |
-| 13. Decision trees | How can recursive partitions model interactions, and where do they become unstable? | Interpretable tree baseline with pruning evidence |
-| 14. Ensemble learning | How do diverse weak or unstable learners become a stronger system? | Forest, boosting, voting, and stacking comparison |
-| 15. Model selection and evaluation | Which candidate should be promoted, and how strong is the evidence? | Reproducible selection protocol and promotion gate |
-| 16. Neural networks and automatic differentiation | What does composition add beyond one affine unit, and what does autodiff actually compute? | Small tested neural model and versioned artifact |
+| 10. Gradient methods and linear regression | What does an affine predictor estimate, and how do first-order methods learn it? | Tested regression pipeline and optimizer diagnostics |
+| 11. Classification and decisions | How do scores, probabilities, margins, thresholds, and costs become decisions? | Calibrated classifier with explicit decision policy |
+| 12. Neural networks and automatic differentiation | What does composition add beyond one affine unit, and how do modern frameworks train it? | From-scratch and framework neural models with observability evidence |
+| 13. Nearest neighbors | When should local similarity determine classification, regression, or retrieval? | Tested kNN APIs, real-data evidence, recommender, and student-project handoff |
+| 14. Decision trees | How can recursive partitions model interactions, and where do they become unstable? | Interpretable tree baseline with pruning evidence |
+| 15. Ensemble learning | How do diverse weak or unstable learners become a stronger system? | Forest, boosting, voting, and stacking comparison |
+| 16. Model selection and evaluation | Which candidate should be promoted, and how strong is the evidence? | Reproducible selection protocol and promotion gate |
 | 17. Reliable supervised systems | How do training, prediction, and feedback remain coherent after release? | End-to-end capstone with monitoring and rollback |
 
 ## Pedagogical decisions

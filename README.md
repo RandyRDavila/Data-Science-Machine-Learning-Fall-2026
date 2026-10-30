@@ -86,7 +86,7 @@ service, monitoring, and pull-request workflow.
 │   ├── lecture-10-linear-regression-regularization/
 │   ├── lecture-11-classification-decisions/
 │   ├── lecture-12-neural-networks-autodiff/
-│   ├── lecture-13-geometric-learning/
+│   ├── lecture-13-nearest-neighbors/
 │   ├── lecture-14-decision-trees/
 │   ├── lecture-15-ensemble-learning/
 │   ├── lecture-16-model-selection-evaluation/
@@ -355,7 +355,7 @@ empirical evidence.
 | 10 | Gradient methods from calculus and curvature to a linear neuron | [`lecture-10-linear-regression-regularization`](notebooks/lecture-10-linear-regression-regularization/) |
 | 11 | Classification, calibration, and decision policies | [`lecture-11-classification-decisions`](notebooks/lecture-11-classification-decisions/) |
 | 12 | Neural-network foundations, from-scratch MNIST, TensorFlow/CNNs, TensorBoard, and sentiment analysis | [`lecture-12-neural-networks-autodiff`](notebooks/lecture-12-neural-networks-autodiff/) |
-| 13 | Nearest neighbors, margins, and kernels | [`lecture-13-geometric-learning`](notebooks/lecture-13-geometric-learning/) |
+| 13 | k-nearest neighbors for classification, regression, recommendation, and project engineering | [`lecture-13-nearest-neighbors`](notebooks/lecture-13-nearest-neighbors/) |
 | 14 | Decision trees, pruning, and stability | [`lecture-14-decision-trees`](notebooks/lecture-14-decision-trees/) |
 | 15 | Bagging, forests, boosting, voting, and stacking | [`lecture-15-ensemble-learning`](notebooks/lecture-15-ensemble-learning/) |
 | 16 | Model selection, uncertainty, and promotion | [`lecture-16-model-selection-evaluation`](notebooks/lecture-16-model-selection-evaluation/) |

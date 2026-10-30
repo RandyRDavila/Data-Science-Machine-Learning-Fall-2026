@@ -6,10 +6,11 @@ meeting may cover part of one unit or portions of several.
 
 ## Current availability
 
-Every Part II directory currently contains a released notebook 00 and a plan
-for later laboratories. Lecture 9 also contains released Notebook 01, the first
-complete supervised-learning pipeline. A notebook listed in a unit README is
-not assigned until the corresponding `.ipynb` file exists and the weekly
+Every Part II directory contains at least a released notebook 00. Lecture 9
+also contains the first complete supervised-learning pipeline, Lecture 12 has
+five released neural-network laboratories, and Lecture 13 has three released
+nearest-neighbor laboratories. A notebook listed in a unit README is not assigned until
+the corresponding `.ipynb` file exists and the weekly
 announcement names it. Do not create empty substitutes for planned notebooks.
 
 ## Before each unit
@@ -38,6 +39,13 @@ For every released notebook:
 The professional artifact in each unit README is part of the learning objective,
 not decorative paperwork. It makes the model's population, data, transformations,
 evaluation, decisions, resource assumptions, and release evidence reviewable.
+
+Lecture 13 additionally bridges the course package and the separate final
+project template. Students should reproduce the demonstrated boundary:
+full/local data under ignored `data/local/`, a lawful CI fixture under
+`data/fixtures/`, reusable algorithms under `src/`, behavior contracts under
+`tests/`, and a question-led notebook that imports rather than redefines the
+package.
 
 ## The cumulative system
 

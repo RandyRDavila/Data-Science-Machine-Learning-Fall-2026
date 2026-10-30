@@ -50,3 +50,34 @@ uv run python scripts/build_mnist_teaching_sample.py /path/to/mnist.npz
 MNIST originates from NIST handwriting data and was standardized by Yann
 LeCun, Corinna Cortes, and Christopher Burges. Consult the upstream MNIST page
 and original data terms before redistribution outside this teaching context.
+
+## MovieLens nearest-neighbor teaching subset
+
+`lecture_13_movielens/` contains authentic anonymized rating events from the
+GroupLens `ml-latest-small` development dataset. The deterministic subset keeps
+all 13,817 ratings for the 80 movies with the most ratings in the upstream
+archive. It supports Lecture 13's item-item collaborative-filtering laboratory
+without requiring a network connection during class or CI.
+
+The upstream archive is
+`https://files.grouplens.org/datasets/movielens/ml-latest-small.zip` and had
+SHA-256 digest
+`696d65a3dfceac7c45750ad32df2c259311949efec81f0f144fdfb91ebc9e436`
+when this subset was built. The committed files have these digests:
+
+- `movies.csv`: `3cc819c9d68059d980caad9e41a34bab90ff5309d42d258b87dddfff425e5c29`;
+- `ratings.csv`: `6f5bf8d4ef0e604197cdbd3771369fa7e0a32b140a7b272e7aa6aed92e3aa75c`.
+
+Rebuild from a reviewed copy of that archive with:
+
+```bash
+uv run python scripts/build_movielens_teaching_sample.py /path/to/ml-latest-small.zip
+```
+
+The selection deliberately overrepresents popular movies and is not a stable
+research benchmark. MovieLens permits research use and redistribution under
+the conditions in its bundled README, requires acknowledgement, disclaims
+fitness and correctness, and requires permission for commercial or
+revenue-bearing use. Read the current GroupLens terms before reuse. The source
+contains no demographics; a user identifier is anonymized but interaction
+history still deserves careful access, retention, and deletion boundaries.

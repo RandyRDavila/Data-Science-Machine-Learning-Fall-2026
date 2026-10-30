@@ -20,6 +20,12 @@ MOVIES_SHA256 = "3cc819c9d68059d980caad9e41a34bab90ff5309d42d258b87dddfff425e5c2
 RATINGS_SHA256 = "6f5bf8d4ef0e604197cdbd3771369fa7e0a32b140a7b272e7aa6aed92e3aa75c"
 
 
+def test_movielens_digests_have_a_cross_platform_line_ending_contract() -> None:
+    attributes = (PROJECT_ROOT / ".gitattributes").read_text(encoding="utf-8")
+
+    assert "data/lecture_13_movielens/*.csv text eol=lf" in attributes
+
+
 def test_versioned_movielens_subset_is_authentic_and_structurally_sound() -> None:
     data_directory = movielens_teaching_directory(PROJECT_ROOT)
     movies_path = data_directory / "movies.csv"

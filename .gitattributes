@@ -1,0 +1,3 @@
+# These teaching data files have published byte-level digests. Keep their
+# line endings identical on Windows, macOS, and Linux.
+data/lecture_13_movielens/*.csv text eol=lf

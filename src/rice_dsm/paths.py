@@ -8,6 +8,7 @@ from pathlib import Path
 PROJECT_NAME = "rice-dsm"
 COURSE_DATABASE = Path("data/course_datasets.sqlite")
 MNIST_TEACHING_SAMPLE = Path("data/mnist_teaching_sample.npz")
+MOVIELENS_TEACHING_DIRECTORY = Path("data/lecture_13_movielens")
 
 
 def _is_project_root(candidate: Path) -> bool:
@@ -100,3 +101,18 @@ def mnist_teaching_sample_path(start: Path | str | None = None) -> Path:
             "`uv run python scripts/build_mnist_teaching_sample.py /path/to/mnist.npz`."
         )
     return sample_path
+
+
+def movielens_teaching_directory(start: Path | str | None = None) -> Path:
+    """Return the directory containing the bounded MovieLens teaching subset."""
+
+    data_directory = find_project_root(start) / MOVIELENS_TEACHING_DIRECTORY
+    required_files = (data_directory / "ratings.csv", data_directory / "movies.csv")
+    if not all(path.is_file() for path in required_files):
+        raise FileNotFoundError(
+            f"Missing MovieLens teaching data in {data_directory}. Restore the "
+            "tracked files with Git or rebuild them from the official archive with "
+            "`uv run python scripts/build_movielens_teaching_sample.py "
+            "/path/to/ml-latest-small.zip`."
+        )
+    return data_directory

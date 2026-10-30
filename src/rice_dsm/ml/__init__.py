@@ -5,6 +5,12 @@ public interface, and verification plan have been reviewed.
 """
 
 from rice_dsm.ml.base import Clusterer, SupervisedPredictor, Transformer
+from rice_dsm.ml.neighbors import (
+    ItemKNNRecommender,
+    KNearestNeighborsClassifier,
+    KNearestNeighborsRegressor,
+    euclidean_distances,
+)
 from rice_dsm.ml.neural import (
     DenseLayer,
     Identity,
@@ -22,6 +28,9 @@ __all__ = [
     "Clusterer",
     "DenseLayer",
     "Identity",
+    "ItemKNNRecommender",
+    "KNearestNeighborsClassifier",
+    "KNearestNeighborsRegressor",
     "LinearSVM",
     "LogisticCrossEntropy",
     "MeanSquaredNetwork",
@@ -31,5 +40,6 @@ __all__ = [
     "SquaredErrorRegression",
     "SupervisedPredictor",
     "Transformer",
+    "euclidean_distances",
     "half_mean_squared_error",
 ]

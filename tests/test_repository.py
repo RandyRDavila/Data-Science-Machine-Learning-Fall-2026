@@ -40,7 +40,7 @@ NOTEBOOKS = sorted(
         "notebooks/lecture-10-linear-regression-regularization/README.md",
         "notebooks/lecture-11-classification-decisions/README.md",
         "notebooks/lecture-12-neural-networks-autodiff/README.md",
-        "notebooks/lecture-13-geometric-learning/README.md",
+        "notebooks/lecture-13-nearest-neighbors/README.md",
         "notebooks/lecture-14-decision-trees/README.md",
         "notebooks/lecture-15-ensemble-learning/README.md",
         "notebooks/lecture-16-model-selection-evaluation/README.md",

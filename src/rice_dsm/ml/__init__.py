@@ -23,10 +23,21 @@ from rice_dsm.ml.neural import (
     SquaredErrorRegression,
     half_mean_squared_error,
 )
+from rice_dsm.ml.trees import (
+    DecisionTreeClassifier,
+    DecisionTreeRegressor,
+    TreeNode,
+    entropy_impurity,
+    gini_impurity,
+    mean_squared_impurity,
+    plot_tree,
+)
 
 __all__ = [
     "Clusterer",
     "DenseLayer",
+    "DecisionTreeClassifier",
+    "DecisionTreeRegressor",
     "Identity",
     "ItemKNNRecommender",
     "KNearestNeighborsClassifier",
@@ -40,6 +51,11 @@ __all__ = [
     "SquaredErrorRegression",
     "SupervisedPredictor",
     "Transformer",
+    "TreeNode",
+    "entropy_impurity",
     "euclidean_distances",
+    "gini_impurity",
     "half_mean_squared_error",
+    "mean_squared_impurity",
+    "plot_tree",
 ]

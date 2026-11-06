@@ -92,7 +92,10 @@ def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
             "Lecture 13 notebook 01",
             "Lecture 13 notebook 02",
         ),
-        "15-decision-trees.tex": ("Lecture 14 notebook 00",),
+        "15-decision-trees.tex": (
+            "Lecture 14 notebook 00",
+            "Lecture 14 notebook 01",
+        ),
         "16-ensemble-learning.tex": ("Lecture 15 notebook 00",),
         "17-model-selection.tex": ("Lecture 16 notebook 00",),
         "19-reliable-supervised-systems.tex": ("Lecture 17 notebook 00",),
@@ -665,6 +668,24 @@ def test_opening_part_ii_chapters_use_theorems_proofs_and_measured_evidence() ->
         source = (CHAPTER_ROOT / filename).read_text(encoding="utf-8")
         for required_idea in required_ideas:
             assert required_idea in source, f"{filename} is missing {required_idea}"
+
+
+def test_tree_chapter_explains_impurity_visualizes_models_and_teaches_handoff() -> None:
+    chapter = (CHAPTER_ROOT / "15-decision-trees.tex").read_text(encoding="utf-8")
+
+    for required_idea in (
+        "probability of label disagreement",
+        "average label surprise in bits",
+        "majority-class error",
+        "expected remaining impurity",
+        "variance decomposition",
+        "tree-classification-regression-anatomy.pdf",
+        "Data-Science-Machine-Learning-Project-Template",
+        "YOUR-GITHUB-USERNAME/decision-trees",
+        "uv run ruff check src tests scripts",
+        "trusted implementation",
+    ):
+        assert required_idea in chapter
 
 
 def test_part_ii_figures_are_reproducible_from_the_course_database() -> None:

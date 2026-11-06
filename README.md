@@ -356,7 +356,7 @@ empirical evidence.
 | 11 | Classification, calibration, and decision policies | [`lecture-11-classification-decisions`](notebooks/lecture-11-classification-decisions/) |
 | 12 | Neural-network foundations, from-scratch MNIST, TensorFlow/CNNs, TensorBoard, and sentiment analysis | [`lecture-12-neural-networks-autodiff`](notebooks/lecture-12-neural-networks-autodiff/) |
 | 13 | k-nearest neighbors for classification, regression, recommendation, and project engineering | [`lecture-13-nearest-neighbors`](notebooks/lecture-13-nearest-neighbors/) |
-| 14 | Decision trees, pruning, and stability | [`lecture-14-decision-trees`](notebooks/lecture-14-decision-trees/) |
+| 14 | Classification and regression trees, pruning, stability, and project engineering | [`lecture-14-decision-trees`](notebooks/lecture-14-decision-trees/) |
 | 15 | Bagging, forests, boosting, voting, and stacking | [`lecture-15-ensemble-learning`](notebooks/lecture-15-ensemble-learning/) |
 | 16 | Model selection, uncertainty, and promotion | [`lecture-16-model-selection-evaluation`](notebooks/lecture-16-model-selection-evaluation/) |
 | 17 | Reliable release, monitoring, outcomes, and retraining | [`lecture-17-reliable-supervised-systems`](notebooks/lecture-17-reliable-supervised-systems/) |

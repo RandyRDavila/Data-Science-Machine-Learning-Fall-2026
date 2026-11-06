@@ -5,6 +5,7 @@ OUTPUT_DIR := ../output/pdf
 OUTPUT_PDF := $(OUTPUT_DIR)/data-science-machine-learning-textbook.pdf
 FIGURE_SCRIPT := figures/generate_part_ii_figures.py
 NEIGHBOR_FIGURE_SCRIPT := figures/generate_nearest_neighbor_figures.py
+TREE_FIGURE_SCRIPT := figures/generate_tree_figures.py
 BASE_FIGURES := figures/generated/learning-landscape.pdf \
 	figures/generated/supervised-evidence.pdf \
 	figures/generated/regression-geometry.pdf \
@@ -21,7 +22,10 @@ BASE_FIGURES := figures/generated/learning-landscape.pdf \
 NEIGHBOR_FIGURES := figures/generated/knn-local-aggregation.pdf \
 	figures/generated/knn-smoothing-dimensionality.pdf \
 	figures/generated/knn-recommender-system.pdf
-FIGURES := $(BASE_FIGURES) $(NEIGHBOR_FIGURES)
+TREE_FIGURES := figures/generated/tree-recursive-partition.pdf \
+	figures/generated/tree-regression-complexity.pdf \
+	figures/generated/tree-classification-regression-anatomy.pdf
+FIGURES := $(BASE_FIGURES) $(NEIGHBOR_FIGURES) $(TREE_FIGURES)
 
 .PHONY: all clean FORCE
 
@@ -37,6 +41,9 @@ $(BASE_FIGURES): $(FIGURE_SCRIPT) ../data/course_datasets.sqlite
 
 $(NEIGHBOR_FIGURES): $(NEIGHBOR_FIGURE_SCRIPT)
 	cd .. && uv run python textbook/$(NEIGHBOR_FIGURE_SCRIPT)
+
+$(TREE_FIGURES): $(TREE_FIGURE_SCRIPT) ../src/rice_dsm/ml/trees.py
+	cd .. && uv run python textbook/$(TREE_FIGURE_SCRIPT)
 
 FORCE:
 

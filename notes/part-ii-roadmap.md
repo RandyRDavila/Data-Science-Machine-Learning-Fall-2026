@@ -46,7 +46,7 @@ Three paths must remain visible:
 | 11. Classification and decisions | How do scores, probabilities, margins, thresholds, and costs become decisions? | Calibrated classifier with explicit decision policy |
 | 12. Neural networks and automatic differentiation | What does composition add beyond one affine unit, and how do modern frameworks train it? | From-scratch and framework neural models with observability evidence |
 | 13. Nearest neighbors | When should local similarity determine classification, regression, or retrieval? | Tested kNN APIs, real-data evidence, recommender, and student-project handoff |
-| 14. Decision trees | How can recursive partitions model interactions, and where do they become unstable? | Interpretable tree baseline with pruning evidence |
+| 14. Classification and regression trees | How can recursive partitions estimate class probabilities and local means, and where do they become unstable? | Tested tree package with classification decisions, regression residuals, pruning, and threshold evidence |
 | 15. Ensemble learning | How do diverse weak or unstable learners become a stronger system? | Forest, boosting, voting, and stacking comparison |
 | 16. Model selection and evaluation | Which candidate should be promoted, and how strong is the evidence? | Reproducible selection protocol and promotion gate |
 | 17. Reliable supervised systems | How do training, prediction, and feedback remain coherent after release? | End-to-end capstone with monitoring and rollback |

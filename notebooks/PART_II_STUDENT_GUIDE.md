@@ -8,9 +8,10 @@ meeting may cover part of one unit or portions of several.
 
 Every Part II directory contains at least a released notebook 00. Lecture 9
 also contains the first complete supervised-learning pipeline, Lecture 12 has
-five released neural-network laboratories, and Lecture 13 has three released
-nearest-neighbor laboratories. A notebook listed in a unit README is not assigned until
-the corresponding `.ipynb` file exists and the weekly
+five released neural-network laboratories, Lecture 13 has three released
+nearest-neighbor laboratories, and Lecture 14 has separate released
+classification-tree and regression-tree laboratories. A notebook listed in a
+unit README is not assigned until the corresponding `.ipynb` file exists and the weekly
 announcement names it. Do not create empty substitutes for planned notebooks.
 
 ## Before each unit
@@ -46,6 +47,11 @@ full/local data under ignored `data/local/`, a lawful CI fixture under
 `data/fixtures/`, reusable algorithms under `src/`, behavior contracts under
 `tests/`, and a question-led notebook that imports rather than redefines the
 package.
+
+Lecture 14 continues that project handoff. Both tree notebooks import a shared
+implementation from `src/`, pair it with analytic and failure tests, and show
+how classification and regression evidence differ without duplicating the
+algorithm inside the notebooks.
 
 ## The cumulative system
 

@@ -44,7 +44,10 @@ rice-dsm = "rice_dsm.cli:main"
 
 [dependency-groups]
 dev = [
-    "ipykernel>=6.29",
+    # Keep the VS Code teaching kernel on the stable pre-CurveZMQ stack.
+    # ipykernel 7 / jupyter-client 8.10 can fail the local readiness handshake.
+    "ipykernel>=6.29,<7",
+    "jupyter-client>=8.6,<8.7",
     "jupyterlab>=4.3",
     "nbclient>=0.10",
     "nbformat>=5.10",

@@ -5,6 +5,11 @@ public interface, and verification plan have been reviewed.
 """
 
 from rice_dsm.ml.base import Clusterer, SupervisedPredictor, Transformer
+from rice_dsm.ml.ensembles import (
+    RandomForestClassifier,
+    SquaredErrorGradientBoostingRegressor,
+    bootstrap_indices,
+)
 from rice_dsm.ml.neighbors import (
     ItemKNNRecommender,
     KNearestNeighborsClassifier,
@@ -46,12 +51,15 @@ __all__ = [
     "LogisticCrossEntropy",
     "MeanSquaredNetwork",
     "ReLU",
+    "RandomForestClassifier",
     "Sigmoid",
     "SingleNeuron",
     "SquaredErrorRegression",
+    "SquaredErrorGradientBoostingRegressor",
     "SupervisedPredictor",
     "Transformer",
     "TreeNode",
+    "bootstrap_indices",
     "entropy_impurity",
     "euclidean_distances",
     "gini_impurity",

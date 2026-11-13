@@ -9,8 +9,9 @@ meeting may cover part of one unit or portions of several.
 Every Part II directory contains at least a released notebook 00. Lecture 9
 also contains the first complete supervised-learning pipeline, Lecture 12 has
 five released neural-network laboratories, Lecture 13 has three released
-nearest-neighbor laboratories, and Lecture 14 has separate released
-classification-tree and regression-tree laboratories. A notebook listed in a
+nearest-neighbor laboratories, Lecture 14 has separate released classification-
+tree and regression-tree laboratories, and Lecture 15 has three released ensemble
+laboratories spanning forests, boosting, voting, and stacking. A notebook listed in a
 unit README is not assigned until the corresponding `.ipynb` file exists and the weekly
 announcement names it. Do not create empty substitutes for planned notebooks.
 
@@ -52,6 +53,12 @@ Lecture 14 continues that project handoff. Both tree notebooks import a shared
 implementation from `src/`, pair it with analytic and failure tests, and show
 how classification and regression evidence differ without duplicating the
 algorithm inside the notebooks.
+
+Lecture 15 extends that boundary from one model to systems of models. Students
+must preserve bootstrap and random-state contracts, construct stacking features
+out of fold, align probability columns by class, and justify the additional
+latency, memory, dependency, monitoring, and ownership burden before promoting
+an ensemble.
 
 ## The cumulative system
 

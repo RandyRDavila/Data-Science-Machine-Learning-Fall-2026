@@ -96,7 +96,11 @@ def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
             "Lecture 14 notebook 00",
             "Lecture 14 notebook 01",
         ),
-        "16-ensemble-learning.tex": ("Lecture 15 notebook 00",),
+        "16-ensemble-learning.tex": (
+            "Lecture 15 notebook 00",
+            "Lecture 15 notebook 01",
+            "Lecture 15 notebook 02",
+        ),
         "17-model-selection.tex": ("Lecture 16 notebook 00",),
         "19-reliable-supervised-systems.tex": ("Lecture 17 notebook 00",),
     }
@@ -686,6 +690,46 @@ def test_tree_chapter_explains_impurity_visualizes_models_and_teaches_handoff() 
         "trusted implementation",
     ):
         assert required_idea in chapter
+
+
+def test_ensemble_chapter_derives_mechanisms_and_visualizes_boundaries() -> None:
+    chapter = (CHAPTER_ROOT / "16-ensemble-learning.tex").read_text(encoding="utf-8")
+
+    for required_idea in (
+        "variance of an equally weighted correlated ensemble",
+        "approximately $63.2",
+        "Out-of-bag evidence",
+        "Probability aggregation is an interface contract",
+        "squared-error boosting fits residuals",
+        "Classification gradients",
+        "Leakage-safe out-of-fold stacking",
+        "champion--challenger",
+        "Software engineering contracts for ensembles",
+        "ensemble-correlation-variance.pdf",
+        "random-forest-mechanism.pdf",
+        "boosting-stagewise-correction.pdf",
+        "stacking-oof-boundary.pdf",
+    ):
+        assert required_idea in chapter
+
+    figure_root = TEXTBOOK_ROOT / "figures"
+    generator_source = (figure_root / "generate_ensemble_figures.py").read_text(
+        encoding="utf-8"
+    )
+    makefile = (TEXTBOOK_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "variance_correlation" in generator_source
+    assert "stacking_boundary" in generator_source
+    assert "generate_ensemble_figures.py" in makefile
+    for stem in (
+        "ensemble-correlation-variance",
+        "random-forest-mechanism",
+        "boosting-stagewise-correction",
+        "stacking-oof-boundary",
+    ):
+        for suffix in (".pdf", ".png"):
+            figure = figure_root / "generated" / f"{stem}{suffix}"
+            assert figure.is_file(), figure
+            assert figure.stat().st_size > 5_000, figure
 
 
 def test_part_ii_figures_are_reproducible_from_the_course_database() -> None:

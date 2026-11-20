@@ -7,7 +7,7 @@ structure, fitted artifact, validation evidence, and downstream claim.
 ## Before each unit
 
 1. Fully close running course notebooks and refresh a clean `main` with
-   `uv run --no-project --python 3.12.13 python scripts/refresh_course.py`.
+   `uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py`.
 2. Read the matching textbook chapter and lecture README.
 3. Inspect the data source, schema, ranges, missingness, and observation unit.
 4. State the unsupervised output and invariances before fitting anything.

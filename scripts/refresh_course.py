@@ -2,7 +2,7 @@
 
 Run from the repository root on macOS, Linux, or Windows:
 
-    uv run --no-project --python 3.12.13 python scripts/refresh_course.py
+    uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py
 
 The command intentionally refuses to change a dirty checkout or a non-main
 branch. It also runs outside ``.venv`` so a live or damaged environment can be
@@ -72,7 +72,7 @@ def main() -> None:
     if running_inside_environment:
         raise RuntimeError(
             "The refresh must run outside .venv so it can repair that environment "
-            "safely. Use: uv run --no-project --python 3.12.13 python "
+            "safely. Use: uv run --isolated --no-project --python 3.12.13 python "
             "scripts/refresh_course.py"
         )
 

@@ -27,7 +27,7 @@ After the initial setup, use the same command in macOS or Linux shells and in
 Windows PowerShell:
 
 \begin{lstlisting}[language=bash,numbers=none]
-uv run --no-project --python 3.12.13 python scripts/refresh_course.py
+uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py
 \end{lstlisting}
 
 On a clean local \code{main}, this command fast-forwards from
@@ -43,7 +43,7 @@ If the health check fails after VS Code is fully closed, rebuild only the
 generated environment:
 
 \begin{lstlisting}[language=bash,numbers=none]
-uv run --no-project --python 3.12.13 python scripts/refresh_course.py --repair
+uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py --repair
 \end{lstlisting}
 
 Inspect the environment without changing it:

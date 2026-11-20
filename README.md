@@ -193,7 +193,7 @@ continuing; never delete work merely to make `main` clean.
 From that clean `main`, run this one command before lecture:
 
 ```bash
-uv run --no-project --python 3.12.13 python scripts/refresh_course.py
+uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py
 ```
 
 This is the same command in macOS and Linux terminals and in Windows
@@ -214,7 +214,7 @@ If setup remains unhealthy after VS Code has been fully closed, request a
 bounded rebuild of the disposable environment:
 
 ```bash
-uv run --no-project --python 3.12.13 python scripts/refresh_course.py --repair
+uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py --repair
 ```
 
 Diagnose without changing the checkout or environment:

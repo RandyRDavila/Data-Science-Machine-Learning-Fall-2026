@@ -46,7 +46,7 @@ In VS Code, choose **Terminal -> New Terminal**. Confirm that the prompt is at
 the repository root, then run:
 
 ```text
-uv run --no-project --python 3.12.13 python scripts/refresh_course.py
+uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py
 ```
 
 A successful run ends with a message containing:
@@ -86,7 +86,7 @@ Before beginning new work, save contributions on their branch, return to a clean
 ```text
 git status
 git switch main
-uv run --no-project --python 3.12.13 python scripts/refresh_course.py
+uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py
 ```
 
 Then read the assigned lecture directory's `README.md`, open notebook 00, and
@@ -168,7 +168,7 @@ Do not reinstall arbitrary packages. If the doctor asks for a bounded rebuild,
 fully quit VS Code and run:
 
 ```text
-uv run --no-project --python 3.12.13 python scripts/refresh_course.py --repair
+uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py --repair
 ```
 
 This replaces only generated `.venv`; it does not remove notebooks, code, data,

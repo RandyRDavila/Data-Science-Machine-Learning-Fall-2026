@@ -12,7 +12,7 @@ software boundary.
 Before class, refresh a clean `main` from the repository root:
 
 ```bash
-uv run --locked python scripts/refresh_course.py
+uv run --no-project --python 3.12.13 python scripts/refresh_course.py
 ```
 
 Open the repository in VS Code, select the **Rice DSM** kernel, and run the

@@ -192,20 +192,38 @@ continuing; never delete work merely to make `main` clean.
 From that clean `main`, run this one command before lecture:
 
 ```bash
-uv run --locked python scripts/refresh_course.py
+uv run --no-project --python 3.12.13 python scripts/refresh_course.py
 ```
 
 This is the same command in macOS and Linux terminals and in Windows
-PowerShell. It downloads the latest course revision, synchronizes the exact
-locked Python environment, verifies the teaching data and installed package,
-and repairs the **Rice DSM** VS Code notebook kernel. It does not launch
-JupyterLab.
+PowerShell. The small bootstrap runs outside `.venv`, refuses to modify an
+environment owned by a live notebook kernel, downloads the latest course
+revision, and rebuilds `.venv` whenever its versioned runtime fingerprint has
+changed. It then launches the real **Rice DSM** kernel, verifies its interpreter
+and package source, and warms the scientific imports used in lecture. It does
+not launch JupyterLab.
 
 The command fails safely rather than overwriting work. If it reports that the
 current branch is not `main` or that files are uncommitted, stop and preserve
 that work on its branch before trying again. The refresher uses
 `upstream/main` when an `upstream` remote exists (the usual fork workflow),
 otherwise `origin/main`.
+
+If setup remains unhealthy after VS Code has been fully closed, request a
+bounded rebuild of the disposable environment:
+
+```bash
+uv run --no-project --python 3.12.13 python scripts/refresh_course.py --repair
+```
+
+Diagnose without changing the checkout or environment:
+
+```bash
+uv run --no-project --python 3.12.13 python scripts/course_doctor.py
+```
+
+Course source, notebooks, and student work are never stored in `.venv`; the
+repair operation replaces only that generated environment.
 
 Run the automated package checks with:
 

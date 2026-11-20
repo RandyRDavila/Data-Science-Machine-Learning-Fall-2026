@@ -28,6 +28,7 @@ NOTEBOOKS = sorted(
         "notebooks/TEACHING_NOTEBOOK_STANDARD.md",
         "notebooks/PROFESSIONAL_PRACTICES.md",
         "notebooks/PART_II_STUDENT_GUIDE.md",
+        "notebooks/PART_III_STUDENT_GUIDE.md",
         "notebooks/lecture-01-python-foundations/README.md",
         "notebooks/lecture-02-python-foundations-ii/README.md",
         "notebooks/lecture-03-projects-packages-testing/README.md",
@@ -43,8 +44,9 @@ NOTEBOOKS = sorted(
         "notebooks/lecture-13-nearest-neighbors/README.md",
         "notebooks/lecture-14-decision-trees/README.md",
         "notebooks/lecture-15-ensemble-learning/README.md",
-        "notebooks/lecture-16-model-selection-evaluation/README.md",
-        "notebooks/lecture-17-reliable-supervised-systems/README.md",
+        "notebooks/lecture-16-unsupervised-learning/README.md",
+        "notebooks/lecture-17-model-selection-evaluation/README.md",
+        "notebooks/lecture-18-reliable-supervised-systems/README.md",
         "notes/part-ii-roadmap.md",
         "supplementary-materials/computing-foundations/README.md",
         "supplementary-materials/computing-foundations/git-and-github-workflow.md",
@@ -117,7 +119,7 @@ def test_part_ii_routes_distinguish_released_from_planned_notebooks() -> None:
     assert "not assigned until" in guide
     assert "Completion evidence" in guide
 
-    for lecture_number in range(9, 18):
+    for lecture_number in [*range(9, 16), 17, 18]:
         lecture_directory = next(
             path
             for path in LECTURE_DIRECTORIES
@@ -129,6 +131,16 @@ def test_part_ii_routes_distinguish_released_from_planned_notebooks() -> None:
         assert "## Current student route" in lecture_readme
         assert "Part II student guide" in lecture_readme
         assert "remain" in lecture_readme or "are planned" in lecture_readme
+
+    part_iii = (
+        PROJECT_ROOT / "notebooks" / "PART_III_STUDENT_GUIDE.md"
+    ).read_text(encoding="utf-8")
+    lecture_16 = (
+        PROJECT_ROOT / "notebooks" / "lecture-16-unsupervised-learning" / "README.md"
+    ).read_text(encoding="utf-8")
+    assert "Part III student guide" in lecture_16
+    assert "Both notebooks are released" in lecture_16
+    assert "Evidence checklist" in part_iii
 
 
 @pytest.mark.parametrize(

@@ -29,6 +29,10 @@ transformers, and clusterers. Structural typing means an implementation earns
 compatibility by supplying the documented methods; it need not inherit from a
 framework superclass.
 
+`decomposition.py` supplies the first Part III implementation: an inspectable
+SVD-based principal-component projector with explicit centering, fitted-state,
+schema, reconstruction, and deterministic-sign contracts.
+
 The first common surface intentionally remains small:
 
 - supervised estimators implement `fit(features, targets)` and

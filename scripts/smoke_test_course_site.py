@@ -78,9 +78,11 @@ def verify_course_site(
         'id="part-iii"',
         'id="appendices"',
         "lecture-01-python-foundations",
-        "lecture-17-reliable-supervised-systems",
-        "#page=114",
-        "#page=144",
+        "lecture-16-unsupervised-learning",
+        "lecture-18-reliable-supervised-systems",
+        "#page=226",
+        "#page=240",
+        "#page=275",
     ):
         if marker not in course_map:
             raise RuntimeError("The deployed course map is incomplete.")

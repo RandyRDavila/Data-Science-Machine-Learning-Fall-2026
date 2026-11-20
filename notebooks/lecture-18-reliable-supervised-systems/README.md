@@ -1,4 +1,4 @@
-# Lecture 17: Reliable Supervised Learning Systems
+# Lecture 18: Reliable Supervised Learning Systems
 
 This Part II synthesis connects training, prediction, and feedback. The
 notebooks are live computational laboratories for the mathematical and

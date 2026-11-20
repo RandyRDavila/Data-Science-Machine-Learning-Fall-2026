@@ -7,6 +7,7 @@ FIGURE_SCRIPT := figures/generate_part_ii_figures.py
 NEIGHBOR_FIGURE_SCRIPT := figures/generate_nearest_neighbor_figures.py
 TREE_FIGURE_SCRIPT := figures/generate_tree_figures.py
 ENSEMBLE_FIGURE_SCRIPT := figures/generate_ensemble_figures.py
+UNSUPERVISED_FIGURE_SCRIPT := figures/generate_unsupervised_figures.py
 BASE_FIGURES := figures/generated/learning-landscape.pdf \
 	figures/generated/supervised-evidence.pdf \
 	figures/generated/regression-geometry.pdf \
@@ -30,7 +31,12 @@ ENSEMBLE_FIGURES := figures/generated/ensemble-correlation-variance.pdf \
 	figures/generated/random-forest-mechanism.pdf \
 	figures/generated/boosting-stagewise-correction.pdf \
 	figures/generated/stacking-oof-boundary.pdf
-FIGURES := $(BASE_FIGURES) $(NEIGHBOR_FIGURES) $(TREE_FIGURES) $(ENSEMBLE_FIGURES)
+UNSUPERVISED_FIGURES := figures/generated/unsupervised-task-map.pdf \
+	figures/generated/pca-projection-geometry.pdf \
+	figures/generated/pca-digits-reconstruction.pdf \
+	figures/generated/pca-supervised-tradeoff.pdf
+FIGURES := $(BASE_FIGURES) $(NEIGHBOR_FIGURES) $(TREE_FIGURES) $(ENSEMBLE_FIGURES) \
+	$(UNSUPERVISED_FIGURES)
 
 .PHONY: all clean FORCE
 
@@ -52,6 +58,9 @@ $(TREE_FIGURES): $(TREE_FIGURE_SCRIPT) ../src/rice_dsm/ml/trees.py
 
 $(ENSEMBLE_FIGURES): $(ENSEMBLE_FIGURE_SCRIPT)
 	cd .. && uv run python textbook/$(ENSEMBLE_FIGURE_SCRIPT)
+
+$(UNSUPERVISED_FIGURES): $(UNSUPERVISED_FIGURE_SCRIPT) ../data/course_datasets.sqlite
+	cd .. && uv run python textbook/$(UNSUPERVISED_FIGURE_SCRIPT)
 
 FORCE:
 

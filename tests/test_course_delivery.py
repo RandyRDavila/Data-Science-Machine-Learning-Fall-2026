@@ -143,10 +143,10 @@ def test_reviewed_site_source_has_accessible_static_structure() -> None:
     assert "course-map.html#part-i" in parser.links
     assert "course-map.html#part-ii" in parser.links
     assert "course-map.html#part-iii" in parser.links
-    assert "textbook/data-science-machine-learning-textbook.pdf#page=15" in (
+    assert "textbook/data-science-machine-learning-textbook.pdf#page=19" in (
         parser.links
     )
-    assert "textbook/data-science-machine-learning-textbook.pdf#page=79" in (
+    assert "textbook/data-science-machine-learning-textbook.pdf#page=83" in (
         parser.links
     )
     assert "instructor.html" in parser.links
@@ -164,15 +164,15 @@ def test_reviewed_site_source_has_accessible_static_structure() -> None:
         course_map.identifiers
     )
     assert course_map.script_count == 0
-    assert course_map_source.count("/tree/main/notebooks/lecture-") == 17
-    for lecture_number in range(1, 18):
+    assert course_map_source.count("/tree/main/notebooks/lecture-") == 18
+    for lecture_number in range(1, 19):
         marker = f"lecture-{lecture_number:02d}-"
         assert marker in course_map_source
         assert any(
             path.is_dir()
             for path in (PROJECT_ROOT / "notebooks").glob(f"{marker}*")
         )
-    for page in (15, 79, 114, 116, 134, 144):
+    for page in (19, 83, 226, 227, 233, 240, 242, 265, 275):
         assert (
             f"textbook/data-science-machine-learning-textbook.pdf#page={page}"
             in course_map.links

@@ -25,6 +25,9 @@ production-systems laboratory.
 
 Choose a normal local folder that you can write to. Avoid a temporary download
 directory, a read-only network drive, or an aggressively synchronized folder.
+On macOS, move Visual Studio Code into `/Applications` before launching it;
+running the downloaded application through App Translocation can destabilize
+extensions and their child processes.
 Open a terminal and run:
 
 ```text
@@ -43,7 +46,7 @@ In VS Code, choose **Terminal -> New Terminal**. Confirm that the prompt is at
 the repository root, then run:
 
 ```text
-uv run python scripts/setup_course.py
+uv run --no-project --python 3.12.13 python scripts/refresh_course.py
 ```
 
 A successful run ends with a message containing:
@@ -51,7 +54,7 @@ A successful run ends with a message containing:
 ```text
 Verified rice_dsm:
 Verified course database:
-Course setup complete. Open a notebook in VS Code and select the 'Rice DSM' kernel.
+Course setup complete. Runtime healthy. Open a notebook in VS Code and select the 'Rice DSM' kernel.
 ```
 
 The exact paths above those lines differ across Windows, macOS, and Linux. Open
@@ -77,13 +80,13 @@ uv run pytest -q
 
 ## The ordinary weekly workflow
 
-Before beginning new work:
+Before beginning new work, save contributions on their branch, return to a clean
+`main`, fully close running course notebooks, and run:
 
 ```text
 git status
 git switch main
-git pull --ff-only
-uv run python scripts/setup_course.py
+uv run --no-project --python 3.12.13 python scripts/refresh_course.py
 ```
 
 Then read the assigned lecture directory's `README.md`, open notebook 00, and
@@ -155,7 +158,21 @@ service.
 
 ## Diagnose by layer
 
-When something fails, do not reinstall everything immediately.
+When something fails, first run the read-only doctor:
+
+```text
+uv run --no-project --python 3.12.13 python scripts/course_doctor.py
+```
+
+Do not reinstall arbitrary packages. If the doctor asks for a bounded rebuild,
+fully quit VS Code and run:
+
+```text
+uv run --no-project --python 3.12.13 python scripts/refresh_course.py --repair
+```
+
+This replaces only generated `.venv`; it does not remove notebooks, code, data,
+branches, or commits. Diagnose by layer:
 
 1. **Location:** does the terminal contain `README.md`, `pyproject.toml`, and
    `notebooks/`?

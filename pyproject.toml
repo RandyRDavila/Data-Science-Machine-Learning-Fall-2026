@@ -58,6 +58,8 @@ dev = [
 
 [tool.uv]
 link-mode = "copy"
+python-preference = "only-managed"
+required-version = ">=0.10.9,<0.13"
 
 [tool.pytest.ini_options]
 addopts = "-ra"

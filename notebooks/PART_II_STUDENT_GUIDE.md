@@ -17,9 +17,11 @@ announcement names it. Do not create empty substitutes for planned notebooks.
 
 ## Before each unit
 
-1. On a clean local `main`, run `uv run --locked python scripts/refresh_course.py`.
-   This single cross-platform command fast-forwards main, synchronizes the
-   locked environment, verifies course data, and repairs the Rice DSM kernel.
+1. Fully close any running course notebooks. On a clean local `main`, run
+   `uv run --no-project --python 3.12.13 python scripts/refresh_course.py`.
+   This cross-platform bootstrap runs outside `.venv`, fast-forwards main,
+   safely synchronizes or replaces the versioned environment, and executes a
+   live Rice DSM kernel and scientific-import check.
 2. Read the matching textbook chapter or chapters and the unit `README.md`.
 3. Open the assigned notebook in VS Code and select the **Rice DSM** kernel.
 4. Confirm that `data/course_datasets.sqlite` exists; inspect

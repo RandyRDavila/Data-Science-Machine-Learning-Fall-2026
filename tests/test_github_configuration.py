@@ -203,7 +203,12 @@ def test_course_ci_avoids_duplicate_pr_runs_and_preserves_stable_gate() -> None:
         assert command in workflow_text
 
     assert "name: CI gate" in workflow_text
-    assert "needs: course-quality" in workflow_text
+    assert "runtime-upgrade" in workflow["jobs"]
+    assert workflow["jobs"]["ci-gate"]["needs"] == [
+        "course-quality",
+        "runtime-upgrade",
+    ]
+    assert "scripts/verify_runtime_upgrade.py" in workflow_text
 
 
 def test_privileged_labeler_never_executes_pull_request_code() -> None:

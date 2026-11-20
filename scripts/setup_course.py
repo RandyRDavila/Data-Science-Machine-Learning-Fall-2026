@@ -7,14 +7,33 @@ Run this script through the project environment after ``uv sync``:
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
+import shutil
 import sqlite3
 import stat
 import subprocess
 import sys
 import sysconfig
 from pathlib import Path
+
+try:
+    from scripts.course_runtime import (
+        runtime_contract,
+        runtime_matches,
+        verify_course_kernel_launch,
+        warm_scientific_imports,
+        write_runtime_stamp,
+    )
+except ModuleNotFoundError:  # Direct execution: python scripts/setup_course.py
+    from course_runtime import (  # type: ignore[no-redef]
+        runtime_contract,
+        runtime_matches,
+        verify_course_kernel_launch,
+        warm_scientific_imports,
+        write_runtime_stamp,
+    )
 
 KERNEL_NAME = "rice-dsm"
 KERNEL_DISPLAY_NAME = "Rice DSM"
@@ -172,7 +191,15 @@ def install_course_kernel(project_root: Path | None = None) -> Path:
 
 
 def main() -> None:
-    """Prepare startup paths, verify the import, and register the course kernel."""
+    """Prepare or inspect the complete executable course environment."""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="verify the installed runtime without changing its kernelspec",
+    )
+    arguments = parser.parse_args()
 
     if sys.prefix == sys.base_prefix:
         raise RuntimeError(
@@ -180,20 +207,59 @@ def main() -> None:
             "`uv run python scripts/setup_course.py`."
         )
 
-    customization_file = write_course_sitecustomize()
-    print("Registered course source path:", customization_file)
+    project_root = Path(__file__).resolve().parents[1]
+    uv_executable = shutil.which("uv")
+    if uv_executable is None:
+        raise RuntimeError("uv is not installed or is not available on PATH.")
+    contract = runtime_contract(project_root, uv_executable)
+    environment = Path(sys.prefix)
 
-    revealed = reveal_path_files_on_macos()
-    for path_file in revealed:
-        print("Enabled Python startup path:", path_file)
+    if arguments.check:
+        if not runtime_matches(project_root, contract, environment):
+            raise RuntimeError(
+                "The verified runtime fingerprint does not match the current "
+                "Python, uv, platform, and lockfile contract. Run refresh with "
+                "--repair."
+            )
+    else:
+        customization_file = write_course_sitecustomize(project_root)
+        print("Registered course source path:", customization_file)
+
+        revealed = reveal_path_files_on_macos()
+        for path_file in revealed:
+            print("Enabled Python startup path:", path_file)
 
     verify_course_package()
-    verify_course_database()
-    kernel_file = install_course_kernel()
-    print("Registered notebook kernel:", kernel_file)
+    verify_course_database(project_root)
+    if not arguments.check:
+        kernel_file = install_course_kernel(project_root)
+        print("Registered notebook kernel:", kernel_file)
+
     print("Kernel Python executable:", sys.executable)
+    print("Runtime versions:", contract["python"], contract["uv"])
+
+    probe = verify_course_kernel_launch(
+        project_root,
+        expected_environment=environment,
+    )
     print(
-        "Course setup complete. Open a notebook in VS Code and select the "
+        "Verified live Rice DSM kernel:",
+        probe["executable"],
+        f"({probe['startup_seconds']} s)",
+    )
+
+    timings = warm_scientific_imports()
+    print(
+        "Warmed scientific imports:",
+        ", ".join(f"{name}={seconds:.2f}s" for name, seconds in timings),
+    )
+
+    if not arguments.check:
+        stamp = write_runtime_stamp(project_root, contract, environment)
+        print("Recorded verified runtime:", stamp)
+    print(
+        "Course setup complete. Runtime healthy. Open a notebook in VS Code "
+        "and select the "
         f"{KERNEL_DISPLAY_NAME!r} kernel."
     )
 

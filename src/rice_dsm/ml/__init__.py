@@ -5,6 +5,7 @@ public interface, and verification plan have been reviewed.
 """
 
 from rice_dsm.ml.base import Clusterer, SupervisedPredictor, Transformer
+from rice_dsm.ml.decomposition import PrincipalComponentProjector
 from rice_dsm.ml.ensembles import (
     RandomForestClassifier,
     SquaredErrorGradientBoostingRegressor,
@@ -50,6 +51,7 @@ __all__ = [
     "LinearSVM",
     "LogisticCrossEntropy",
     "MeanSquaredNetwork",
+    "PrincipalComponentProjector",
     "ReLU",
     "RandomForestClassifier",
     "Sigmoid",

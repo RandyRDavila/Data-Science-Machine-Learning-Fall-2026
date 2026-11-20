@@ -1,4 +1,4 @@
-# Lecture 16: Model Selection and Evaluation
+# Lecture 17: Model Selection and Evaluation
 
 This unit asks what evidence justifies choosing one candidate over another.
 Cross-validation, nested evaluation, hyperparameter search, uncertainty, error

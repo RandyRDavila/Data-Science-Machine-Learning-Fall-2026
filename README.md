@@ -89,8 +89,9 @@ service, monitoring, and pull-request workflow.
 │   ├── lecture-13-nearest-neighbors/
 │   ├── lecture-14-decision-trees/
 │   ├── lecture-15-ensemble-learning/
-│   ├── lecture-16-model-selection-evaluation/
-│   ├── lecture-17-reliable-supervised-systems/
+│   ├── lecture-16-unsupervised-learning/
+│   ├── lecture-17-model-selection-evaluation/
+│   ├── lecture-18-reliable-supervised-systems/
 │   └── ...                    # One directory per instructional unit
 ├── src/
 │   └── rice_dsm/
@@ -376,8 +377,8 @@ empirical evidence.
 | 13 | k-nearest neighbors for classification, regression, recommendation, and project engineering | [`lecture-13-nearest-neighbors`](notebooks/lecture-13-nearest-neighbors/) |
 | 14 | Classification and regression trees, pruning, stability, and project engineering | [`lecture-14-decision-trees`](notebooks/lecture-14-decision-trees/) |
 | 15 | Bagging, forests, boosting, voting, and stacking | [`lecture-15-ensemble-learning`](notebooks/lecture-15-ensemble-learning/) |
-| 16 | Model selection, uncertainty, and promotion | [`lecture-16-model-selection-evaluation`](notebooks/lecture-16-model-selection-evaluation/) |
-| 17 | Reliable release, monitoring, outcomes, and retraining | [`lecture-17-reliable-supervised-systems`](notebooks/lecture-17-reliable-supervised-systems/) |
+| 17 | Model selection, uncertainty, and promotion | [`lecture-17-model-selection-evaluation`](notebooks/lecture-17-model-selection-evaluation/) |
+| 18 | Reliable release, monitoring, outcomes, and retraining | [`lecture-18-reliable-supervised-systems`](notebooks/lecture-18-reliable-supervised-systems/) |
 
 Each directory contains its unit contract, planned sequence, and CI-executable
 notebooks. An instructional unit may span more than one in-person meeting;
@@ -392,6 +393,26 @@ Part II mathematical and systems narrative.
 The [`Part II student guide`](notebooks/PART_II_STUDENT_GUIDE.md) distinguishes
 released work from planned notebooks and defines preparation and completion
 evidence for each unit.
+
+### Part III: Unsupervised Learning and Representation
+
+Part III asks what can be learned when a target is absent, withheld, or created
+from the observations themselves. It begins by separating clustering,
+dimensionality reduction, and graph/relational learning according to their
+mathematical outputs and validation claims. The first detailed method is PCA,
+derived both as maximum-variance projection and optimal linear low-rank
+reconstruction.
+
+| Unit | Topic | Executable entry point |
+| ---: | --- | --- |
+| 16 | Unsupervised-learning landscape; clustering, relational data, and PCA with a supervised KNN application | [`lecture-16-unsupervised-learning`](notebooks/lecture-16-unsupervised-learning/) |
+
+Lecture 16 uses real wine-chemistry and handwritten-digit observations from the
+course database. Its PCA comparison reports accuracy, retained dimension,
+reconstruction, and measured prediction cost; it does not claim that explained
+variance automatically implies predictive value.
+The [`Part III student guide`](notebooks/PART_III_STUDENT_GUIDE.md) defines the
+shared evidence and artifact contract for these units.
 
 ### Production monitoring laboratory
 

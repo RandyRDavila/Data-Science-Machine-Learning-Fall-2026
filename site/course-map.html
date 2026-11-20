@@ -44,7 +44,7 @@
             <p class="part-number">Part I · Chapters 1–9 · Lecture units 01–08</p>
             <h2 id="part-i-title">Foundations for Data-Driven Software Systems</h2>
           </div>
-          <a class="button button-primary" href="textbook/data-science-machine-learning-textbook.pdf#page=15">Read Part I</a>
+          <a class="button button-primary" href="textbook/data-science-machine-learning-textbook.pdf#page=19">Read Part I</a>
         </div>
 
         <div class="map-columns">
@@ -84,10 +84,10 @@
       <section id="part-ii" class="map-part map-part-accent" aria-labelledby="part-ii-title">
         <div class="map-part-heading">
           <div>
-            <p class="part-number">Part II · Chapters 10–20 · Lecture units 09–17</p>
+            <p class="part-number">Part II · Chapters 10–25 · Lecture units 09–15 and 17–18</p>
             <h2 id="part-ii-title">Supervised Learning Systems</h2>
           </div>
-          <a class="button button-primary" href="textbook/data-science-machine-learning-textbook.pdf#page=79">Read Part II</a>
+          <a class="button button-primary" href="textbook/data-science-machine-learning-textbook.pdf#page=83">Read Part II</a>
         </div>
 
         <div class="map-columns">
@@ -120,29 +120,37 @@
               <li><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-13-nearest-neighbors"><span>Nearest neighbors</span><small>Classification, regression, recommendation, tests, and project handoff</small></a></li>
               <li><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-14-decision-trees"><span>Classification and regression trees</span><small>Impurity, local means, pruning, stability, tests, and project handoff</small></a></li>
               <li><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-15-ensemble-learning"><span>Ensemble learning</span><small>Forests, boosting, stacking, and diversity</small></a></li>
-              <li><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-16-model-selection-evaluation"><span>Model selection and evaluation</span><small>Resampling, tuning, comparison, and honest estimates</small></a></li>
-              <li><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-17-reliable-supervised-systems"><span>Reliable supervised systems</span><small>Training, prediction, release, monitoring, and revision</small></a></li>
+              <li value="17"><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-17-model-selection-evaluation"><span>Model selection and evaluation</span><small>Resampling, tuning, comparison, and honest estimates</small></a></li>
+              <li><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-18-reliable-supervised-systems"><span>Reliable supervised systems</span><small>Training, prediction, release, monitoring, and revision</small></a></li>
             </ol>
           </div>
         </div>
       </section>
 
-      <section id="part-iii" class="map-part future-part" aria-labelledby="part-iii-title">
+      <section id="part-iii" class="map-part" aria-labelledby="part-iii-title">
         <div class="map-part-heading">
           <div>
-            <p class="part-number">Part III · In development</p>
-            <h2 id="part-iii-title">Unsupervised Learning Systems</h2>
+            <p class="part-number">Part III · Chapters 26–27 · Lecture unit 16</p>
+            <h2 id="part-iii-title">Unsupervised Learning and Representation</h2>
           </div>
-          <span class="status-label">Materials forthcoming</span>
+          <a class="button button-primary" href="textbook/data-science-machine-learning-textbook.pdf#page=226">Read Part III</a>
         </div>
-        <div class="future-part-content">
-          <p>Part III will study how data reveal structure when no target label is supplied. The emphasis will remain systemic: mathematical objectives, representation choices, validation without ordinary ground truth, scalable computation, and deployment consequences.</p>
-          <ul>
-            <li>Clustering and mixture-based views of latent structure</li>
-            <li>Dimensionality reduction, matrix factorization, and embeddings</li>
-            <li>Manifold, density, and anomaly-detection methods</li>
-            <li>Representation learning and applications to scientific discovery</li>
-          </ul>
+        <div class="map-grid">
+          <div class="map-column">
+            <h3>Textbook route</h3>
+            <p class="map-note">The opening chapters define the evidence contract, then derive PCA from covariance, projection, and low-rank reconstruction.</p>
+            <ol class="resource-list linked-list">
+              <li><a href="textbook/data-science-machine-learning-textbook.pdf#page=227"><span>Learning structure without targets</span><small>Clustering, dimensionality reduction, graphs, validation, and engineering</small></a></li>
+              <li><a href="textbook/data-science-machine-learning-textbook.pdf#page=233"><span>Principal component analysis</span><small>Eigenvectors, SVD, reconstruction, scaling, and supervised pipelines</small></a></li>
+            </ol>
+          </div>
+          <div class="map-column">
+            <h3>Lecture laboratory</h3>
+            <p class="map-note">Real wine chemistry and handwritten digits keep the mathematics tied to scientific evidence and measurable system behavior.</p>
+            <ol class="resource-list linked-list" start="16">
+              <li><a href="https://github.com/RandyRDavila/Data-Science-Machine-Learning-Fall-2026/tree/main/notebooks/lecture-16-unsupervised-learning"><span>Unsupervised learning and PCA</span><small>Structure without labels, relational data, PCA derivation, and PCA + KNN performance</small></a></li>
+            </ol>
+          </div>
         </div>
       </section>
 
@@ -153,22 +161,22 @@
           <p>These are working references: return to them while setting up tools, collaborating, interpreting automation, or checking terminology.</p>
         </div>
         <div class="appendix-grid">
-          <a href="textbook/data-science-machine-learning-textbook.pdf#page=114">
+          <a href="textbook/data-science-machine-learning-textbook.pdf#page=240">
             <span>Appendix A</span>
             <strong>Course setup reference</strong>
             <small>Environment setup, kernel verification, checks, builds, and first diagnostics</small>
           </a>
-          <a href="textbook/data-science-machine-learning-textbook.pdf#page=116">
+          <a href="textbook/data-science-machine-learning-textbook.pdf#page=242">
             <span>Appendix B</span>
             <strong>Git and GitHub</strong>
             <small>Evidence, collaboration, branches, pull requests, recovery, and worked lessons</small>
           </a>
-          <a href="textbook/data-science-machine-learning-textbook.pdf#page=134">
+          <a href="textbook/data-science-machine-learning-textbook.pdf#page=265">
             <span>Appendix C</span>
             <strong>CI/CD through this textbook</strong>
             <small>Integration, delivery, deployment, authority, diagnosis, and release</small>
           </a>
-          <a href="textbook/data-science-machine-learning-textbook.pdf#page=144">
+          <a href="textbook/data-science-machine-learning-textbook.pdf#page=275">
             <span>Appendix D</span>
             <strong>Course glossary</strong>
             <small>Working definitions for the mathematical, software, data, and operations vocabulary</small>

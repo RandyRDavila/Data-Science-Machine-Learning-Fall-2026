@@ -10,9 +10,11 @@ Every Part II directory contains at least a released notebook 00. Lecture 9
 also contains the first complete supervised-learning pipeline, Lecture 12 has
 five released neural-network laboratories, Lecture 13 has three released
 nearest-neighbor laboratories, Lecture 14 has separate released classification-
-tree and regression-tree laboratories, and Lecture 15 has three released ensemble
-laboratories spanning forests, boosting, voting, and stacking. A notebook listed in a
-unit README is not assigned until the corresponding `.ipynb` file exists and the weekly
+tree and regression-tree laboratories, and Lecture 15 has three released
+ensemble laboratories spanning forests, boosting, voting, and stacking.
+Cross-cutting model-selection and reliable-systems units now appear as Lectures
+17 and 18 so Lecture 16 can open Part III. A notebook listed in a unit README is
+not assigned until the corresponding `.ipynb` file exists and the weekly
 announcement names it. Do not create empty substitutes for planned notebooks.
 
 ## Before each unit

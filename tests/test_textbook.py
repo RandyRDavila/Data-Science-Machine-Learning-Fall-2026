@@ -42,10 +42,15 @@ PART_II_CHAPTERS = [
     CHAPTER_ROOT / "19-reliable-supervised-systems.tex",
 ]
 
-CONTENT_CHAPTERS = PART_I_CHAPTERS + PART_II_CHAPTERS
+PART_III_CHAPTERS = [
+    CHAPTER_ROOT / "20-unsupervised-learning.tex",
+    CHAPTER_ROOT / "21-principal-component-analysis.tex",
+]
+
+CONTENT_CHAPTERS = PART_I_CHAPTERS + PART_II_CHAPTERS + PART_III_CHAPTERS
 
 
-def test_main_source_includes_both_parts_in_order() -> None:
+def test_main_source_includes_all_parts_in_order() -> None:
     """The book should include every content chapter in numerical order."""
 
     source = MAIN_SOURCE.read_text()
@@ -59,6 +64,9 @@ def test_main_source_includes_both_parts_in_order() -> None:
         positions[0]
     )
     assert source.index(r"\part{Supervised Learning Systems}") < positions[8]
+    assert source.index(r"\part{Unsupervised Learning and Representation}") < (
+        positions[-2]
+    )
 
 
 def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
@@ -101,8 +109,10 @@ def test_textbook_companions_follow_the_lecture_unit_sequence() -> None:
             "Lecture 15 notebook 01",
             "Lecture 15 notebook 02",
         ),
-        "17-model-selection.tex": ("Lecture 16 notebook 00",),
-        "19-reliable-supervised-systems.tex": ("Lecture 17 notebook 00",),
+        "17-model-selection.tex": ("Lecture 17 notebook 00",),
+        "19-reliable-supervised-systems.tex": ("Lecture 18 notebook 00",),
+        "20-unsupervised-learning.tex": ("Lecture 16 notebook 00",),
+        "21-principal-component-analysis.tex": ("Lecture 16 notebook 01",),
     }
 
     for filename, required_links in expected_links.items():

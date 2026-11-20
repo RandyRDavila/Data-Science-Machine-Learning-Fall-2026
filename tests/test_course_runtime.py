@@ -49,22 +49,22 @@ def test_active_kernel_guard_identifies_only_this_checkout(
 ) -> None:
     project = make_project(tmp_path)
     own = str(project / ".venv" / "bin" / "python")
-    monkeypatch.setattr(
-        course_runtime,
-        "_posix_processes",
-        lambda: [
-            {
-                "pid": 41,
-                "age": "01:12",
-                "command": f"{own} -m ipykernel_launcher -f kernel.json",
-            },
-            {
-                "pid": 42,
-                "age": "00:03",
-                "command": "/another/.venv/bin/python -m ipykernel_launcher",
-            },
-        ],
-    )
+    processes = [
+        {
+            "pid": 41,
+            "age": "01:12",
+            "command": f"{own} -m ipykernel_launcher -f kernel.json",
+        },
+        {
+            "pid": 42,
+            "age": "00:03",
+            "command": "/another/.venv/bin/python -m ipykernel_launcher",
+        },
+    ]
+    # active_course_kernels selects a platform-specific process reader. Stub both
+    # readers so this behavioral test exercises the same contract on every CI OS.
+    monkeypatch.setattr(course_runtime, "_posix_processes", lambda: processes)
+    monkeypatch.setattr(course_runtime, "_windows_processes", lambda: processes)
 
     kernels = course_runtime.active_course_kernels(project)
 

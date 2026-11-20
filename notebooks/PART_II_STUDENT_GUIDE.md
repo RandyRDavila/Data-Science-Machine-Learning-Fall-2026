@@ -20,7 +20,7 @@ announcement names it. Do not create empty substitutes for planned notebooks.
 ## Before each unit
 
 1. Fully close any running course notebooks. On a clean local `main`, run
-   `uv run --no-project --python 3.12.13 python scripts/refresh_course.py`.
+   `uv run --isolated --no-project --python 3.12.13 python scripts/refresh_course.py`.
    This cross-platform bootstrap runs outside `.venv`, fast-forwards main,
    safely synchronizes or replaces the versioned environment, and executes a
    live Rice DSM kernel and scientific-import check.

@@ -18,6 +18,7 @@ def test_refresh_command_is_cross_platform_and_fail_safe() -> None:
         '"sync",',
         '"--locked",',
         '"--managed-python"',
+        "--isolated",
         "remove_project_environment",
         '"scripts" / "setup_course.py"',
         "Lecture-ready",
@@ -27,12 +28,18 @@ def test_refresh_command_is_cross_platform_and_fail_safe() -> None:
 
 def test_primary_guides_publish_the_same_one_command_refresh() -> None:
     command = (
-        "uv run --no-project --python 3.12.13 "
+        "uv run --isolated --no-project --python 3.12.13 "
         "python scripts/refresh_course.py"
     )
     guides = (
         PROJECT_ROOT / "README.md",
+        PROJECT_ROOT / "STUDENT_START_HERE.md",
         PROJECT_ROOT / "notebooks" / "PART_II_STUDENT_GUIDE.md",
+        PROJECT_ROOT / "notebooks" / "PART_III_STUDENT_GUIDE.md",
+        PROJECT_ROOT
+        / "notebooks"
+        / "lecture-16-unsupervised-learning"
+        / "README.md",
         PROJECT_ROOT / "textbook" / "appendices" / "setup-reference.tex",
     )
 

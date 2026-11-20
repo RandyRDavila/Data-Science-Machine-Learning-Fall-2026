@@ -38,8 +38,12 @@ def test_landscape_distinguishes_unsupervised_problem_families() -> None:
         "silhouette",
         "adjusted rand",
         "external audit",
+        "objective evidence",
+        "stability evidence",
         "arbitrary code",
         "not automatically a scientific discovery",
+        "production",
+        "monitoring",
         "companion student repository",
     ):
         assert concept in narrative
@@ -50,6 +54,7 @@ def test_landscape_distinguishes_unsupervised_problem_families() -> None:
         "silhouette_score",
         "adjusted_rand_score",
         "kneighbors_graph",
+        "connected_components",
         "course_database_path",
     ):
         assert implementation in code
@@ -65,12 +70,17 @@ def test_pca_notebook_derives_geometry_and_measures_supervised_tradeoffs() -> No
         "eigenvector",
         "singular value decomposition",
         "eckart--young--mirsky",
+        "lagrangian",
+        "orthogonal projector",
         "whitening",
         "using training data only",
         "explained variance is not predictive value",
         "accuracy",
         "inference cost",
         "performance gain",
+        "pareto-efficient",
+        "class-level",
+        "production monitoring",
     ):
         assert concept in narrative
     for implementation in (
@@ -81,6 +91,8 @@ def test_pca_notebook_derives_geometry_and_measures_supervised_tradeoffs() -> No
         "Pipeline",
         "KNeighborsClassifier",
         "perf_counter",
+        "confusion_matrix",
+        "held_out_mse",
         "cross_val_score",
     ):
         assert implementation in code
@@ -112,3 +124,18 @@ def test_pca_lesson_keeps_fitted_transformations_inside_the_pipeline() -> None:
     assert "train_test_split" in code
     assert "pixels_train" in code
     assert "pixels_test" in code
+
+
+def test_mathematical_notation_retains_renderable_delimiters() -> None:
+    landscape = notebook_text(NOTEBOOKS[0], "markdown")
+    pca = notebook_text(NOTEBOOKS[1], "markdown")
+
+    assert "$K$-means" in landscape
+    assert "$z_i\\in\\mathbb{R}^p$" in landscape
+    assert "$X\\in\\mathbb{R}^{n\\times p}$" in pca
+    assert "$V_k\\in\\mathbb{R}^{p\\times k}$" in pca
+    assert "\\begin{aligned}" in pca
+
+    for malformed in ("(K)-means", "(X\\in", "(V_k\\in", "(z_i\\in"):
+        assert malformed not in landscape
+        assert malformed not in pca

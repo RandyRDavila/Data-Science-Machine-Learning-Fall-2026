@@ -135,7 +135,22 @@ def test_mathematical_notation_retains_renderable_delimiters() -> None:
     assert "$X\\in\\mathbb{R}^{n\\times p}$" in pca
     assert "$V_k\\in\\mathbb{R}^{p\\times k}$" in pca
     assert "\\begin{aligned}" in pca
+    assert "$$" in landscape
+    assert "$$" in pca
+    assert "\\[" not in landscape
+    assert "\\]" not in landscape
+    assert "\\[" not in pca
+    assert "\\]" not in pca
 
     for malformed in ("(K)-means", "(X\\in", "(V_k\\in", "(z_i\\in"):
         assert malformed not in landscape
         assert malformed not in pca
+
+    for path in NOTEBOOKS:
+        notebook = nbformat.read(path, as_version=4)
+        for cell in notebook.cells:
+            if cell.cell_type != "markdown":
+                continue
+            assert cell.source.count("$$") % 2 == 0
+            inline_source = cell.source.replace("$$", "")
+            assert inline_source.count("$") % 2 == 0
